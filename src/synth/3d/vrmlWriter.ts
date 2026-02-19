@@ -57,8 +57,7 @@ function triangulateShape(oc: OC, shape: any): TriMesh {
         const location = new oc.TopLoc_Location_1();
         const handleTri = oc.BRep_Tool.Triangulation(
             face,
-            location,
-            0 as any, // Poly_MeshPurpose_NONE
+            location
         );
 
         if (!handleTri.IsNull()) {

@@ -8,6 +8,7 @@ export interface CircuitSnapshot {
   name: string;
   components: Component<any>[];
   nets: Net[];
+  placementAlgorithm?: import("../synth/types").PlacementAlgorithm;
 }
 
 /**

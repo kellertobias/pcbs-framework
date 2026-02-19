@@ -51,6 +51,20 @@ export interface PcbPosition {
   side?: "front" | "back";
 }
 
+/** Common interface for items that can be positioned in a layout */
+export interface LayoutItem {
+  schematicPosition?: SchematicPosition;
+  readonly ref: string;
+}
+
+/** Interface for layout algorithms */
+export interface ILayout {
+  apply(items: LayoutItem[]): void;
+}
+
+/** Placement algorithms supported by circuit-synth */
+export type PlacementAlgorithm = "hierarchical" | "force_directed" | "linear" | "none";
+
 /** Options for Net constructor */
 export interface NetOptions {
   name: string;
@@ -75,6 +89,8 @@ export interface ComposableOptions {
   description?: string;
   schematicPosition?: SchematicPosition;
   pcbPosition?: PcbPosition;
+  /** Optional layout to apply to internal components */
+  layout?: ILayout;
 }
 
 /** Options for Module constructor (extends Component) */
@@ -83,6 +99,10 @@ export interface ModuleOptions extends ComponentOptions { }
 /** Options for Schematic constructor */
 export interface SchematicOptions {
   name: string;
+  /** Optional layout to apply to top-level components */
+  layout?: ILayout;
+  /** The algorithm used by circuit-synth for automatic placement. Defaults to "hierarchical". */
+  placementAlgorithm?: PlacementAlgorithm;
 }
 
 /**

@@ -18,6 +18,7 @@ export { DNC, TP } from "@tobisk-pcb/framework/Markers";
 export { KicadFootprint } from "@tobisk-pcb/framework/KicadFootprint";
 export { KicadSymbol } from "@tobisk-pcb/framework/KicadSymbol";
 export { KicadLibrary } from "@tobisk-pcb/framework/KicadLibrary";
+export { HBoxLayout, VBoxLayout, Layout } from "@tobisk-pcb/framework/Layout";
 export { generatePython, CircuitSnapshot } from "@tobisk-pcb/cli/codegen";
 export { runSynthesis } from "@tobisk-pcb/cli/synthesis";
 

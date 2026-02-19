@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # circuit-synth will create the folder if it doesn't exist
     result = circuit_obj.generate_kicad_project(
         project_name=${pyStr(outputDir)},
-        placement_algorithm="hierarchical",
+        placement_algorithm=${pyStr(snapshot.placementAlgorithm || "hierarchical")},
         generate_pcb=False,
         force_regenerate=True,
     )

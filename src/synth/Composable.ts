@@ -1,6 +1,7 @@
 import { Pin, ComposableOptions, PinProxy, PinAssignable, SchematicPosition, PcbPosition } from "@tobisk-pcb/framework/types";
 import { Net } from "@tobisk-pcb/framework/Net";
 import { createPinProxy } from "@tobisk-pcb/framework/Component";
+import { registry } from "@tobisk-pcb/framework/Registry";
 
 /**
  * Represents a reusable building block — a sub-circuit composed of
@@ -49,6 +50,7 @@ export abstract class Composable<InterfaceNets extends string = string> {
   private _pinStore = new Map<string, Pin>();
   private _interfaceInitialized = false;
   private _pinProxy: PinProxy<InterfaceNets>;
+  private _layout?: import("./types").ILayout;
 
   constructor(options: ComposableOptions) {
     this.ref = options.ref;
@@ -56,11 +58,14 @@ export abstract class Composable<InterfaceNets extends string = string> {
     this.schematicPosition = options.schematicPosition;
     this.pcbPosition = options.pcbPosition;
     this.parent = Composable.activeComposable;
+    this._layout = options.layout;
 
     this._pinProxy = createPinProxy<InterfaceNets>(
       { ref: this.ref, symbol: `Composable:${this.ref}` },
       this._pinStore
     );
+
+    registry.registerComposable(this);
   }
 
   /**
@@ -85,11 +90,20 @@ export abstract class Composable<InterfaceNets extends string = string> {
 
     const prevActive = Composable.activeComposable;
     Composable.activeComposable = this;
+
     let iface: Record<InterfaceNets, PinAssignable>;
     try {
       iface = this.defineInterface();
     } finally {
+      // Get all items from registry and filter for direct children to maintain order
+      const children = registry.getItems().filter((c: any) => c.parent === this);
+
       Composable.activeComposable = prevActive;
+
+      // Apply layout if defined
+      if (this._layout) {
+        this._layout.apply(children);
+      }
     }
 
     for (const [name, value] of Object.entries(iface)) {

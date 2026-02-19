@@ -1,4 +1,4 @@
-import { SchematicOptions } from "@tobisk-pcb/framework/types";
+import { SchematicOptions, PlacementAlgorithm } from "@tobisk-pcb/framework/types";
 import { registry } from "@tobisk-pcb/framework/Registry";
 import { Component } from "@tobisk-pcb/framework/Component";
 import { Net } from "@tobisk-pcb/framework/Net";
@@ -23,19 +23,34 @@ import { Net } from "@tobisk-pcb/framework/Net";
  */
 export abstract class Schematic {
   readonly name: string;
+  private _layout?: import("./Layout").Layout;
+  private _placementAlgorithm?: PlacementAlgorithm;
 
   constructor(options: SchematicOptions) {
     this.name = options.name;
+    this._layout = options.layout;
+    this._placementAlgorithm = options.placementAlgorithm;
   }
 
   /** Generate the circuit — define all nets, components, and connections. */
   abstract generate(): void;
 
   /** @internal Generate and capture registered objects */
-  _generateWithCapture(): { name: string; components: Component<any>[]; nets: Net[] } {
+  _generateWithCapture(): {
+    name: string;
+    components: Component<any>[];
+    nets: Net[];
+    placementAlgorithm?: PlacementAlgorithm;
+  } {
     registry.start();
     try {
       this.generate();
+
+      const topLevelItems = registry.getItems().filter((c: any) => !c.parent);
+
+      if (this._layout) {
+        this._layout.apply(topLevelItems);
+      }
     } finally {
       registry.stop();
     }
@@ -43,6 +58,7 @@ export abstract class Schematic {
       name: this.name,
       components: registry.getComponents(),
       nets: registry.getNets(),
+      placementAlgorithm: this._placementAlgorithm,
     };
   }
 }

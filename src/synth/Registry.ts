@@ -9,13 +9,17 @@ import type { Net } from "@tobisk-pcb/framework/Net";
 
 export class Registry {
     private components: Component<any>[] = [];
+    private composables: any[] = [];
     private nets: Net[] = [];
+    private items: any[] = [];
     private active = false;
 
     /** Start tracking. Clear any previous state. */
     start() {
         this.components = [];
+        this.composables = [];
         this.nets = [];
+        this.items = [];
         this.active = true;
     }
 
@@ -28,6 +32,15 @@ export class Registry {
     registerComponent(comp: Component<any>) {
         if (this.active) {
             this.components.push(comp);
+            this.items.push(comp);
+        }
+    }
+
+    /** Register a composable. */
+    registerComposable(composable: any) {
+        if (this.active) {
+            this.composables.push(composable);
+            this.items.push(composable);
         }
     }
 
@@ -48,6 +61,16 @@ export class Registry {
     /** Get all registered components. */
     getComponents() {
         return this.components;
+    }
+
+    /** Get all registered composables. */
+    getComposables() {
+        return this.composables;
+    }
+
+    /** Get all registered items in order. */
+    getItems() {
+        return this.items;
     }
 
     /** Get all registered nets. */

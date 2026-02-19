@@ -42,7 +42,7 @@ export function makeBox(oc: OC, opts: BoxOptions): any {
         maker = new oc.BRepPrimAPI_MakeBox_2(x, y, z);
     }
 
-    const shape = maker.Shape();
+    const shape = (maker as any).Shape();
     maker.delete();
     return shape;
 }
@@ -52,7 +52,7 @@ export function makeBox(oc: OC, opts: BoxOptions): any {
  */
 export function makeSphere(oc: OC, opts: SphereOptions): any {
     const maker = new oc.BRepPrimAPI_MakeSphere_1(opts.r);
-    const shape = maker.Shape();
+    const shape = (maker as any).Shape();
     maker.delete();
     return shape;
 }
@@ -64,7 +64,7 @@ export function makeSphere(oc: OC, opts: SphereOptions): any {
 export function makeCylinder(oc: OC, opts: CylinderOptions): any {
     const { r, h, center } = opts;
     const maker = new oc.BRepPrimAPI_MakeCylinder_1(r, h);
-    let shape = maker.Shape();
+    let shape = (maker as any).Shape();
     maker.delete();
 
     if (center) {

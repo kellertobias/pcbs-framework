@@ -12,7 +12,7 @@
   "main": "./dist/src/synth/index.js",
   "types": "./dist/src/synth/index.d.ts",
   "bin": {
-    "circuit-synth": "./dist/src/cli/cli.js"
+    "pcb": "./dist/src/cli/cli.js"
   },
   "files": [
     "dist",

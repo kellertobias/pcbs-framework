@@ -4,7 +4,9 @@
  * Caches the OC instance after first init to avoid re-loading the WASM binary.
  * Safe for repeated calls from tests and CLI.
  */
-import type { OpenCascadeInstance } from "opencascade.js/dist/node";
+import { initOpenCascade } from "opencascade.js";
+
+type OpenCascadeInstance = Awaited<ReturnType<typeof initOpenCascade>>;
 
 let _oc: OpenCascadeInstance | null = null;
 let _initPromise: Promise<OpenCascadeInstance> | null = null;
@@ -54,8 +56,8 @@ export async function initOCC(): Promise<OpenCascadeInstance> {
     if (_initPromise) return _initPromise;
 
     _initPromise = (async () => {
-        const mod = await esmImport("opencascade.js/dist/node");
-        const initOpenCascade = mod.default;
+        const mod = await esmImport("opencascade.js");
+        const initOpenCascade = mod.initOpenCascade;
         _oc = await initOpenCascade();
         return _oc!;
     })();
