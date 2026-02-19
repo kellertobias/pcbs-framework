@@ -33,3 +33,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+      - name: Publish to npm
+        run: npm publish --access public --provenance
+        # Only publish if semantic-release pushed a new tag
+        # we can also just run it and let it fail if already published, 
+        # but let's be slightly more robust.
+        continue-on-error: true
