@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/kellertobias/pcbs-framework/compare/v1.0.0...v1.1.0) (2026-02-19)
+
+
+### Bug Fixes
+
+* fix package lock file ([410bd47](https://github.com/kellertobias/pcbs-framework/commit/410bd47115527435bf046f7b636800e226436f75))
+
+
+### Features
+
+* disable npm publishing in semantic-release config and add an explicit npm publish step to the release workflow. ([c4a0106](https://github.com/kellertobias/pcbs-framework/commit/c4a010616f60e5d1eec186291fd8b39c5ddb05ad))
+
 # 1.0.0 (2026-02-19)
 
 
