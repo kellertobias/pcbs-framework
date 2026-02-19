@@ -54,7 +54,8 @@ if __name__ == "__main__":
   const systemLib = "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols";
 
   // Set KICAD_SYMBOL_DIR and PYTHONPATH
-  env.KICAD_SYMBOL_DIR = `${localLib}:${kicadLib}:${systemLib}`;
+  const testSyms = path.join(projectRoot, "src", "tests", "assets", "symbols");
+  env.KICAD_SYMBOL_DIR = `${localLib}:${kicadLib}:${testSyms}:${systemLib}`;
   env.PYTHONPATH = `${projectRoot}:${process.env.PYTHONPATH || ""}`;
 
   const res = spawnSync(pythonPath, ["-c", fullCode], {
@@ -71,7 +72,7 @@ if __name__ == "__main__":
   const jsonMatch = output.match(/RES:({.*})/);
   const synthResult = jsonMatch ? JSON.parse(jsonMatch[1]) : null;
 
-  const success = res.status === 0 && (!synthResult || synthResult.success);
+  const success = res.status === 0 && (synthResult ? synthResult.success : true);
 
   if (success) {
     // Generate library tables in the project directory
