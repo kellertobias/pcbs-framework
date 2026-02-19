@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "TypeScript-based PCB Design Framework",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kellertobias/pcbs-framework.git"
+    "url": "git+https://github.com/kellertobias/pcbs-framework.git"
   },
   "main": "./dist/src/synth/index.js",
   "types": "./dist/src/synth/index.d.ts",
