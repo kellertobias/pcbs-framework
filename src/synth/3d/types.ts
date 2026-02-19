@@ -3,7 +3,7 @@
  * All dimensions are in millimeters.
  */
 
-import { initOpenCascade } from "opencascade.js";
+import type { initOpenCascade } from "opencascade.js";
 export type OpenCascadeInstance = Awaited<ReturnType<typeof initOpenCascade>>;
 
 // Re-export for convenience

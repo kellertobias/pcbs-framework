@@ -124,7 +124,7 @@ export class Kicad3DModel {
         if (!this._oc) {
             this._oc = await initOCC();
         }
-        return this._oc;
+        return this._oc!;
     }
 
     /** Set the OCC instance directly (useful in tests to avoid re-init). */

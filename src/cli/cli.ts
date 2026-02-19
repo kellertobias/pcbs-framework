@@ -6,13 +6,13 @@
 
 import "ts-node/register";
 import "tsconfig-paths/register";
-import { ensurePythonEnv } from "@tobisk-pcb/cli/env";
-import { cmdSynth } from "@tobisk-pcb/cli/commands/synth";
-import { cmdExport } from "@tobisk-pcb/cli/commands/export";
-import { cmdParts } from "@tobisk-pcb/cli/commands/parts";
-import { cmdLib } from "@tobisk-pcb/cli/commands/lib";
-import { cmdTypes } from "@tobisk-pcb/cli/commands/types";
-import { cmdSetup } from "@tobisk-pcb/cli/commands/setup";
+import { ensurePythonEnv } from "./env";
+import { cmdSynth } from "./commands/synth";
+import { cmdExport } from "./commands/export";
+import { cmdParts } from "./commands/parts";
+import { cmdLib } from "./commands/lib";
+import { cmdTypes } from "./commands/types";
+import { cmdSetup } from "./commands/setup";
 
 // Parse args for --root early to configure environment
 for (let i = 0; i < process.argv.length; i++) {

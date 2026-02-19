@@ -1,8 +1,6 @@
 
-import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import fs from 'fs';
+import { dirname } from 'path';
 
 /**
  * Custom OpenCascade initializer that avoids using 'import' for WASM files,
@@ -11,9 +9,9 @@ import fs from 'fs';
 export const initOpenCascade = async (options: any = {}) => {
     const { module = {}, libs = [] } = options;
 
-    const require = createRequire(import.meta.url);
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
+    // Standard CommonJS doesn't need createRequire, but we keep the logic
+    // for compatibility with how it was originally structured.
+    // In Node.js CJS, require, __filename, and __dirname are already available.
 
     console.log('[occ-loader] Setting up polyfills...');
     // @ts-ignore
@@ -23,10 +21,14 @@ export const initOpenCascade = async (options: any = {}) => {
     // @ts-ignore
     globalThis.require = require;
 
-    console.log('[occ-loader] Importing opencascade.js glue code...');
-    // Dynamic import to ensure polyfills are set BEFORE execution
-    // @ts-ignore
-    const ocMainJS = (await import('opencascade.js/dist/opencascade.js')).default;
+    console.log('[occ-loader] Importing opencascade.js glue code via string-eval...');
+    const ocMainJSPath = require.resolve('opencascade.js/dist/opencascade.js');
+    const ocMainJSCode = fs.readFileSync(ocMainJSPath, 'utf8');
+
+    // The opencascade.js glue code is an IIFE followed by "export default Module;"
+    // We strip the export and eval the rest to get the Module constructor.
+    const patchedCode = ocMainJSCode.replace('export default Module;', 'Module');
+    const ocMainJS = eval(patchedCode);
 
     console.log('[occ-loader] Reading main WASM binary...');
     const wasmPath = require.resolve('opencascade.js/dist/opencascade.wasm');
@@ -35,7 +37,7 @@ export const initOpenCascade = async (options: any = {}) => {
     console.log('[occ-loader] Instantiating OpenCascade module...');
     return new Promise((resolve, reject) => {
         try {
-            const ocModule = new ocMainJS({
+            const ocModule = new (ocMainJS as any)({
                 wasmBinary: wasmBinary,
                 locateFile: (path: string) => {
                     // This is still used by internally by ocMainJS if it needs other files
