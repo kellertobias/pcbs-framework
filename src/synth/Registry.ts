@@ -4,8 +4,8 @@
  * Tracks all components and nets created during schematic generation.
  */
 
-import type { Component } from "@tobisk-pcb/framework/Component";
-import type { Net } from "@tobisk-pcb/framework/Net";
+import type { Component } from "@tobisk/pcbs/Component";
+import type { Net } from "@tobisk/pcbs/Net";
 
 export class Registry {
     private components: Component<any>[] = [];

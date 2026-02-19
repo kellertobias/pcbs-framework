@@ -1,8 +1,8 @@
-import { Pin, SymbolName, FootprintName, PinProxy, PinAssignable, ComponentOptions, PinMapFn, SchematicPosition, PcbPosition } from "@tobisk-pcb/framework/types";
-import { Composable } from "@tobisk-pcb/framework/Composable";
-import { KicadLibrarySymbol, KicadLibraryFootprint } from "@tobisk-pcb/framework/kicad-types";
-import { Net } from "@tobisk-pcb/framework/Net";
-import { registry } from "@tobisk-pcb/framework/Registry";
+import { Pin, SymbolName, FootprintName, PinProxy, PinAssignable, ComponentOptions, PinMapFn, SchematicPosition, PcbPosition } from "@tobisk/pcbs/types";
+import { Composable } from "@tobisk/pcbs/Composable";
+import { KicadLibrarySymbol, KicadLibraryFootprint } from "@tobisk/pcbs/kicad-types";
+import { Net } from "@tobisk/pcbs/Net";
+import { registry } from "@tobisk/pcbs/Registry";
 
 /**
  * Creates a Proxy that provides typed pin access on a component or composable.

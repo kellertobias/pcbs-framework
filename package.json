@@ -1,5 +1,5 @@
 {
-  "name": "@tobisk/pcb",
+  "name": "@tobisk/pcbs",
   "version": "1.0.0",
   "description": "TypeScript-based PCB Design Framework",
   "publishConfig": {

@@ -1,7 +1,7 @@
-import { SchematicOptions, PlacementAlgorithm } from "@tobisk-pcb/framework/types";
-import { registry } from "@tobisk-pcb/framework/Registry";
-import { Component } from "@tobisk-pcb/framework/Component";
-import { Net } from "@tobisk-pcb/framework/Net";
+import { SchematicOptions, PlacementAlgorithm } from "@tobisk/pcbs/types";
+import { registry } from "@tobisk/pcbs/Registry";
+import { Component } from "@tobisk/pcbs/Component";
+import { Net } from "@tobisk/pcbs/Net";
 
 /**
  * Abstract base class for all schematics.

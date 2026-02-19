@@ -1,8 +1,8 @@
 import * as path from "path";
 import * as fs from "fs";
 import { execSync } from "child_process";
-import { getConfig } from "@tobisk-pcb/cli/config";
-import { die } from "@tobisk-pcb/cli/utils";
+import { getConfig } from "@tobisk/pcbs/cli/config";
+import { die } from "@tobisk/pcbs/cli/utils";
 
 /**
  * validate: Verify that the generated KiCad libraries are valid and parsable.

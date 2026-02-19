@@ -1,5 +1,5 @@
-import { Pin, NetOptions, NetClass, PinAssignable } from "@tobisk-pcb/framework/types";
-import { registry } from "@tobisk-pcb/framework/Registry";
+import { Pin, NetOptions, NetClass, PinAssignable } from "@tobisk/pcbs/types";
+import { registry } from "@tobisk/pcbs/Registry";
 
 /**
  * Represents an electrical net (connection) in a circuit.

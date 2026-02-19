@@ -27,7 +27,7 @@ function printHelp(): void {
 PCB Framework CLI
 
 Usage:
-  npx @tobisk/pcb <command> [options]
+  npx @tobisk/pcbs <command> [options]
 
 Commands:
   synth [entry]                  Synthesize a schematic to KiCad project
@@ -43,11 +43,11 @@ Schematic Selection:
   available schematics from src/schematics/ is shown.
 
 Examples:
-  npx @tobisk/pcb synth my_board
-  npx @tobisk/pcb synth ./src/schematics/my_board/index.ts
-  npx @tobisk/pcb export my_board
-  npx @tobisk/pcb parts --footprint 0603 --value 10k
-  npx @tobisk/pcb parts
+  npx @tobisk/pcbs synth my_board
+  npx @tobisk/pcbs synth ./src/schematics/my_board/index.ts
+  npx @tobisk/pcbs export my_board
+  npx @tobisk/pcbs parts --footprint 0603 --value 10k
+  npx @tobisk/pcbs parts
 `);
 }
 

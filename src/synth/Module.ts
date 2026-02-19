@@ -1,8 +1,8 @@
-import { ModuleOptions, PinMapFn } from "@tobisk-pcb/framework/types";
-import { Component } from "@tobisk-pcb/framework/Component";
-import { KicadSymbol } from "@tobisk-pcb/framework/KicadSymbol";
-import { KicadFootprint } from "@tobisk-pcb/framework/KicadFootprint";
-import type { Kicad3DModel } from "@tobisk-pcb/framework/3d";
+import { ModuleOptions, PinMapFn } from "@tobisk/pcbs/types";
+import { Component } from "@tobisk/pcbs/Component";
+import { KicadSymbol } from "@tobisk/pcbs/KicadSymbol";
+import { KicadFootprint } from "@tobisk/pcbs/KicadFootprint";
+import type { Kicad3DModel } from "@tobisk/pcbs/3d";
 
 /**
  * A Module is a Component that represents a finished PCB module

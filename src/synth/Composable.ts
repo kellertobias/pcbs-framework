@@ -1,7 +1,7 @@
-import { Pin, ComposableOptions, PinProxy, PinAssignable, SchematicPosition, PcbPosition } from "@tobisk-pcb/framework/types";
-import { Net } from "@tobisk-pcb/framework/Net";
-import { createPinProxy } from "@tobisk-pcb/framework/Component";
-import { registry } from "@tobisk-pcb/framework/Registry";
+import { Pin, ComposableOptions, PinProxy, PinAssignable, SchematicPosition, PcbPosition } from "@tobisk/pcbs/types";
+import { Net } from "@tobisk/pcbs/Net";
+import { createPinProxy } from "@tobisk/pcbs/Component";
+import { registry } from "@tobisk/pcbs/Registry";
 
 /**
  * Represents a reusable building block — a sub-circuit composed of

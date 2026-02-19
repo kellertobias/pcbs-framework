@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as fs from "fs";
-import { getConfig } from "@tobisk-pcb/cli/config";
-import { die } from "@tobisk-pcb/cli/utils";
+import { getConfig } from "@tobisk/pcbs/cli/config";
+import { die } from "@tobisk/pcbs/cli/utils";
 import { cmdValidate } from "./validate";
 
 /**
@@ -23,7 +23,7 @@ export async function cmdLib(args: string[]): Promise<void> {
   const MODELS_3D_DIR = path.join(LIB_DIR, "3d");
   const MODULES_DIR = path.join(sourceRoot, "module");
 
-  const { KicadLibrary } = require("@tobisk-pcb/framework/KicadLibrary");
+  const { KicadLibrary } = require("@tobisk/pcbs/KicadLibrary");
   const mergedLib = new KicadLibrary();
 
   if (!fs.existsSync(MODULES_DIR)) {

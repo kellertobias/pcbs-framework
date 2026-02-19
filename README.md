@@ -1,4 +1,4 @@
-# @tobisk/pcb
+# @tobisk/pcbs
 
 A strict, type-safe TypeScript framework for designing PCBs, powered by [circuit-synth](https://github.com/circuit-synth/circuit-synth).
 
@@ -25,15 +25,15 @@ On top of circuit-synth, we have added:
 ## Usage
 
 ```bash
-npm install @tobisk/pcb
+npm install @tobisk/pcbs
 ```
 
 ### CLI
 
 ```bash
-npx @tobisk/pcb synth <schematic-name>
-npx @tobisk/pcb export <schematic-name>
-npx @tobisk/pcb lib <schematic-name>
+npx @tobisk/pcbs synth <schematic-name>
+npx @tobisk/pcbs export <schematic-name>
+npx @tobisk/pcbs lib <schematic-name>
 ```
 
 Once you have `synth`-ethized your schematic, you can open the kicad schematic file and generate a PCB from it. Every time we synth, we update the schematic and the netlist.
@@ -42,7 +42,7 @@ It could be that the internal IDs of the kicad symbols drift, so when loading a 
 
 ## Project Structure
 
-A typical project using `@tobisk/pcb` is structured into three main directories:
+A typical project using `@tobisk/pcbs` is structured into three main directories:
 
 - `src/lib/`: Reusable, technology-independent building blocks (`Composable`).
 - `src/module/`: Physical components or sub-assemblies with specific footprints (`Module`).
@@ -67,7 +67,7 @@ my-pcb-project/
 `Composable` blocks are reusable circuits that define logic and connectivity without being tied to a single physical package.
 
 ```typescript
-import { Composable, Net, Component, PinAssignable } from "@tobisk/pcb";
+import { Composable, Net, Component, PinAssignable } from "@tobisk/pcbs";
 
 export class LedIndicator extends Composable<"SIGNAL" | "GND"> {
   constructor(options: { ref: string; color?: string }) {
@@ -106,7 +106,7 @@ export class LedIndicator extends Composable<"SIGNAL" | "GND"> {
 `Module` represents a physical component with a specific KiCad symbol and footprint. It can also define a parametric 3D model.
 
 ```typescript
-import { KicadFootprint, KicadSymbol, Module, Kicad3DModel } from "@tobisk/pcb";
+import { KicadFootprint, KicadSymbol, Module, Kicad3DModel } from "@tobisk/pcbs";
 
 export class UsbPowerModule extends Module<"VBUS" | "GND"> {
   constructor(options: { ref?: string }) {
@@ -157,7 +157,7 @@ export class UsbPowerModule extends Module<"VBUS" | "GND"> {
 `Schematic` is where you instantiate modules and composables and wire them together.
 
 ```typescript
-import { Schematic, Net } from "@tobisk/pcb";
+import { Schematic, Net } from "@tobisk/pcbs";
 import { LedIndicator } from "../lib/LedIndicator";
 import { UsbPowerModule } from "../module/UsbPowerModule";
 

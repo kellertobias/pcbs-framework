@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { KicadSymbol } from "@tobisk-pcb/framework/KicadSymbol";
-import { KicadFootprint } from "@tobisk-pcb/framework/KicadFootprint";
+import { KicadSymbol } from "@tobisk/pcbs/KicadSymbol";
+import { KicadFootprint } from "@tobisk/pcbs/KicadFootprint";
 
 /**
  * Merges multiple KicadSymbol and KicadFootprint instances into

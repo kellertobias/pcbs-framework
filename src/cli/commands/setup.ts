@@ -24,7 +24,7 @@ export async function cmdSetup(args: string[]): Promise<void> {
         const packageJsonPath = path.join(projectRoot, "package.json");
         if (fs.existsSync(packageJsonPath)) {
             const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
-            if (pkg.name === "@tobisk/pcb") {
+            if (pkg.name === "@tobisk/pcbs") {
                 console.log("  ℹ️  Framework repository detected. Skipping tsconfig.json path mapping setup.");
                 return;
             }
@@ -38,7 +38,7 @@ export async function cmdSetup(args: string[]): Promise<void> {
             tsconfig.compilerOptions.paths = {};
         }
 
-        const virtualPath = "@tobisk-pcb/framework/kicad-types";
+        const virtualPath = "@tobisk/pcbs/kicad-types";
         const localPath = ["./src/kicad-library.ts"];
 
         // Check if mapping already exists and is correct

@@ -1,5 +1,5 @@
 import * as path from "path";
-import { resolveSchematic, die } from "@tobisk-pcb/cli/utils";
+import { resolveSchematic, die } from "@tobisk/pcbs/cli/utils";
 
 /**
  * synth: Compile TypeScript schematic → circuit-synth Python → run synthesis
@@ -26,9 +26,9 @@ export async function cmdSynth(args: string[]): Promise<void> {
     console.log(`  ✅ Circuit generation complete.`);
 
     console.log(`  → Compiling to circuit-synth Python & executing...`);
-    const { generatePython } = require("@tobisk-pcb/cli/codegen");
-    const { runSynthesis } = require("@tobisk-pcb/cli/synthesis");
-    
+    const { generatePython } = require("@tobisk/pcbs/cli/codegen");
+    const { runSynthesis } = require("@tobisk/pcbs/cli/synthesis");
+
     const snapshot = schematic._generateWithCapture();
     const result = runSynthesis(snapshot, schematicDir);
 

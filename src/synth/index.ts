@@ -5,24 +5,24 @@
  */
 
 // Core types
-export { Pin, NetClass, NetOptions, ComponentOptions, ComposableOptions, ModuleOptions, SchematicOptions, PinProxy, PinAssignable, PinMapFn, SymbolName, FootprintName, SchematicPosition, PcbPosition } from "@tobisk-pcb/framework/types";
-export { Registry } from "@tobisk-pcb/framework/Registry";
+export { Pin, NetClass, NetOptions, ComponentOptions, ComposableOptions, ModuleOptions, SchematicOptions, PinProxy, PinAssignable, PinMapFn, SymbolName, FootprintName, SchematicPosition, PcbPosition } from "@tobisk/pcbs/types";
+export { Registry } from "@tobisk/pcbs/Registry";
 
 // Classes
-export { Schematic } from "@tobisk-pcb/framework/Schematic";
-export { Net } from "@tobisk-pcb/framework/Net";
-export { Component } from "@tobisk-pcb/framework/Component";
-export { Composable } from "@tobisk-pcb/framework/Composable";
-export { Module } from "@tobisk-pcb/framework/Module";
-export { DNC, TP } from "@tobisk-pcb/framework/Markers";
-export { KicadFootprint } from "@tobisk-pcb/framework/KicadFootprint";
-export { KicadSymbol } from "@tobisk-pcb/framework/KicadSymbol";
-export { KicadLibrary } from "@tobisk-pcb/framework/KicadLibrary";
-export { HBoxLayout, VBoxLayout, Layout } from "@tobisk-pcb/framework/Layout";
-export { generatePython, CircuitSnapshot } from "@tobisk-pcb/cli/codegen";
-export { runSynthesis } from "@tobisk-pcb/cli/synthesis";
+export { Schematic } from "@tobisk/pcbs/Schematic";
+export { Net } from "@tobisk/pcbs/Net";
+export { Component } from "@tobisk/pcbs/Component";
+export { Composable } from "@tobisk/pcbs/Composable";
+export { Module } from "@tobisk/pcbs/Module";
+export { DNC, TP } from "@tobisk/pcbs/Markers";
+export { KicadFootprint } from "@tobisk/pcbs/KicadFootprint";
+export { KicadSymbol } from "@tobisk/pcbs/KicadSymbol";
+export { KicadLibrary } from "@tobisk/pcbs/KicadLibrary";
+export { HBoxLayout, VBoxLayout, Layout } from "@tobisk/pcbs/Layout";
+export { generatePython, CircuitSnapshot } from "@tobisk/pcbs/cli/codegen";
+export { runSynthesis } from "@tobisk/pcbs/cli/synthesis";
 
 // 3D model pipeline
-export { Kicad3DModel, SolidBuilder } from "@tobisk-pcb/framework/3d";
-export type { Model3DLink, ExportOptions, ExportResult, Vec3, ColorRGBA } from "@tobisk-pcb/framework/3d";
+export { Kicad3DModel, SolidBuilder } from "@tobisk/pcbs/3d";
+export type { Model3DLink, ExportOptions, ExportResult, Vec3, ColorRGBA } from "@tobisk/pcbs/3d";
 
