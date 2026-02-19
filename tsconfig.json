@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "dist",
+    "rootDir": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@tobisk-pcb/framework": ["src/synth/index.ts"],
+      "@tobisk-pcb/framework/*": ["src/synth/*"],
+      "@tobisk-pcb/cli": ["src/cli/cli.ts"],
+      "@tobisk-pcb/cli/*": ["src/cli/*"],
+      "@tobisk-pcb": ["src/index.ts"],
+      "@tobisk-pcb/*": ["src/*"]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".venv"
+  ]
+}

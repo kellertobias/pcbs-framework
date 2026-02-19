@@ -1,0 +1,42 @@
+{
+  "name": "@tobisk/pcb",
+  "version": "1.0.0",
+  "description": "TypeScript-based PCB Design Framework",
+  "main": "./dist/src/synth/index.js",
+  "types": "./dist/src/synth/index.d.ts",
+  "bin": {
+    "circuit-synth": "./dist/src/cli/cli.js"
+  },
+  "files": [
+    "dist",
+    "scripts"
+  ],
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "kicad",
+    "typescript",
+    "pcb"
+  ],
+  "author": "Tobias S. Keller",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "biome": "^0.3.3",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "opencascade.js": "^2.0.0-beta.b5ff984",
+    "vite-tsconfig-paths": "^6.1.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0"
+  }
+}

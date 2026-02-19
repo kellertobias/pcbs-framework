@@ -1,0 +1,32 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# KiCad temporary and cache files
+*.kicad_prl
+*-backups/
+fp-info-cache
+
+# KiCad lock files
+*.lck
+*_autosave*
+*autosave*
+node_modules
+
+# Debug files
+**/debug_out/
+debug*.kicad/
+.kicad/
+tmp/
+# Manufacturing files
+**/schematics/**/jlcpcb/
+**/schematics/**/zip/
+*.zip
+.DS_Store

@@ -1,0 +1,48 @@
+import { SchematicOptions } from "@tobisk-pcb/framework/types";
+import { registry } from "@tobisk-pcb/framework/Registry";
+import { Component } from "@tobisk-pcb/framework/Component";
+import { Net } from "@tobisk-pcb/framework/Net";
+
+/**
+ * Abstract base class for all schematics.
+ * 
+ * A schematic defines a complete circuit design composed of
+ * Nets, Components, Composables, and Modules.
+ * 
+ * @example
+ * ```ts
+ * class MyBoard extends Schematic {
+ *   generate() {
+ *     const vcc = new Net({ name: "VCC", class: "Power" });
+ *     const r1 = new Component({ symbol: "Device:R", ref: "R1", footprint: "..." });
+ *     r1.pins.A = vcc;
+ *   }
+ * }
+ * export default new MyBoard({ name: "MyBoard" });
+ * ```
+ */
+export abstract class Schematic {
+  readonly name: string;
+
+  constructor(options: SchematicOptions) {
+    this.name = options.name;
+  }
+
+  /** Generate the circuit — define all nets, components, and connections. */
+  abstract generate(): void;
+
+  /** @internal Generate and capture registered objects */
+  _generateWithCapture(): { name: string; components: Component<any>[]; nets: Net[] } {
+    registry.start();
+    try {
+      this.generate();
+    } finally {
+      registry.stop();
+    }
+    return {
+      name: this.name,
+      components: registry.getComponents(),
+      nets: registry.getNets(),
+    };
+  }
+}
