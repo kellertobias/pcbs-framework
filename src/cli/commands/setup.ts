@@ -18,10 +18,17 @@ export async function cmdSetup(args: string[]): Promise<void> {
 
     try {
         const tsconfigRaw = fs.readFileSync(tsconfigPath, "utf-8");
-        // Simple regex-based parsing/manipulation to preserve comments if possible, 
-        // though JSON.parse is safer for structure. 
-        // We'll use JSON.parse and then write back with indentation.
         const tsconfig = JSON.parse(tsconfigRaw);
+
+        // Don't update tsconfig if we are in the framework repo itself
+        const packageJsonPath = path.join(projectRoot, "package.json");
+        if (fs.existsSync(packageJsonPath)) {
+            const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+            if (pkg.name === "@tobisk/pcb") {
+                console.log("  ℹ️  Framework repository detected. Skipping tsconfig.json path mapping setup.");
+                return;
+            }
+        }
 
         if (!tsconfig.compilerOptions) {
             tsconfig.compilerOptions = {};
