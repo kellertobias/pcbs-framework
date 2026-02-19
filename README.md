@@ -15,8 +15,6 @@ On top of circuit-synth, we have added:
 - Manage 3d visualisations of the footprints
 - Type Safety
 
-... and I actually prefer typescript over python.
-
 ## Features
 
 - **Type-Safe Design**: leveraging TypeScript to ensure correct connectivity and component logic.
