@@ -5,5 +5,10 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     include: ["framework/tests/**/*.test.ts", "src/**/*.test.ts"],
+    server: {
+      deps: {
+        external: ["opencascade.js"],
+      },
+    },
   },
 });

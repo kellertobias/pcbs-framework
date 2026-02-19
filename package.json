@@ -23,7 +23,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
-    "postinstall": "node ./dist/src/cli/cli.js setup"
+    "postinstall": "ts-node -P tsconfig.json ./src/cli/cli.ts setup"
   },
   "keywords": [
     "kicad",
