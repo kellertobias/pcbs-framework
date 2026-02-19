@@ -27,9 +27,9 @@ export function filletAllEdges(oc: OC, shape: any, radius: number): any {
     }
     explorer.delete();
 
-    const pr = new oc.Message_ProgressRange_1();
-    (mkFillet as any).Build(pr);
-    pr.delete();
+    
+    (mkFillet as any).Build();
+    
 
     const result = (mkFillet as any).Shape();
     mkFillet.delete();
@@ -69,9 +69,9 @@ export function filletEdgesByIndex(
     }
     explorer.delete();
 
-    const pr = new oc.Message_ProgressRange_1();
-    (mkFillet as any).Build(pr);
-    pr.delete();
+    
+    (mkFillet as any).Build();
+    
 
     const result = (mkFillet as any).Shape();
     mkFillet.delete();
