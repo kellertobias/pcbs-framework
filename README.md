@@ -2,6 +2,19 @@
 
 A strict, type-safe TypeScript framework for designing PCBs, powered by [circuit-synth](https://github.com/circuit-synth/circuit-synth).
 
+This is a framework I have built around circuit-synth to better suit my workflow.
+
+The problem to solve here is that while circuit-synth is awesome, it only manages circuits and since it's python it's not type safe.
+
+I needed a way to also manage custom footprints and ideally generate them by uploading a picture or describing them to the AI.
+
+On top of circuit-synth, we have added:
+- Manage Footprints, Symbols
+- Manage 3d visualisations of the footprints
+- Type Safety
+
+... and I actually prefer typescript over python.
+
 ## Features
 
 - **Type-Safe Design**: leveraging TypeScript to ensure correct connectivity and component logic.
@@ -22,6 +35,11 @@ npx @tobisk/pcb synth <schematic-name>
 npx @tobisk/pcb export <schematic-name>
 npx @tobisk/pcb lib <schematic-name>
 ```
+
+Once you have `synth`-ethized your schematic, you can open the kicad schematic file and generate a PCB from it. Every time we synth, we update the schematic and the netlist.
+
+It could be that the internal IDs of the kicad symbols drift, so when loading a new netlist in the PCB editor and the positions change, undo the loading and select the "Match by Reference" and re-import the net.
+
 ## Project Structure
 
 A typical project using `@tobisk/pcb` is structured into three main directories:
