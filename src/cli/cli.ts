@@ -11,6 +11,8 @@ import { cmdSynth } from "@tobisk-pcb/cli/commands/synth";
 import { cmdExport } from "@tobisk-pcb/cli/commands/export";
 import { cmdParts } from "@tobisk-pcb/cli/commands/parts";
 import { cmdLib } from "@tobisk-pcb/cli/commands/lib";
+import { cmdTypes } from "@tobisk-pcb/cli/commands/types";
+import { cmdSetup } from "@tobisk-pcb/cli/commands/setup";
 
 // Parse args for --root early to configure environment
 for (let i = 0; i < process.argv.length; i++) {
@@ -33,6 +35,8 @@ Commands:
   parts [--footprint <fp>] [--value <val>]
                                  Search JLC Parts for components
   lib [module ...]               Generate/update KiCad library from TS modules
+  types                          Sync KiCad library symbols and footprints to TS types
+  setup                          Configure project tsconfig.json for KiCad types
 
 Schematic Selection:
   If no entry is provided for synth/export, an interactive list of
@@ -64,6 +68,10 @@ async function main(): Promise<void> {
       return cmdParts(commandArgs);
     case "lib":
       return cmdLib(commandArgs);
+    case "types":
+      return cmdTypes(commandArgs);
+    case "setup":
+      return cmdSetup(commandArgs);
     case "--help":
     case "-h":
     case "help":

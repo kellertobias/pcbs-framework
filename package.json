@@ -22,7 +22,8 @@
     "build": "tsc && tsc-alias",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "postinstall": "node ./dist/src/cli/cli.js setup"
   },
   "keywords": [
     "kicad",

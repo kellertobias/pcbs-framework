@@ -15,7 +15,7 @@ let configCache: Config | null = null;
 export function getConfig(): Config {
     if (configCache) return configCache;
 
-    const cwd = process.cwd();
+    const cwd = process.env.INIT_CWD || process.cwd();
     let sourceRoot = cwd;
 
     // 1. Env var

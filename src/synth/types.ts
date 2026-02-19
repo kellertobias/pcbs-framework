@@ -2,7 +2,7 @@
  * Core types for the PCB design framework.
  */
 import type { Net } from "./Net";
-import { KicadLibrarySymbol, KicadLibraryFootprint } from "../types/kicad-library";
+import { KicadLibrarySymbol, KicadLibraryFootprint } from "@tobisk-pcb/framework/kicad-types";
 
 export type SymbolName = KicadLibrarySymbol | `Composable:${string}` | `Project_Symbols:${string}`;
 export type FootprintName = KicadLibraryFootprint | `MountingHole:${string}` | `Composable:${string}` | `Project_Footprints:${string}`;

@@ -16,6 +16,7 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
+      "@tobisk-pcb/framework/kicad-types": ["src/synth/kicad-types-placeholder.ts"],
       "@tobisk-pcb/framework": ["src/synth/index.ts"],
       "@tobisk-pcb/framework/*": ["src/synth/*"],
       "@tobisk-pcb/cli": ["src/cli/cli.ts"],

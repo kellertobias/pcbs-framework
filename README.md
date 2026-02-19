@@ -9,6 +9,8 @@ The problem to solve here is that while circuit-synth is awesome, it only manage
 I needed a way to also manage custom footprints and ideally generate them by uploading a picture or describing them to the AI.
 
 On top of circuit-synth, we have added:
+- Directly export zip files to upload to JLCPCB including the Pick'n'Place csv files
+- add a simple command to let an ai agent search for JLC parts (WIP)
 - Manage Footprints, Symbols
 - Manage 3d visualisations of the footprints
 - Type Safety
