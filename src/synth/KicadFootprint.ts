@@ -47,6 +47,14 @@ export interface FootprintRectOptions {
     width?: number;
 }
 
+export interface FootprintArcOptions {
+    start: { x: number; y: number };
+    mid: { x: number; y: number };
+    end: { x: number; y: number };
+    layer?: FootprintLayer;
+    width?: number;
+}
+
 export interface FootprintTextOptions {
     text: string;
     x: number;
@@ -86,6 +94,15 @@ interface FpLine {
 interface FpRect {
     x1: number; y1: number;
     x2: number; y2: number;
+    layer: string;
+    width: number;
+    uuid: string;
+}
+
+interface FpArc {
+    startX: number; startY: number;
+    midX: number; midY: number;
+    endX: number; endY: number;
     layer: string;
     width: number;
     uuid: string;
@@ -148,6 +165,7 @@ export class KicadFootprint {
     private _pads: FpPad[] = [];
     private _lines: FpLine[] = [];
     private _rects: FpRect[] = [];
+    private _arcs: FpArc[] = [];
     private _texts: FpText[] = [];
     private _model3d?: Model3DLink;
 
@@ -201,6 +219,21 @@ export class KicadFootprint {
             y1: options.y1,
             x2: options.x2,
             y2: options.y2,
+            layer: options.layer ?? "F.SilkS",
+            width: options.width ?? 0.15,
+            uuid: uuid(),
+        });
+        return this;
+    }
+
+    public addArc(options: FootprintArcOptions): this {
+        this._arcs.push({
+            startX: options.start.x,
+            startY: options.start.y,
+            midX: options.mid.x,
+            midY: options.mid.y,
+            endX: options.end.x,
+            endY: options.end.y,
             layer: options.layer ?? "F.SilkS",
             width: options.width ?? 0.15,
             uuid: uuid(),
@@ -262,6 +295,11 @@ export class KicadFootprint {
         // Rectangles (rendered as 4 fp_line segments)
         for (const rect of this._rects) {
             parts.push(this._serializeRect(rect));
+        }
+
+        // Arcs
+        for (const arc of this._arcs) {
+            parts.push(this._serializeArc(arc));
         }
 
         // Texts
@@ -369,6 +407,21 @@ export class KicadFootprint {
             s += `\t)`;
             return s;
         }).join("\n");
+    }
+
+    private _serializeArc(arc: FpArc): string {
+        let s = `\t(fp_arc\n`;
+        s += `\t\t(start ${arc.startX} ${arc.startY})\n`;
+        s += `\t\t(mid ${arc.midX} ${arc.midY})\n`;
+        s += `\t\t(end ${arc.endX} ${arc.endY})\n`;
+        s += `\t\t(stroke\n`;
+        s += `\t\t\t(width ${arc.width})\n`;
+        s += `\t\t\t(type solid)\n`;
+        s += `\t\t)\n`;
+        s += `\t\t(layer "${arc.layer}")\n`;
+        s += `\t\t(uuid "${arc.uuid}")\n`;
+        s += `\t)`;
+        return s;
     }
 
     private _serializeText(text: FpText): string {
