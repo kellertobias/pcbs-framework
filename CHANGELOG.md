@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/kellertobias/pcbs-framework/compare/v1.2.0...v1.3.0) (2026-02-20)
+
+
+### Features
+
+* long holes ([d749d60](https://github.com/kellertobias/pcbs-framework/commit/d749d60f8fa5bed588f2ddf8efd6ac49cd6dad15))
+
 # [1.2.0](https://github.com/kellertobias/pcbs-framework/compare/v1.1.1...v1.2.0) (2026-02-20)
 
 
