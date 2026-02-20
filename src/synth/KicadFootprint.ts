@@ -21,8 +21,8 @@ export interface FootprintPadOptions {
     layers?: string[];
     /** Roundrect radius ratio (0–1), only used when shape is "roundrect" */
     roundrectRatio?: number;
-    /** Drill diameter for through-hole pads */
-    drill?: number;
+    /** Drill diameter for through-hole pads (number for round, {x, y} for oval) */
+    drill?: number | { x: number; y: number };
     /** Drill X offset from pad center */
     drillOffsetX?: number;
     /** Drill Y offset from pad center */
@@ -77,7 +77,7 @@ interface FpPad {
     height: number;
     layers: string[];
     roundrectRatio?: number;
-    drill?: number;
+    drill?: number | { x: number; y: number };
     drillOffsetX?: number;
     drillOffsetY?: number;
     uuid: string;
@@ -167,7 +167,7 @@ export class KicadFootprint {
     private _rects: FpRect[] = [];
     private _arcs: FpArc[] = [];
     private _texts: FpText[] = [];
-    private _model3d?: Model3DLink;
+    private _models3d: Model3DLink[] = [];
 
     constructor(options: {
         name: string;
@@ -258,9 +258,32 @@ export class KicadFootprint {
     /**
      * Link a 3D model file to this footprint.
      * The path should be relative to the footprint file.
+     * Note: For backwards compatibility, this clears existing models and sets only this one.
      */
     public set3DModel(link: Model3DLink): this {
-        this._model3d = link;
+        this._models3d = [link];
+        return this;
+    }
+
+    /**
+     * Add a 3D model file to this footprint.
+     */
+    public add3DModel(link: Model3DLink): this {
+        this._models3d.push(link);
+        return this;
+    }
+
+    /**
+     * Add an external 3D model file to this footprint, saving the absolute path directly.
+     * Useful for referencing a file relative to the TS source using __dirname,
+     * so it doesn't need to be placed in the target generation directory.
+     *
+     * @example
+     * fp.addExternal3DModel(__dirname, 'XlrMaleCombo.step'); // resolves to absolute path
+     */
+    public addExternal3DModel(baseDir: string, relativePath: string, options?: Omit<Model3DLink, "path">): this {
+        const absPath = path.resolve(baseDir, relativePath).replace(/\\/g, "/");
+        this.add3DModel({ path: absPath, ...options });
         return this;
     }
 
@@ -312,9 +335,8 @@ export class KicadFootprint {
             parts.push(this._serializePad(pad));
         }
 
-        // 3D model link
-        if (this._model3d) {
-            const m = this._model3d;
+        // 3D model links
+        for (const m of this._models3d) {
             const ox = m.offset?.x ?? 0;
             const oy = m.offset?.y ?? 0;
             const oz = m.offset?.z ?? 0;
@@ -452,12 +474,19 @@ export class KicadFootprint {
         s += `\t\t(size ${pad.width} ${pad.height})\n`;
 
         if (pad.drill) {
+            let drillStr = "";
+            if (typeof pad.drill === "number") {
+                drillStr = `${pad.drill}`;
+            } else {
+                drillStr = `oval ${pad.drill.x} ${pad.drill.y}`;
+            }
+
             if (pad.drillOffsetX != null || pad.drillOffsetY != null) {
                 const ox = pad.drillOffsetX ?? 0;
                 const oy = pad.drillOffsetY ?? 0;
-                s += `\t\t(drill ${pad.drill} (offset ${ox} ${oy}))\n`;
+                s += `\t\t(drill ${drillStr} (offset ${ox} ${oy}))\n`;
             } else {
-                s += `\t\t(drill ${pad.drill})\n`;
+                s += `\t\t(drill ${drillStr})\n`;
             }
         }
 
