@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/kellertobias/pcbs-framework/compare/v1.1.1...v1.2.0) (2026-02-20)
+
+
+### Features
+
+* add rounded corners ([7629475](https://github.com/kellertobias/pcbs-framework/commit/7629475bb01184b5901208a4e43d1514ae345ca2))
+
 ## [1.1.1](https://github.com/kellertobias/pcbs-framework/compare/v1.1.0...v1.1.1) (2026-02-20)
 
 
