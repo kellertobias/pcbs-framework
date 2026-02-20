@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/kellertobias/pcbs-framework/compare/v1.1.0...v1.1.1) (2026-02-20)
+
+
+### Bug Fixes
+
+* correctly render drill through in 3d ([a46cff3](https://github.com/kellertobias/pcbs-framework/commit/a46cff36d9a32a6aaa63e37fe80324d37f082308))
+
 # [1.1.0](https://github.com/kellertobias/pcbs-framework/compare/v1.0.0...v1.1.0) (2026-02-19)
 
 
