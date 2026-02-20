@@ -103,6 +103,14 @@ export interface SchematicOptions {
   layout?: ILayout;
   /** The algorithm used by circuit-synth for automatic placement. Defaults to "hierarchical". */
   placementAlgorithm?: PlacementAlgorithm;
+  /** Size of the schematic (default: "A4") */
+  size?: string;
+  /** Author of the schematic */
+  author?: string;
+  /** Revision of the schematic (default: "v1.0") */
+  revision?: string;
+  /** Description of the schematic */
+  description?: string;
 }
 
 /**

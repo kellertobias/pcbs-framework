@@ -23,11 +23,19 @@ import { Net } from "@tobisk/pcbs/Net";
  */
 export abstract class Schematic {
   readonly name: string;
+  readonly size: string;
+  readonly author: string;
+  readonly revision: string;
+  readonly description?: string;
   private _layout?: import("./Layout").Layout;
   private _placementAlgorithm?: PlacementAlgorithm;
 
   constructor(options: SchematicOptions) {
     this.name = options.name;
+    this.size = options.size ?? "A4";
+    this.author = options.author ?? "";
+    this.revision = options.revision ?? "v1.0";
+    this.description = options.description;
     this._layout = options.layout;
     this._placementAlgorithm = options.placementAlgorithm;
   }

@@ -43,6 +43,9 @@ export abstract class Composable<InterfaceNets extends string = string> {
   readonly pcbPosition?: PcbPosition;
   readonly parent?: Composable<any>;
 
+  /** @internal Name for the subschematic if this composable is to be rendered separately */
+  _subschematicName?: string;
+
   /** @internal The current composable being initialized — used for parent assignment */
   static activeComposable: Composable<any> | undefined = undefined;
 
@@ -66,6 +69,14 @@ export abstract class Composable<InterfaceNets extends string = string> {
     );
 
     registry.registerComposable(this);
+  }
+
+  /**
+   * Mark this composable to be rendered as a subschematic on a separate page.
+   * @param options Options for the subschematic.
+   */
+  makeSubschematic(options: { name?: string } = {}): void {
+    this._subschematicName = options.name ?? this.constructor.name;
   }
 
   /**
