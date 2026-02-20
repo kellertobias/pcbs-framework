@@ -176,6 +176,19 @@ export class Kicad3DModel {
     }
 
     /**
+     * Create a pipe (a cylinder with a concentric hole).
+     */
+    pipe(opts: { r: number; wallThickness: number; h: number; center?: boolean }): SolidBuilder {
+        const outer = makeCylinder(this.oc, { r: opts.r, h: opts.h, center: opts.center });
+        // Make the inner cylinder slightly longer to avoid Z-fighting/coplanar faces during cut
+        const inner = makeCylinder(this.oc, { r: opts.r - opts.wallThickness, h: opts.h + 0.1, center: opts.center });
+        const shape = cutShapes(this.oc, outer, inner);
+        const handle: SolidHandle = { shape };
+        this._solids.push(handle);
+        return new SolidBuilder(this.oc, handle);
+    }
+
+    /**
      * Create a box with rounded edges (box + fillet on all edges).
      */
     roundedBox(opts: BoxOptions & { r: number }): SolidBuilder {
@@ -191,38 +204,32 @@ export class Kicad3DModel {
     /** Fuse (union) two solids. Replaces both with the result, returns new builder. */
     union(a: SolidBuilder, b: SolidBuilder): SolidBuilder {
         const fused = fuseShapes(this.oc, a._handle.shape, b._handle.shape);
-        const handle: SolidHandle = { shape: fused, color: a._handle.color, name: a._handle.name };
+        a._handle.shape = fused;
 
         // Remove the original handles
-        this._removeSolid(a._handle);
         this._removeSolid(b._handle);
-        this._solids.push(handle);
 
-        return new SolidBuilder(this.oc, handle);
+        return a;
     }
 
     /** Subtract solid `b` from solid `a`. Removes `b` from model, replaces `a`. */
     subtract(a: SolidBuilder, b: SolidBuilder): SolidBuilder {
         const cut = cutShapes(this.oc, a._handle.shape, b._handle.shape);
-        const handle: SolidHandle = { shape: cut, color: a._handle.color, name: a._handle.name };
+        a._handle.shape = cut;
 
-        this._removeSolid(a._handle);
         this._removeSolid(b._handle);
-        this._solids.push(handle);
 
-        return new SolidBuilder(this.oc, handle);
+        return a;
     }
 
     /** Intersect two solids. Returns their common volume. */
     intersect(a: SolidBuilder, b: SolidBuilder): SolidBuilder {
         const common = intersectShapes(this.oc, a._handle.shape, b._handle.shape);
-        const handle: SolidHandle = { shape: common, color: a._handle.color, name: a._handle.name };
+        a._handle.shape = common;
 
-        this._removeSolid(a._handle);
         this._removeSolid(b._handle);
-        this._solids.push(handle);
 
-        return new SolidBuilder(this.oc, handle);
+        return a;
     }
 
     // ── Export ─────────────────────────────────────────────────────────

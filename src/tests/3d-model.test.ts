@@ -61,6 +61,20 @@ describe("Primitives", () => {
         const cyl = model.cylinder({ r: 3, h: 10, center: true });
         expect(cyl._handle.shape).toBeTruthy();
     });
+
+    it("creates a pipe", () => {
+        const model = new Kicad3DModel();
+        model.setOC(oc);
+        const p = model.pipe({ r: 5, wallThickness: 1, h: 10 });
+        expect(p._handle.shape).toBeTruthy();
+    });
+
+    it("creates a centered pipe", () => {
+        const model = new Kicad3DModel();
+        model.setOC(oc);
+        const p = model.pipe({ r: 5, wallThickness: 1, h: 10, center: true });
+        expect(p._handle.shape).toBeTruthy();
+    });
 });
 
 // ─── Transforms ──────────────────────────────────────────────────────
