@@ -127,9 +127,7 @@ export type PinAssignable = Pin | Net
   | null;
 
 export type PinProxy<T extends string | number> = {
-  [K in T]: any;
+  [K in T]: PinAssignable;
 } & {
-  [key: string]: any;
-  [key: number]: any;
   assign(map: Partial<Record<T, PinAssignable>>): void;
 };
