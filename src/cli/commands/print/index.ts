@@ -10,6 +10,14 @@ import { registry } from "../../../synth/Registry";
 import { renderScope } from "./scope";
 import { GravityLayout } from "../../../synth/Layout";
 
+function isDescendant(item: any, potentialAncestor: Composable<any>): boolean {
+  let current = item.parent;
+  while (current) {
+    if (current === potentialAncestor) return true;
+    current = current.parent;
+  }
+  return false;
+}
 
 export async function cmdPrint(args: string[]): Promise<void> {
   const entry = args[0];
@@ -60,11 +68,13 @@ export async function cmdPrint(args: string[]): Promise<void> {
   doc.addPage();
 
   // Collect top-level items
-  const components = registry.getComponents().filter((c) => !c.parent);
-  const composables = registry.getComposables().filter((c) => !c.parent);
+  const components = registry.getComponents().filter((c) => !c.parent && c.schematicPosition !== null && c.symbol !== "Device:DNC");
+  const composables = registry.getComposables().filter((c) => !c.parent && c.schematicPosition !== null);
 
   const mainScopeItems = [...components, ...composables];
   const mainScopeNets = findConnectedNets(mainScopeItems);
+
+  console.log("mainScopeItems", mainScopeItems.map(c => ({ ref: c.ref, pos: c.schematicPosition })));
 
   renderScope(doc, schematic.name, mainScopeItems, mainScopeNets, schematic);
 
@@ -90,8 +100,11 @@ export async function cmdPrint(args: string[]): Promise<void> {
 
     const instance = instances[0];
 
-    const childComponents = registry.getComponents().filter((c) => c.parent === instance);
-    const childComposables = registry.getComposables().filter((c) => c.parent === instance);
+    // Force lazy initialization of the composable interface so its children populate the registry
+    const _ = instance.allPins;
+
+    const childComponents = registry.getComponents().filter(c => isDescendant(c, instance) && c.schematicPosition !== null && c.symbol !== "Device:DNC");
+    const childComposables = registry.getComposables().filter(c => c !== instance && isDescendant(c, instance) && c.schematicPosition !== null);
     const scopeItems = [...childComponents, ...childComposables];
 
     // Auto-layout if missing positions

@@ -96,7 +96,7 @@ export class Component<PinNames extends string | number = number> {
   readonly description?: string;
   readonly partNo?: string;
   readonly value?: string;
-  readonly schematicPosition?: SchematicPosition;
+  readonly schematicPosition?: SchematicPosition | null;
   readonly pcbPosition?: PcbPosition;
   readonly parent?: Composable<any>;
   readonly group?: string;
@@ -119,7 +119,7 @@ export class Component<PinNames extends string | number = number> {
     this.value = options.value;
     this.schematicPosition = options.schematicPosition;
     this.pcbPosition = options.pcbPosition;
-    this.parent = Composable.activeComposable;
+    this.parent = options.parent ?? Composable.activeComposable;
     this.group = options.group || Component.activeGroup;
     this.subschematic = options.subschematic || Component.activeSubschematic;
 
@@ -165,11 +165,13 @@ export class Component<PinNames extends string | number = number> {
   }
 
   /** Get absolute schematic position (recursive) */
-  get absoluteSchematicPosition(): SchematicPosition {
+  get absoluteSchematicPosition(): SchematicPosition | null {
+    if (this.schematicPosition === null) return null;
     const local = this.schematicPosition || { x: 0, y: 0, rotation: 0 };
     if (!this.parent) return local;
 
     const parentPos = this.parent.absoluteSchematicPosition;
+    if (parentPos === null) return null;
     return {
       x: parentPos.x + (local.x || 0),
       y: parentPos.y + (local.y || 0),

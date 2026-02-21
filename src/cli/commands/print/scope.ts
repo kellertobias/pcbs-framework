@@ -32,7 +32,7 @@ export function renderScope(
     marginX: margin,
     marginY: margin,
     pinPositions: new Map<Pin, { x: number; y: number }>(),
-    portPositions: new Map<Pin, { x: number; y: number; side: "left" | "right" }>(),
+    portPositions: new Map<Pin, { x: number; y: number; side: "left" | "right"; label: string }>(),
   };
 
   const bbox = calculateBBox(items);
@@ -52,16 +52,16 @@ export function renderScope(
     ctx.offsetX = ctx.marginX - (bbox.minX - contentPadding) * ctx.scale + (ctx.width - targetWidth * ctx.scale) / 2;
     ctx.offsetY = ctx.marginY - (bbox.minY - contentPadding) * ctx.scale + (ctx.height - targetHeight * ctx.scale) / 2;
   } else {
-      ctx.scale = 1;
-      ctx.offsetX = ctx.marginX;
-      ctx.offsetY = ctx.marginY;
+    ctx.scale = 1;
+    ctx.offsetX = ctx.marginX;
+    ctx.offsetY = ctx.marginY;
   }
 
   // Calculate positions
   calculatePinPositions(ctx, items);
 
   if (composableInstance) {
-      calculatePortPositions(ctx, composableInstance);
+    calculatePortPositions(ctx, composableInstance);
   }
 
   // Render Items
@@ -71,9 +71,9 @@ export function renderScope(
 
   // Render Ports (if subschematic)
   if (composableInstance && composableInstance.allPins) {
-      for (const pin of (composableInstance.allPins as Map<string, Pin>).values()) {
-          renderPort(ctx, pin);
-      }
+    for (const pin of (composableInstance.allPins as Map<string, Pin>).values()) {
+      renderPort(ctx, pin);
+    }
   }
 
   // Render Nets

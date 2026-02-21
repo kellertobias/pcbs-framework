@@ -34,13 +34,13 @@ npm install @tobisk/pcbs
 npx @tobisk/pcbs synth <schematic-name>
 npx @tobisk/pcbs export <schematic-name>
 npx @tobisk/pcbs lib <lib-name (optional)>
-npx @tobisk/pcbs print <schematic-name>
+npx @tobisk/pcbs print <schematic-name> # Work in Progress
 ```
 
 - **synth**: Generates the KiCad schematic and netlist.
 - **export**: Generates production files (Gerbers, BOM, Pick'n'Place).
 - **lib**: Generates local KiCad library files from your code-defined Symbols and Footprints.
-- **print**: Generates a PDF schematic of the project.
+- **print**: Generates a PDF schematic of the project. (Work in Progress)
 
 Once you have `synth`-ethized your schematic, you can open the kicad schematic file and generate a PCB from it. Every time we synth, we update the schematic and the netlist.
 

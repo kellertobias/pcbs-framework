@@ -11,9 +11,12 @@ describe("Component and Composable Placement", () => {
         });
 
         const pos = c1.absoluteSchematicPosition;
-        expect(pos.x).toBe(10);
-        expect(pos.y).toBe(20);
-        expect(pos.rotation).toBe(90);
+        expect(pos).not.toBeNull();
+        if (pos) {
+            expect(pos.x).toBe(10);
+            expect(pos.y).toBe(20);
+            expect(pos.rotation).toBe(90);
+        }
     });
 
     it("calculates absolute pcb position for a single component", () => {
@@ -59,9 +62,12 @@ describe("Component and Composable Placement", () => {
         my.pins;
 
         const sPos = my.comp.absoluteSchematicPosition;
-        expect(sPos.x).toBe(110);
-        expect(sPos.y).toBe(120);
-        expect(sPos.rotation).toBe(45);
+        expect(sPos).not.toBeNull();
+        if (sPos) {
+            expect(sPos.x).toBe(110);
+            expect(sPos.y).toBe(120);
+            expect(sPos.rotation).toBe(45);
+        }
 
         const pPos = my.comp.absolutePcbPosition;
         expect(pPos.x).toBe(205);
@@ -112,8 +118,11 @@ describe("Component and Composable Placement", () => {
         outer.pins;
 
         const sPos = outer.inner.comp.absoluteSchematicPosition;
-        expect(sPos.x).toBe(111); // 100 (outer) + 10 (inner) + 1 (comp)
-        expect(sPos.y).toBe(111);
+        expect(sPos).not.toBeNull();
+        if (sPos) {
+            expect(sPos.x).toBe(111); // 100 (outer) + 10 (inner) + 1 (comp)
+            expect(sPos.y).toBe(111);
+        }
 
         const pPos = outer.inner.comp.absolutePcbPosition;
         expect(pPos.x).toBe(207); // 200 + 5 + 2

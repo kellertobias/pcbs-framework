@@ -3,7 +3,7 @@ import { Pin } from "../../../synth/types";
 
 // Constants for styling
 export const COLORS = {
-  wire: "#000000",
+  wire: "#006600",
   component: "#000000",
   text: "#000000",
   pin: "#FF0000",
@@ -33,5 +33,5 @@ export interface RenderContext {
   marginX: number;
   marginY: number;
   pinPositions: Map<Pin, { x: number; y: number }>;
-  portPositions: Map<Pin, { x: number; y: number; side: "left" | "right" }>;
+  portPositions: Map<Pin, { x: number; y: number; side: "left" | "right"; label: string }>;
 }

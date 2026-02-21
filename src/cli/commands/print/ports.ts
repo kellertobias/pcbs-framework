@@ -5,7 +5,7 @@ export function renderPort(ctx: RenderContext, pin: Pin): void {
   const pos = ctx.portPositions.get(pin);
   if (!pos) return;
 
-  const { x, y, side } = pos;
+  const { x, y, side, label } = pos;
   const len = 10;
 
   ctx.doc.save();
@@ -13,15 +13,15 @@ export function renderPort(ctx: RenderContext, pin: Pin): void {
 
   // Draw line inward
   ctx.doc.moveTo(x, y)
-         .lineTo(side === 'left' ? x + len : x - len, y)
-         .stroke();
+    .lineTo(side === 'left' ? x + len : x - len, y)
+    .stroke();
 
   // Label
   ctx.doc.fontSize(10).fillColor(COLORS.text);
   if (side === 'left') {
-      ctx.doc.text(pin.name, x - 50, y - 5, { width: 45, align: 'right' });
+    ctx.doc.text(label, x - 50, y - 5, { width: 45, align: 'right' });
   } else {
-      ctx.doc.text(pin.name, x + 5, y - 5, { width: 45, align: 'left' });
+    ctx.doc.text(label, x + 5, y - 5, { width: 45, align: 'left' });
   }
   ctx.doc.restore();
 }

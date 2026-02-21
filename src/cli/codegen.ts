@@ -121,7 +121,7 @@ export function generatePython(snapshot: CircuitSnapshot): string {
 
       // ── Placement ──
       const sPos = comp.absoluteSchematicPosition;
-      if (sPos.x !== 0 || sPos.y !== 0 || (sPos.rotation || 0) !== 0) {
+      if (sPos !== null && (sPos.x !== 0 || sPos.y !== 0 || (sPos.rotation || 0) !== 0)) {
         args.push(`at=(${sPos.x}, ${sPos.y}, ${sPos.rotation || 0})`);
       }
 

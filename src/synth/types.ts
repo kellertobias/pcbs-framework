@@ -25,6 +25,10 @@ export class Pin {
     return this._net;
   }
 
+  get isDNC(): boolean {
+    return this._isDNC;
+  }
+
   /** @internal */
   _setNet(net: import("./Net").Net): void {
     // If already connected to a different net, we'll allow the override.
@@ -115,7 +119,7 @@ export interface PcbPosition {
 
 /** Common interface for items that can be positioned in a layout */
 export interface LayoutItem {
-  schematicPosition?: SchematicPosition;
+  schematicPosition?: SchematicPosition | null;
   readonly ref: string;
 }
 
@@ -141,19 +145,21 @@ export interface ComponentOptions {
   description?: string;
   partNo?: string;
   value?: string;
-  schematicPosition?: SchematicPosition;
+  schematicPosition?: SchematicPosition | null;
   pcbPosition?: PcbPosition;
   /** Group assignment for layout clustering */
   group?: string;
   /** Subschematic page assignment */
   subschematic?: string;
+  /** Explicit parent override */
+  parent?: any;
 }
 
 /** Options for Composable constructor */
 export interface ComposableOptions {
   ref: string;
   description?: string;
-  schematicPosition?: SchematicPosition;
+  schematicPosition?: SchematicPosition | null;
   pcbPosition?: PcbPosition;
   /** Optional layout to apply to internal components */
   layout?: ILayout;

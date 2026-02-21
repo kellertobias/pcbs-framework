@@ -39,7 +39,7 @@ import { registry } from "@tobisk/pcbs/Registry";
 export abstract class Composable<InterfaceNets extends string = string> {
   readonly ref: string;
   readonly description?: string;
-  readonly schematicPosition?: SchematicPosition;
+  readonly schematicPosition?: SchematicPosition | null;
   readonly pcbPosition?: PcbPosition;
   readonly parent?: Composable<any>;
   readonly group?: string;
@@ -159,11 +159,13 @@ export abstract class Composable<InterfaceNets extends string = string> {
   }
 
   /** Get absolute schematic position (recursive) */
-  get absoluteSchematicPosition(): SchematicPosition {
+  get absoluteSchematicPosition(): SchematicPosition | null {
+    if (this.schematicPosition === null) return null;
     const local = this.schematicPosition || { x: 0, y: 0, rotation: 0 };
     if (!this.parent) return local;
 
     const parentPos = this.parent.absoluteSchematicPosition;
+    if (parentPos === null) return null;
     return {
       x: parentPos.x + (local.x || 0),
       y: parentPos.y + (local.y || 0),
