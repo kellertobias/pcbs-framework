@@ -33,14 +33,12 @@ npm install @tobisk/pcbs
 ```bash
 npx @tobisk/pcbs synth <schematic-name>
 npx @tobisk/pcbs export <schematic-name>
-npx @tobisk/pcbs lib
-npx @tobisk/pcbs search --footprint <footprint> --value <value (optional)>
+npx @tobisk/pcbs lib <lib-name (optional)>
 npx @tobisk/pcbs print <schematic-name> # Work in Progress
 ```
 
 - **synth**: Generates the KiCad schematic and netlist.
 - **export**: Generates production files (Gerbers, BOM, Pick'n'Place).
-- **search**: Search for JLCPCB parts.
 - **lib**: Generates local KiCad library files from your code-defined Symbols and Footprints.
 - **print**: Generates a PDF schematic of the project. (Work in Progress)
 

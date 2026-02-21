@@ -307,6 +307,14 @@ async function performSearch(query: string, footprintFilter: string | undefined,
       });
     }
 
+    // Sort results: Basic parts first, then by stock (descending)
+    results.sort((a, b) => {
+        if (a.basic !== b.basic) {
+            return a.basic ? -1 : 1;
+        }
+        return b.stock - a.stock;
+    });
+
     if (jsonOutput) {
       console.log(JSON.stringify(results, null, 2));
     } else {
