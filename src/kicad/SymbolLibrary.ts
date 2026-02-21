@@ -99,7 +99,7 @@ export class SymbolLibrary {
                    this.collectDependencies(lib, parent, dependencies);
                 }
              } else {
-                 console.warn(`Dependent symbol ${parentName} not found in library.`);
+                 console.warn(`Dependent symbol "${parentName}" (extended by symbol) not found in library.`);
              }
           }
         }
