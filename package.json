@@ -1,6 +1,6 @@
 {
   "name": "@tobisk/pcbs",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "TypeScript-based PCB Design Framework",
   "publishConfig": {
     "access": "public",
@@ -53,6 +53,7 @@
   "dependencies": {
     "opencascade.js": "^2.0.0-beta.b5ff984",
     "pdfkit": "^0.17.2",
+    "playwright": "^1.58.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "vite-tsconfig-paths": "^6.1.1"
