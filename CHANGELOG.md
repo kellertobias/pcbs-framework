@@ -1,3 +1,11 @@
+# [1.5.0](https://github.com/kellertobias/pcbs-framework/compare/v1.4.1...v1.5.0) (2026-02-21)
+
+
+### Features
+
+* enhance schematic layout with gravity-based placement, support for unplaced components, and refined drawing options ([e65acc3](https://github.com/kellertobias/pcbs-framework/commit/e65acc33a7253afa69ed0f9030a183de00333da5))
+* improve interface ([26267d7](https://github.com/kellertobias/pcbs-framework/commit/26267d7638964591067c115fc60c96921ee9643d))
+
 ## [1.4.1](https://github.com/kellertobias/pcbs-framework/compare/v1.4.0...v1.4.1) (2026-02-21)
 
 
