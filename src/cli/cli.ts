@@ -6,7 +6,7 @@
 
 import "ts-node/register";
 import "tsconfig-paths/register";
-import { ensurePythonEnv } from "./env";
+// import { ensurePythonEnv } from "./env"; // Removed
 import { cmdSynth } from "./commands/synth";
 import { cmdExport } from "./commands/export";
 import { cmdPrint } from "./commands/print";
@@ -56,7 +56,7 @@ Examples:
 
 async function main(): Promise<void> {
   // Ensure dependencies are met before doing anything else
-  ensurePythonEnv();
+  // ensurePythonEnv(); // Removed
 
   const args = process.argv.slice(2);
   const command = args[0];

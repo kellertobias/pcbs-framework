@@ -2,7 +2,7 @@ import * as path from "path";
 import { resolveSchematic, die } from "@tobisk/pcbs/cli/utils";
 
 /**
- * synth: Compile TypeScript schematic → circuit-synth Python → run synthesis
+ * synth: Compile TypeScript schematic → Generate KiCad files directly
  */
 export async function cmdSynth(args: string[]): Promise<void> {
   const entry = args[0];
@@ -25,8 +25,7 @@ export async function cmdSynth(args: string[]): Promise<void> {
     schematic.generate();
     console.log(`  ✅ Circuit generation complete.`);
 
-    console.log(`  → Compiling to circuit-synth Python & executing...`);
-    const { generatePython } = require("@tobisk/pcbs/cli/codegen");
+    console.log(`  → Generating KiCad files...`);
     const { runSynthesis } = require("@tobisk/pcbs/cli/synthesis");
 
     const snapshot = schematic._generateWithCapture();

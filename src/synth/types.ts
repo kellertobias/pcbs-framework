@@ -70,6 +70,7 @@ export class Pin {
 
       if (target instanceof Component && (target as any).symbol === "Device:DNC") {
         this.tie((target as any).pins[1]);
+        this._isDNC = true;
         continue;
       }
 
@@ -209,3 +210,11 @@ export type PinProxy<T extends string | number> = {
 } & {
   assign(map: Partial<Record<T, PinAssignable>>): void;
 };
+
+/** A snapshot of the circuit state needed for codegen/synthesis. */
+export interface CircuitSnapshot {
+  name: string;
+  components: Component<any>[];
+  nets: Net[];
+  placementAlgorithm?: PlacementAlgorithm;
+}

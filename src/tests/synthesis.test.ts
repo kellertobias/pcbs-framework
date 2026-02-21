@@ -2,15 +2,14 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import { Schematic, Net, Component } from "../synth";
-import { generatePython, CircuitSnapshot } from "../cli/codegen";
 import { runSynthesis } from "../cli/synthesis";
-import { ensurePythonEnv } from "../cli/env";
+// import { ensurePythonEnv } from "../cli/env"; // Removed
 
 describe("Synthesis Integration", () => {
   const TEST_DIR = path.join(__dirname, "temp_synthesis_test");
 
   beforeAll(() => {
-    ensurePythonEnv();
+    // ensurePythonEnv(); // Removed
     if (!fs.existsSync(TEST_DIR)) {
       fs.mkdirSync(TEST_DIR, { recursive: true });
     }
@@ -56,10 +55,11 @@ describe("Synthesis Integration", () => {
     expect(result.success).toBe(true);
 
     // Verify KiCad files
-    // circuit-synth generates IntegrationTestBoard_circuit.kicad_sch or similar
+    // KicadGenerator generates IntegrationTestBoard.kicad_sch
     const files = fs.readdirSync(TEST_DIR);
 
     expect(files.some(f => f.endsWith(".kicad_sch"))).toBe(true);
-    expect(files.some(f => f.endsWith(".kicad_pro"))).toBe(true);
+    expect(files.some(f => f.endsWith(".net"))).toBe(true);
+    // expect(files.some(f => f.endsWith(".kicad_pro"))).toBe(true); // Optional
   });
 });

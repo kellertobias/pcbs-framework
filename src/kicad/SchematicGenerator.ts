@@ -1,0 +1,295 @@
+import { CircuitSnapshot, Pin } from "../synth/types";
+import { Component } from "../synth/Component";
+import { Net } from "../synth/Net";
+import { SymbolLibrary, SymbolDefinition } from "./SymbolLibrary";
+import { UuidManager } from "./UuidManager";
+import { SExpr, SExpressionParser } from "./SExpressionParser";
+
+interface Point { x: number; y: number; }
+interface PinInfo { x: number; y: number; rotation: number; }
+
+export class SchematicGenerator {
+  private snapshot: CircuitSnapshot;
+  private library: SymbolLibrary;
+  private uuids: UuidManager;
+  private usedSymbols = new Map<string, SymbolDefinition>();
+
+  constructor(snapshot: CircuitSnapshot, library: SymbolLibrary, uuids: UuidManager) {
+    this.snapshot = snapshot;
+    this.library = library;
+    this.uuids = uuids;
+  }
+
+  generate(): string {
+    const rootUuid = this.uuids.getOrGenerate("ROOT");
+
+    const schematic: SExpr[] = [
+      "kicad_sch",
+      ["version", "20211123"],
+      ["generator", "pcb-framework"],
+      ["uuid", this.quote(rootUuid)],
+      ["paper", "A4"],
+      this.generateLibSymbols(),
+      ...this.generateComponents(),
+      ...this.generateWiresAndPower(),
+      ...this.generateNoConnects(),
+    ];
+
+    return this.serialize(schematic);
+  }
+
+  private generateLibSymbols(): SExpr {
+    const libSymbols: SExpr[] = ["lib_symbols"];
+    const processedSymbols = new Set<string>();
+
+    const processSymbol = (symDef: SymbolDefinition) => {
+        if (processedSymbols.has(symDef.name)) return;
+        processedSymbols.add(symDef.name);
+
+        libSymbols.push(symDef.definition);
+
+        for (const dep of symDef.dependencies) {
+            const depName = this.getSymbolName(dep);
+            if (depName && !processedSymbols.has(depName)) {
+                processedSymbols.add(depName);
+                libSymbols.push(dep);
+            }
+        }
+    };
+
+    for (const comp of this.snapshot.components) {
+      if (comp.symbol === "Device:DNC") continue;
+
+      const symDef = this.library.getSymbol(comp.symbol);
+      if (symDef) {
+        this.addSymbol(symDef);
+        processSymbol(symDef);
+      } else {
+        console.warn(`Symbol ${comp.symbol} not found in library.`);
+      }
+    }
+
+    const powerNets = this.snapshot.nets.filter(n => n.class === "Power");
+    for (const net of powerNets) {
+       const symName = `power:${net.name}`;
+       const symDef = this.library.getSymbol(symName);
+       if (symDef) {
+         this.addSymbol(symDef);
+         processSymbol(symDef);
+       }
+    }
+
+    return libSymbols;
+  }
+
+  private getSymbolName(sym: SExpr): string | null {
+    if (Array.isArray(sym) && sym[0] === "symbol" && typeof sym[1] === "string") {
+       return SExpressionParser.unquote(sym[1]);
+    }
+    return null;
+  }
+
+  private addSymbol(symDef: SymbolDefinition) {
+    if (this.usedSymbols.has(symDef.name)) return;
+    this.usedSymbols.set(symDef.name, symDef);
+  }
+
+  private generateComponents(): SExpr[] {
+    const instances: SExpr[] = [];
+    for (const comp of this.snapshot.components) {
+      if (comp.symbol === "Device:DNC") continue;
+
+      const uuid = this.uuids.getOrGenerate(comp.ref);
+      const x = comp.absoluteSchematicPosition?.x || 0;
+      const y = comp.absoluteSchematicPosition?.y || 0;
+      const rot = comp.absoluteSchematicPosition?.rotation || 0;
+
+      const symName = comp.symbol.split(":")[1] || comp.symbol;
+
+      const instance: SExpr[] = [
+        "symbol",
+        ["lib_id", this.quote(symName)],
+        ["at", x.toString(), y.toString(), rot.toString()],
+        ["unit", "1"],
+        ["in_bom", "yes"],
+        ["on_board", "yes"],
+        ["uuid", this.quote(uuid)],
+        ["property", '"Reference"', this.quote(comp.ref), ["id", "0"], ["at", `${x}`, `${y - 2.54}`, "0"]],
+        ["property", '"Value"', this.quote(comp.value || symName), ["id", "1"], ["at", `${x}`, `${y + 2.54}`, "0"]],
+        ["property", '"Footprint"', this.quote(comp.footprint || ""), ["id", "2"], ["at", `${x}`, `${y}`, "0"], ["effects", ["hide", "yes"]]],
+        ["property", '"LCSC_Part"', this.quote(comp.partNo || ""), ["id", "3"], ["at", `${x}`, `${y}`, "0"], ["effects", ["hide", "yes"]]],
+      ];
+
+      instances.push(instance);
+    }
+    return instances;
+  }
+
+  private generateWiresAndPower(): SExpr[] {
+    const items: SExpr[] = [];
+    const netPins = new Map<Net, Pin[]>();
+
+    for (const comp of this.snapshot.components) {
+      if (comp.symbol === "Device:DNC") continue;
+      for (const [name, pin] of comp.allPins) {
+        if (pin.net) {
+          if (!netPins.has(pin.net)) netPins.set(pin.net, []);
+          netPins.get(pin.net)!.push(pin as Pin);
+        }
+      }
+    }
+
+    for (const [net, pins] of netPins) {
+      if (pins.length === 0) continue;
+
+      if (net.class === "Power") {
+        for (const pin of pins) {
+          const pos = this.getPinAbsolutePosition(pin);
+          if (pos) {
+            const isGnd = /gnd/i.test(net.name) || /vss/i.test(net.name);
+            const dy = isGnd ? 2.54 : -2.54;
+
+            const pinX = pos.x;
+            const pinY = pos.y;
+            const symX = pinX;
+            const symY = pinY + dy;
+
+            items.push([
+                "wire",
+                ["pts", ["xy", `${pinX}`, `${pinY}`], ["xy", `${symX}`, `${symY}`]],
+                ["stroke", ["width", "0"], ["type", "default"]],
+                ["uuid", this.quote(this.uuids.getOrGenerate(`${pin.component.ref}_${pin.name}_pwr_wire`))]
+            ]);
+
+            const symUuid = this.uuids.getOrGenerate(`${pin.component.ref}_${pin.name}_pwr_sym`);
+            items.push([
+                "symbol",
+                ["lib_id", this.quote(`power:${net.name}`)],
+                ["at", `${symX}`, `${symY}`, "0"],
+                ["unit", "1"],
+                ["in_bom", "yes"],
+                ["on_board", "yes"],
+                ["uuid", this.quote(symUuid)],
+                ["property", '"Reference"', '"#PWR"', ["id", "0"], ["at", `${symX}`, `${symY}`, "0"], ["effects", ["hide", "yes"]]],
+                ["property", '"Value"', this.quote(net.name), ["id", "1"], ["at", `${symX}`, `${symY + (isGnd?2.54:-2.54)}`, "0"]],
+            ]);
+          }
+        }
+      } else {
+        const points: Point[] = [];
+        for (const pin of pins) {
+             const p = this.getPinAbsolutePosition(pin);
+             if (p) points.push(p);
+        }
+
+        for (let i = 0; i < points.length - 1; i++) {
+           const p1 = points[i];
+           const p2 = points[i+1];
+           items.push([
+               "wire",
+               ["pts", ["xy", `${p1.x}`, `${p1.y}`], ["xy", `${p2.x}`, `${p2.y}`]],
+               ["stroke", ["width", "0"], ["type", "default"]],
+               ["uuid", this.quote(this.uuids.getOrGenerate(`${net.name}_wire_${i}`))]
+           ]);
+        }
+      }
+    }
+
+    return items;
+  }
+
+  private generateNoConnects(): SExpr[] {
+    const items: SExpr[] = [];
+    for (const comp of this.snapshot.components) {
+        if (comp.symbol === "Device:DNC") continue;
+        for (const [name, pin] of comp.allPins) {
+            if ((pin as Pin).isDNC) {
+                const pos = this.getPinAbsolutePosition(pin as Pin);
+                if (pos) {
+                    items.push([
+                        "no_connect",
+                        ["at", `${pos.x}`, `${pos.y}`],
+                        ["uuid", this.quote(this.uuids.getOrGenerate(`${comp.ref}_${name}_nc`))]
+                    ]);
+                }
+            }
+        }
+    }
+    return items;
+  }
+
+  private getPinAbsolutePosition(pin: Pin): Point | null {
+    const comp = this.snapshot.components.find(c => c.ref === pin.component.ref);
+    if (!comp) return null;
+
+    const symDef = this.library.getSymbol(comp.symbol);
+    if (!symDef) return null;
+
+    const pinInfo = this.findPinInSymbol(symDef, pin.name);
+    if (!pinInfo) return null;
+
+    const cx = comp.absoluteSchematicPosition?.x || 0;
+    const cy = comp.absoluteSchematicPosition?.y || 0;
+    const crot = comp.absoluteSchematicPosition?.rotation || 0;
+
+    const rad = (crot * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    const rx = pinInfo.x * cos - pinInfo.y * sin;
+    const ry = pinInfo.x * sin + pinInfo.y * cos;
+
+    return {
+        x: cx + rx,
+        y: cy + ry
+    };
+  }
+
+  private findPinInSymbol(symDef: SymbolDefinition, pinNumber: string): PinInfo | null {
+    let info = this.scanForPin(symDef.definition, pinNumber);
+    if (info) return info;
+
+    for (const dep of symDef.dependencies) {
+        info = this.scanForPin(dep, pinNumber);
+        if (info) return info;
+    }
+    return null;
+  }
+
+  private scanForPin(expr: SExpr, pinNumber: string): PinInfo | null {
+    if (!Array.isArray(expr)) return null;
+
+    for (const item of expr) {
+        if (Array.isArray(item) && item[0] === "symbol") {
+            const sub = this.scanForPin(item, pinNumber);
+            if (sub) return sub;
+        } else if (Array.isArray(item) && item[0] === "pin") {
+            const at = item.find(i => Array.isArray(i) && i[0] === "at") as SExpr[];
+            const numberItem = item.find(i => Array.isArray(i) && i[0] === "number") as SExpr[];
+
+            if (at && numberItem && numberItem[1]) {
+                const numStr = SExpressionParser.unquote(numberItem[1] as string);
+                if (numStr === pinNumber) {
+                    return {
+                        x: parseFloat(at[1] as string),
+                        y: parseFloat(at[2] as string),
+                        rotation: parseFloat(at[3] as string)
+                    };
+                }
+            }
+        }
+    }
+    return null;
+  }
+
+  private quote(s: string): string {
+    return `"${s.replace(/"/g, '\\"')}"`;
+  }
+
+  private serialize(expr: SExpr): string {
+    if (Array.isArray(expr)) {
+      return "(" + expr.map(e => this.serialize(e)).join(" ") + ")";
+    }
+    return expr;
+  }
+}

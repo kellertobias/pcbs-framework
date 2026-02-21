@@ -1,14 +1,14 @@
 # @tobisk/pcbs
 
-A strict, type-safe TypeScript framework for designing PCBs, powered by [circuit-synth](https://github.com/circuit-synth/circuit-synth).
+A strict, type-safe TypeScript framework for designing PCBs.
 
-This is a framework I have built around circuit-synth to better suit my workflow.
+This is a framework built to better suit a code-first workflow for PCB design.
 
-The problem to solve here is that while circuit-synth is awesome, it only manages circuits and since it's python it's not type safe.
+The problem to solve here is that while existing tools are awesome, they often lack type safety or easy integration with modern development practices.
 
 I needed a way to also manage custom footprints and ideally generate them by uploading a picture or describing them to the AI.
 
-On top of circuit-synth, we have added:
+On top of standard features, we have added:
 - Directly export zip files to upload to JLCPCB including the Pick'n'Place csv files
 - add a simple command to let an ai agent search for JLC parts (WIP)
 - Manage Footprints, Symbols
@@ -18,7 +18,7 @@ On top of circuit-synth, we have added:
 ## Features
 
 - **Type-Safe Design**: leveraging TypeScript to ensure correct connectivity and component logic.
-- **Circuit-Synth Integration**: Uses `circuit-synth` internally for the heavy lifting of netlisting and PCB generation.
+- **Native Generation**: Generates KiCad schematic (`.kicad_sch`) and netlist (`.net`) files directly.
 - **Programmatic Layout**: Define schematic and PCB positions in code.
 - **Modular Components**: Reusable `Composable` blocks (e.g., Buck Converters, LED Indicators).
 
@@ -206,6 +206,9 @@ export class MyProject extends Schematic {
   }
 }
 
+export default new MyProject();
+```
+
 ### 4. Grouping & Subschematics
 
 Organize large designs using decorators to group components for layout or separate them into subschematic PDF pages.
@@ -222,7 +225,4 @@ export class ComplexProject extends Schematic {
     // ...
   }
 }
-```
-
-export default new MyProject();
 ```
