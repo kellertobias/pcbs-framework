@@ -10,7 +10,6 @@ import { ensurePythonEnv } from "./env";
 import { cmdSynth } from "./commands/synth";
 import { cmdExport } from "./commands/export";
 import { cmdPrint } from "./commands/print";
-import { cmdParts } from "./commands/parts";
 import { cmdLcsc } from "./commands/search-lcsc";
 import { cmdLib } from "./commands/lib";
 import { cmdTypes } from "./commands/types";
@@ -35,8 +34,6 @@ Commands:
   synth [entry]                  Synthesize a schematic to KiCad project
   export [entry]                 Export gerber, BOM, and placement files
   print [entry]                  Print schematic to PDF
-  parts [--footprint <fp>] [--value <val>]
-                                 Search JLC Parts for components
   lcsc [--footprint <fp>] [--value <val>]
                                  Search LCSC Parts for components
   lib [module ...]               Generate/update KiCad library from TS modules
@@ -72,8 +69,10 @@ async function main(): Promise<void> {
       return cmdExport(commandArgs);
     case "print":
       return cmdPrint(commandArgs);
+    case "search":
+      return cmdLcsc(commandArgs);
     case "parts":
-      return cmdParts(commandArgs);
+      return cmdLcsc(commandArgs);
     case "lcsc":
       return cmdLcsc(commandArgs);
     case "lib":
