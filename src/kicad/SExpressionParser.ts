@@ -39,7 +39,7 @@ export class SExpressionParser {
         "at", "size", "stroke", "fill", "uuid", "id", "offset", "effects", "font",
         "hide", "justify", "mirror", "pin_names", "pin_numbers", "exclude_from_sim",
         "in_bom", "on_board", "tstamps", "sheetpath", "version", "generator", "paper",
-        "title_block", "date", "rev", "company", "comment", "pts", "xy", "start", "end",
+        "date", "rev", "company", "comment", "pts", "xy", "start", "end",
         "rect", "circle", "arc", "polyline", "text", "no_connect"
       ].includes(first);
 

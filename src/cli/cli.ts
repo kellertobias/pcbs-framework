@@ -11,7 +11,6 @@ import { cmdSynth } from "./commands/synth";
 import { cmdExport } from "./commands/export";
 import { cmdPrint } from "./commands/print";
 import { cmdParts } from "./commands/parts";
-import { cmdLcsc } from "./commands/search-lcsc";
 import { cmdLib } from "./commands/lib";
 import { cmdTypes } from "./commands/types";
 import { cmdSetup } from "./commands/setup";
@@ -37,8 +36,6 @@ Commands:
   print [entry]                  Print schematic to PDF
   parts [--footprint <fp>] [--value <val>]
                                  Search JLC Parts for components
-  lcsc [--footprint <fp>] [--value <val>]
-                                 Search LCSC Parts for components
   lib [module ...]               Generate/update KiCad library from TS modules
   types                          Sync KiCad library symbols and footprints to TS types
   setup                          Configure project tsconfig.json for KiCad types
@@ -74,8 +71,6 @@ async function main(): Promise<void> {
       return cmdPrint(commandArgs);
     case "parts":
       return cmdParts(commandArgs);
-    case "lcsc":
-      return cmdLcsc(commandArgs);
     case "lib":
       return cmdLib(commandArgs);
     case "types":

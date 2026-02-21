@@ -1,13 +1,3 @@
-# [1.6.0](https://github.com/kellertobias/pcbs-framework/compare/v1.5.0...v1.6.0) (2026-02-21)
-
-
-### Features
-
-* add lcsc parts search command ([4268b9b](https://github.com/kellertobias/pcbs-framework/commit/4268b9bdd957cc5b58582043d638a303cf35416c))
-* add LCSC parts search command ([031f128](https://github.com/kellertobias/pcbs-framework/commit/031f128b4f28f0e2e5c752915fef131d723cab08))
-* add LCSC parts search command ([9784039](https://github.com/kellertobias/pcbs-framework/commit/97840395cf74bdfa045097ba5c1140da9b7c63dd))
-* add LCSC parts search command ([8f401f5](https://github.com/kellertobias/pcbs-framework/commit/8f401f5719eafafbb477c54fac635d95bf14fa61))
-
 # [1.5.0](https://github.com/kellertobias/pcbs-framework/compare/v1.4.1...v1.5.0) (2026-02-21)
 
 
