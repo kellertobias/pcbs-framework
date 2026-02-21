@@ -60,11 +60,11 @@ describe("Net Merging", () => {
         const r1 = new Component({ symbol: "Device:R", ref: "R1", footprint: "Resistor_SMD:R_0603_1608Metric" });
         const r2 = new Component({ symbol: "Device:R", ref: "R2", footprint: "Resistor_SMD:R_0603_1608Metric" });
 
-        r1.pins[1] = netA;
-        r2.pins[1] = netB;
+        r1.pins[1].tie(netA);
+        r2.pins[1].tie(netB);
 
         // This assignment should trigger a merge because both pins have nets
-        r1.pins[1] = r2.pins[1];
+        r1.pins[1].tie(r2.pins[1]);
 
         // Note: createPinProxy logic for pin=pin assignment:
         // if (otherPin.net) { otherPin.net.tie(pin); }
@@ -105,7 +105,7 @@ describe("Net Merging", () => {
 
         // Mimic barrel jack
         const barrelJack = new Component({ symbol: "Connector:Barrel_Jack", ref: "J1", footprint: "Connector_BarrelJack:BarrelJack_Horizontal" });
-        barrelJack.pins[1] = vccVin;
+        barrelJack.pins[1].tie(vccVin);
 
         // The "buck.pins.VIN = vccVin" assignment
         const buckVinPin = uBuck.pins[1];

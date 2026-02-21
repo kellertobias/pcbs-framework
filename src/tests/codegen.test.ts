@@ -83,9 +83,11 @@ describe("Python Code Generation", () => {
             pins: (pin: (n: number) => any) => ({
                 GND: pin(1),
                 OUT: pin(3),
+                VCC: pin(8), // Added VCC pin definition
             }),
         });
-        timer.pins.GND = gnd;
+        timer.pins.VCC.tie(vcc); // Added this line
+        timer.pins.GND.tie(gnd); // Modified this line
 
         const code = gen("Test", [timer], [vcc, gnd]);
         expect(code).toContain('u1[1] += net_gnd');

@@ -21,54 +21,13 @@ export function createPinProxy<T extends string | number>(
     }
     const pin = pinStore.get(key)!;
 
-    // Handle null/undefined as implicit DNC marker
-    if (value === null || value === undefined) {
-      const dnc = new Component({
-        symbol: "Device:DNC",
-        ref: `DNC_${owner.ref}_${key}`,
-        footprint: "DNC",
-        description: "Implicit DNC",
-      });
-      value = dnc;
+    if (value !== null && value !== undefined) {
+      throw new Error(`Direct pin assignment via '=' is not allowed by the runtime proxy. Use pin.tie() to connect nets or pin.dnc() to mark as Do Not Connect.`);
     }
 
-    // Handle DNC component assignment
-    if (value instanceof Component && value.symbol === "Device:DNC") {
-      // Connect to the DNC's first pin (creating the DNC net)
-      value = value.pins[1];
-    }
+    // Pass the target to `.tie()` to respect its internal DNC markers
+    pin.tie(value ?? null);
 
-    // Handle TP (TestPoint) component assignment
-    if (value instanceof Component && value.symbol === "Connector:TestPoint") {
-      // Connect the TP's single pin to this pin
-      value = value.pins[1];
-    }
-
-    if (!value) return true;
-
-    const isNet = value instanceof Net || (value as any).constructor.name === "Net";
-    const isPin = value instanceof Pin || (value as any).constructor.name === "Pin";
-
-    if (isNet) {
-      (value as Net).tie(pin);
-    } else if (isPin) {
-      const otherPin = value as Pin;
-      if (otherPin.net) {
-        // Other pin has a net — tie this pin to it
-        otherPin.net.tie(pin);
-      } else if (pin.net) {
-        // This pin has a net — tie the other pin to it
-        pin.net.tie(otherPin);
-      } else {
-        // Neither has a net — create an implicit one
-        // We use the imported Net class safely
-        const implicit = new Net({
-          name: `${otherPin.component.ref}_${otherPin.name}__${owner.ref}_${key}`,
-        });
-        implicit.tie(otherPin);
-        implicit.tie(pin);
-      }
-    }
     return true;
   };
 
@@ -78,7 +37,10 @@ export function createPinProxy<T extends string | number>(
       if (key === "assign") {
         return (map: Record<string, PinAssignable>) => {
           for (const [k, v] of Object.entries(map)) {
-            setPin(k, v);
+            if (!pinStore.has(k)) {
+              pinStore.set(k, new Pin(owner, k));
+            }
+            pinStore.get(k)!.tie(v);
           }
         };
       }
@@ -125,6 +87,9 @@ export function createPinProxy<T extends string | number>(
  * ```
  */
 export class Component<PinNames extends string | number = number> {
+  static activeGroup?: string = undefined;
+  static activeSubschematic?: string = undefined;
+
   readonly symbol: SymbolName;
   readonly ref: string;
   readonly footprint: FootprintName;
@@ -134,6 +99,8 @@ export class Component<PinNames extends string | number = number> {
   readonly schematicPosition?: SchematicPosition;
   readonly pcbPosition?: PcbPosition;
   readonly parent?: Composable<any>;
+  readonly group?: string;
+  readonly subschematic?: string;
 
   /** Pin storage */
   private _pinStore = new Map<string, Pin>();
@@ -153,6 +120,8 @@ export class Component<PinNames extends string | number = number> {
     this.schematicPosition = options.schematicPosition;
     this.pcbPosition = options.pcbPosition;
     this.parent = Composable.activeComposable;
+    this.group = options.group || Component.activeGroup;
+    this.subschematic = options.subschematic || Component.activeSubschematic;
 
     // If a pin mapping function is provided, call it to create named aliases
     if (options.pins) {
@@ -178,6 +147,16 @@ export class Component<PinNames extends string | number = number> {
     );
 
     registry.registerComponent(this);
+  }
+
+  /**
+   * Helper to quickly assign power pins from a record.
+   */
+  power(mapping: Record<string, PinAssignable>): this {
+    for (const [key, val] of Object.entries(mapping)) {
+      this._pinStore.get(key)?.tie(val) || (this.pins as any)[key].tie(val);
+    }
+    return this;
   }
 
   /** Get all defined pins */

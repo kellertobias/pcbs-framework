@@ -38,8 +38,8 @@ describe("Synthesis Integration", () => {
           footprint: "Resistor_SMD:R_0603_1608Metric",
           value: "10k",
         });
-        r1.pins[1] = vcc;
-        r1.pins[2] = gnd;
+        r1.pins[1].tie(vcc);
+        r1.pins[2].tie(gnd);
       }
     }
 

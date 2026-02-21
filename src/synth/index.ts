@@ -15,6 +15,7 @@ export { Component } from "@tobisk/pcbs/Component";
 export { Composable } from "@tobisk/pcbs/Composable";
 export { Module } from "@tobisk/pcbs/Module";
 export { DNC, TP } from "@tobisk/pcbs/Markers";
+export { group, subschematic } from "@tobisk/pcbs/decorators";
 export { KicadFootprint } from "@tobisk/pcbs/KicadFootprint";
 export { KicadSymbol } from "@tobisk/pcbs/KicadSymbol";
 export { KicadLibrary } from "@tobisk/pcbs/KicadLibrary";

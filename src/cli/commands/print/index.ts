@@ -8,6 +8,8 @@ import { Net } from "../../../synth/Net";
 import { Pin } from "../../../synth/types";
 import { registry } from "../../../synth/Registry";
 import { renderScope } from "./scope";
+import { GravityLayout } from "../../../synth/Layout";
+
 
 export async function cmdPrint(args: string[]): Promise<void> {
   const entry = args[0];
@@ -41,10 +43,11 @@ export async function cmdPrint(args: string[]): Promise<void> {
     layout: "landscape",
     autoFirstPage: false,
     info: {
-      Title: schematic.name,
-      Author: schematic.author,
-      Subject: schematic.description,
-      Keywords: `Revision: ${schematic.revision}`,
+      Title: schematic.name || 'Untitled Schematic',
+      Author: schematic.author || '',
+      Subject: schematic.description || '',
+      Keywords: `Revision: ${schematic.revision || '1'}`,
+      CreationDate: new Date(),
     },
   });
 
@@ -72,8 +75,8 @@ export async function cmdPrint(args: string[]): Promise<void> {
   const subschematicGroups = new Map<string, Composable<any>[]>();
 
   for (const c of allComposables) {
-    if (c._subschematicName) {
-      const name = c._subschematicName;
+    const name = c._subschematicName || c.constructor.name;
+    if (name && name !== "Composable") {
       if (!subschematicGroups.has(name)) {
         subschematicGroups.set(name, []);
       }
@@ -90,6 +93,13 @@ export async function cmdPrint(args: string[]): Promise<void> {
     const childComponents = registry.getComponents().filter((c) => c.parent === instance);
     const childComposables = registry.getComposables().filter((c) => c.parent === instance);
     const scopeItems = [...childComponents, ...childComposables];
+
+    // Auto-layout if missing positions
+    const needsLayout = scopeItems.some((item: any) => !item.schematicPosition);
+    if (needsLayout && scopeItems.length > 0) {
+      new GravityLayout({ spacing: 200, iterations: 150 }).apply(scopeItems as any);
+    }
+
     const scopeNets = findConnectedNets(scopeItems);
 
     renderScope(doc, name, scopeItems, scopeNets, schematic, instance);

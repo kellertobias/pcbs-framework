@@ -1,7 +1,5 @@
-/**
- * Core types for the PCB design framework.
- */
-import type { Net } from "./Net";
+import { Component } from "./Component";
+import { Net } from "./Net";
 import { KicadLibrarySymbol, KicadLibraryFootprint } from "@tobisk/pcbs/kicad-types";
 
 export type SymbolName = KicadLibrarySymbol | `Composable:${string}` | `Project_Symbols:${string}`;
@@ -15,6 +13,8 @@ export class Pin {
   readonly name: string;
   /** The net this pin is connected to, if any */
   private _net: import("./Net").Net | null = null;
+  /** Whether this pin has been explicitly marked as Do Not Connect */
+  private _isDNC: boolean = false;
 
   constructor(component: { ref: string; symbol: SymbolName }, name: string) {
     this.component = component;
@@ -30,6 +30,68 @@ export class Pin {
     // If already connected to a different net, we'll allow the override.
     // The Net class is responsible for ensuring consistency during merges.
     this._net = net;
+  }
+
+  /**
+   * Explicitly marks this pin as Do Not Connect (DNC).
+   * @param reason Optional description for why it is not connected
+   */
+  dnc(reason?: string): this {
+    if (this._isDNC) return this;
+
+    const dnc = new Component({
+      symbol: "Device:DNC",
+      ref: `DNC_${this.component.ref}_${this.name}`,
+      footprint: "DNC",
+      description: reason || "Implicit DNC",
+    });
+    const ret = this.tie(dnc.pins[1]);
+    this._isDNC = true;
+    return ret;
+  }
+
+  /**
+   * Connects this pin to one or more targets (other pins, nets, null).
+   */
+  tie(...targets: PinAssignable[]): this {
+    if (this._isDNC && targets.length > 0) {
+      throw new Error(`Cannot connect to Pin ${this.component.ref}.${this.name} because it is marked as Do Not Connect (DNC)`);
+    }
+
+    for (let target of targets) {
+      if (target === null || target === undefined) {
+        this.dnc();
+        continue;
+      }
+
+      if (target instanceof Component && (target as any).symbol === "Device:DNC") {
+        this.tie((target as any).pins[1]);
+        continue;
+      }
+
+      if (target instanceof Component && (target as any).symbol === "Connector:TestPoint") {
+        this.tie((target as any).pins[1]);
+        continue;
+      }
+
+      if (target instanceof Net || (target && target.constructor && target.constructor.name === "Net")) {
+        (target as any).tie(this);
+      } else if (target instanceof Pin || (target && target.constructor && target.constructor.name === "Pin")) {
+        const otherPin = target as Pin;
+        if (otherPin.net) {
+          otherPin.net.tie(this);
+        } else if (this.net) {
+          this.net.tie(otherPin);
+        } else {
+          const implicit = new Net({
+            name: `${otherPin.component.ref}_${otherPin.name}__${this.component.ref}_${this.name}`,
+          });
+          implicit.tie(otherPin);
+          implicit.tie(this);
+        }
+      }
+    }
+    return this;
   }
 }
 
@@ -81,6 +143,10 @@ export interface ComponentOptions {
   value?: string;
   schematicPosition?: SchematicPosition;
   pcbPosition?: PcbPosition;
+  /** Group assignment for layout clustering */
+  group?: string;
+  /** Subschematic page assignment */
+  subschematic?: string;
 }
 
 /** Options for Composable constructor */
@@ -124,10 +190,8 @@ export type PinMapFn<P extends string> = (pin: (n: string | number) => Pin) => R
  * Proxy type for pin access on Component/Composable.
  *
  * - getter: `component.pins.X` returns `Pin` at runtime
- * - setter: `component.pins.X = net | pin | DNC | TP | null`
- *
- * TypeScript mapped types can't express different get/set types,
- * so we use a broad union to allow all valid assignment targets.
+ * - setter: Intentionally restricted. Use `.tie(target)` to connect pins.
+ *   This avoids confusing overwrites.
  */
 export type PinAssignable = Pin | Net
   | import("./Markers").DNC
@@ -135,7 +199,7 @@ export type PinAssignable = Pin | Net
   | null;
 
 export type PinProxy<T extends string | number> = {
-  [K in T]: PinAssignable;
+  readonly [K in T]: Pin;
 } & {
   assign(map: Partial<Record<T, PinAssignable>>): void;
 };
