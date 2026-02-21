@@ -61,9 +61,9 @@ export class SExpressionParser {
       // Check if child should be inline (e.g. property value) or new line
 
       if (typeof child === "string") {
-         result += " " + child;
+        result += " " + child;
       } else {
-         result += "\n" + childIndent + this.serialize(child, indentLevel + 1);
+        result += "\n" + childIndent + this.serialize(child, indentLevel + 1);
       }
     }
 
@@ -92,7 +92,7 @@ export class SExpressionParser {
 
       if (inString) {
         if (escaped) {
-          current += char;
+          current += "\\" + char;
           escaped = false;
         } else if (char === "\\") {
           escaped = true;
