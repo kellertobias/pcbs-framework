@@ -110,7 +110,7 @@ export interface SchematicOptions {
  * Receives a `pin(n)` helper that returns the Pin for pin number `n`.
  * Returns a record mapping name → Pin.
  */
-export type PinMapFn<P extends string> = (pin: (n: number) => Pin) => Record<P, Pin>;
+export type PinMapFn<P extends string> = (pin: (n: string | number) => Pin) => Record<P, Pin>;
 
 /**
  * Proxy type for pin access on Component/Composable.

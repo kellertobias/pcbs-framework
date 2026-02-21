@@ -46,6 +46,9 @@ if __name__ == "__main__":
 `;
 
   const fullCode = code + runScript;
+  if (process.env.DEBUG) {
+    fs.writeFileSync(path.join(outputDir, "debug.py"), fullCode);
+  }
 
   // Setup environment for circuit-synth
   const env = { ...process.env };
@@ -54,8 +57,9 @@ if __name__ == "__main__":
   const systemLib = "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols";
 
   // Set KICAD_SYMBOL_DIR and PYTHONPATH
+  // We prioritize the local .kicad directory where the Project_Symbols are located
   const testSyms = path.join(projectRoot, "src", "tests", "assets", "symbols");
-  env.KICAD_SYMBOL_DIR = `${localLib}:${kicadLib}:${testSyms}:${systemLib}`;
+  env.KICAD_SYMBOL_DIR = `${kicadLib}:${localLib}:${testSyms}:${systemLib}`;
   env.PYTHONPATH = `${projectRoot}:${process.env.PYTHONPATH || ""}`;
 
   const res = spawnSync(pythonPath, ["-c", fullCode], {

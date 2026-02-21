@@ -156,7 +156,7 @@ export class Component<PinNames extends string | number = number> {
 
     // If a pin mapping function is provided, call it to create named aliases
     if (options.pins) {
-      const pinGetter = (n: number): Pin => {
+      const pinGetter = (n: string | number): Pin => {
         const key = String(n);
         if (!this._pinStore.has(key)) {
           this._pinStore.set(key, new Pin({ ref: this.ref, symbol: this.symbol }, key));
