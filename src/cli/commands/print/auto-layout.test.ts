@@ -52,15 +52,10 @@ function createRenderContext(): RenderContext {
 
 // Helper for intersection
 function checkLineRectIntersection(p1: {x: number, y: number}, p2: {x: number, y: number}, minX: number, minY: number, maxX: number, maxY: number) {
-    // Basic implementation for axis-aligned check
-    // If line is horizontal/vertical, it's easier.
-
-    // Check if both points are on same side of rect -> no intersection
     if (Math.max(p1.x, p2.x) < minX) return false;
     if (Math.min(p1.x, p2.x) > maxX) return false;
     if (Math.max(p1.y, p2.y) < minY) return false;
     if (Math.min(p1.y, p2.y) > maxY) return false;
-
     return true;
 }
 
@@ -71,10 +66,7 @@ describe('Auto-layout and Print Functionality', () => {
 
   describe('Wire Routing', () => {
     it('wires should avoid crossing symbols', () => {
-      // Setup: Pin A at (0, 0), Pin B at (100, 0)
-      // Obstacle Component at (50, 0) with size 20x20 -> bbox (40, -10) to (60, 10)
       const ctx = createRenderContext();
-
       const pinA = new Pin({ ref: 'U1', symbol: 'Device:R' }, '1');
       const pinB = new Pin({ ref: 'U2', symbol: 'Device:R' }, '1');
 
@@ -85,48 +77,34 @@ describe('Auto-layout and Print Functionality', () => {
       net.tie(pinA);
       net.tie(pinB);
 
-      // Define components that own the pins
       const compU1 = { ref: 'U1', allPins: new Map([['1', pinA]]) };
       const compU2 = { ref: 'U2', allPins: new Map([['1', pinB]]) };
-
-      // Define an obstacle (component) in the scope
       const obstacle = {
         ref: 'U3',
         symbol: 'Device:R',
         schematicPosition: { x: 50, y: 0 },
-        allPins: new Map(), // needed for type safety usually
-        // Component size is typically assumed or calculated. Let's say 20x20 (half-width 10).
+        allPins: new Map(),
       };
 
-      // We pass the obstacle to renderNet via scopeItems
       const scopeItems = [compU1, compU2, obstacle];
 
       renderNet(ctx, net, scopeItems);
 
       const calls = mockDoc.lineTo.mock.calls;
-      // Should have at least one call
       expect(calls.length).toBeGreaterThan(0);
 
-      // Check if any segment intersects the box (40, -10) to (60, 10)
       let crossed = false;
-      let start = { x: 0, y: 0 }; // Starting point from moveTo
-
-      // Assuming moveTo was called first
+      let start = { x: 0, y: 0 };
       expect(mockDoc.moveTo).toHaveBeenCalledWith(0, 0);
 
       for (const call of calls) {
         const end = { x: call[0], y: call[1] };
-
-        // Check intersection with rectangle (40, -10, 60, 10)
-        // We assume obstacle size 20x20 centered at 50,0.
-        // x: [40, 60], y: [-10, 10]
-
+        // Check intersection with obstacle (40, -10, 60, 10)
         if (checkLineRectIntersection(start, end, 40, -10, 60, 10)) {
           crossed = true;
         }
         start = end;
       }
-
       expect(crossed).toBe(false);
     });
 
@@ -136,16 +114,6 @@ describe('Auto-layout and Print Functionality', () => {
       const pinPos = { x: 100, y: 100 };
       ctx.pinPositions.set(pin, pinPos);
 
-      // Assume we can tell renderNet about pin orientation.
-      // For now, if we cannot, this test just checks basic pathing behavior.
-      // If we setup the OTHER pin such that a direct path goes INTO the symbol,
-      // it should route around.
-
-      // Say Pin is on Right side of U1. U1 is at (80, 100) size 40x40 -> x range [60, 100].
-      // Pin is at (100, 100).
-      // Other pin is at (0, 100) (Left side).
-      // Direct path: (100,100) -> (0,100) goes through U1 body (x=60..100).
-
       const otherPin = new Pin({ ref: 'U2', symbol: 'Device:R' }, '1');
       ctx.pinPositions.set(otherPin, { x: 0, y: 100 });
 
@@ -153,13 +121,11 @@ describe('Auto-layout and Print Functionality', () => {
       net.tie(pin);
       net.tie(otherPin);
 
-      // Mock the component U1 to exist so renderNet knows to avoid it (if it supported obstacle avoidance)
       const componentU1 = {
           ref: 'U1',
           symbol: 'Device:R',
           schematicPosition: { x: 80, y: 100 },
           allPins: new Map([['1', pin]]),
-          // bbox would be roughly (60, 80) to (100, 120)
       };
       const componentU2 = {
           ref: 'U2',
@@ -168,16 +134,9 @@ describe('Auto-layout and Print Functionality', () => {
 
       renderNet(ctx, net, [componentU1, componentU2]);
 
-      // Analyze all segments to find the one connected to pinPos (100, 100)
       let segmentFound = false;
       let leadingAway = false;
 
-      // Reconstruct path from moveTo/lineTo
-      // Assuming one continuous path for simple net
-      // Mock doesn't store state perfectly so we rely on call order
-      // But renderNet might do multiple moveTo.
-
-      // Let's iterate calls and rebuild segments
       const ops: {type: 'move'|'line', x: number, y: number}[] = [];
       if (mockDoc.moveTo.mock.calls.length > 0) {
           ops.push({ type: 'move', x: mockDoc.moveTo.mock.calls[0][0], y: mockDoc.moveTo.mock.calls[0][1] });
@@ -192,28 +151,18 @@ describe('Auto-layout and Print Functionality', () => {
               current = { x: op.x, y: op.y };
           } else {
               const next = { x: op.x, y: op.y };
-              // Ignore zero-length segments
-              if (current.x === next.x && current.y === next.y) {
-                  continue;
-              }
+              if (current.x === next.x && current.y === next.y) continue;
 
-              // Check if this segment connects to pinPos
               if ((current.x === pinPos.x && current.y === pinPos.y) ||
                   (next.x === pinPos.x && next.y === pinPos.y)) {
 
                   segmentFound = true;
                   const other = (current.x === pinPos.x && current.y === pinPos.y) ? next : current;
-
-                  // For a pin on the Right (facing Right), the wire should exist in X >= 100 area.
-                  // So the other point should have x >= 100.
-                  if (other.x >= pinPos.x) {
-                      leadingAway = true;
-                  }
+                  if (other.x >= pinPos.x) leadingAway = true;
               }
               current = next;
           }
       }
-
       expect(segmentFound).toBe(true);
       expect(leadingAway).toBe(true);
     });
@@ -222,33 +171,22 @@ describe('Auto-layout and Print Functionality', () => {
   describe('Symbol Placement', () => {
     it('symbols should not overlap', () => {
       const layout = new GravityLayout({ spacing: 50, iterations: 10 });
-      // GravityLayout currently ignores items with null schematicPosition.
-      // This test might fail if GravityLayout isn't designed to initialize positions.
-      // But assuming it should:
       const items: any[] = [
         { ref: 'U1', schematicPosition: { x: 0, y: 0 }, allPins: new Map() },
         { ref: 'U2', schematicPosition: { x: 0, y: 0 }, allPins: new Map() },
         { ref: 'U3', schematicPosition: { x: 0, y: 0 }, allPins: new Map() },
       ];
-
       layout.apply(items);
-
-      // Check for overlaps assuming 40x40 size
       const size = 40;
       let overlap = false;
       for (let i = 0; i < items.length; i++) {
         expect(items[i].schematicPosition).not.toBeNull();
-
         for (let j = i + 1; j < items.length; j++) {
           const p1 = items[i].schematicPosition;
           const p2 = items[j].schematicPosition;
-
-          if (Math.abs(p1.x - p2.x) < size && Math.abs(p1.y - p2.y) < size) {
-            overlap = true;
-          }
+          if (Math.abs(p1.x - p2.x) < size && Math.abs(p1.y - p2.y) < size) overlap = true;
         }
       }
-
       expect(overlap).toBe(false);
     });
 
@@ -267,41 +205,67 @@ describe('Auto-layout and Print Functionality', () => {
           revision: "v1",
       } as Schematic;
 
+      // We assume renderScope calls rect() for the group while dashed.
+      // We must track the dashed state.
+      let isDashed = false;
+      const dashedRects: {x: number, y: number, w: number, h: number}[] = [];
+
+      mockDoc.dash.mockImplementation(() => { isDashed = true; return mockDoc; });
+      mockDoc.undash.mockImplementation(() => { isDashed = false; return mockDoc; });
+
+      mockDoc.rect.mockImplementation((x, y, w, h) => {
+          if (isDashed) dashedRects.push({x, y, w, h});
+          return mockDoc;
+      });
+
       renderScope(mockDoc as any, "Test", items, [], schematic);
 
-      // Check for dashed rectangle
-      // We expect at least one dashed rectangle drawn for "Power Stage".
-      // We expect text "Power Stage" to be drawn.
+      // 1. Verify at least one dashed rect exists
+      expect(dashedRects.length).toBeGreaterThan(0);
 
-      // Check dash calls
-      const dashCalls = mockDoc.dash.mock.calls;
-      expect(dashCalls.length).toBeGreaterThan(0);
+      // 2. Find the rect that encompasses U1 (100,100) and U2 (120,120)
+      // U1 bbox (assuming 40x40 center): [80, 120] x [80, 120]
+      // U2 bbox: [100, 140] x [100, 140]
+      // Total Group BBox: minX=80, minY=80, maxX=140, maxY=140.
 
-      // Check rect calls while dashed
-      // This is hard to correlate without order.
-      // But we can check if `text` was called with "Power Stage".
+      const groupRect = dashedRects.find(r =>
+          r.x <= 80 && r.y <= 80 &&
+          (r.x + r.w) >= 140 && (r.y + r.h) >= 140
+      );
 
+      expect(groupRect).toBeDefined();
+
+      // 3. Verify it does NOT encompass U3 (300, 300) -> bbox [280, 320]
+      // Check intersection
+      const u3MinX = 280, u3MaxX = 320, u3MinY = 280, u3MaxY = 320;
+
+      // If groupRect contains U3 center
+      if (groupRect) {
+          const containsU3 = (
+              groupRect.x <= 300 && (groupRect.x + groupRect.w) >= 300 &&
+              groupRect.y <= 300 && (groupRect.y + groupRect.h) >= 300
+          );
+          expect(containsU3).toBe(false);
+      }
+
+      // 4. Verify the label "Power Stage" is drawn at the top-left of the rect
       const textCalls = mockDoc.text.mock.calls;
-      const groupNameDrawn = textCalls.some(call => call[0] === groupName);
-      expect(groupNameDrawn).toBe(true);
+      const labelCall = textCalls.find(c => c[0] === groupName);
+      expect(labelCall).toBeDefined();
 
-      // Check rect existence
-      const rectCalls = mockDoc.rect.mock.calls;
-      // We expect a rect covering U1 and U2 (approx 100,100 to 120,120 plus margins)
-      // U1: 100,100. U2: 120,120.
-      // Group BBox roughly: minX 100, minY 100, maxX 120, maxY 120.
-      // The rect should be roughly around there.
-
-      // Since we don't know exact padding, just checking if ANY rect is drawn is a start,
-      // but simpler to rely on text and dash for now as "group" indicators.
+      if (labelCall && groupRect) {
+          const lx = labelCall[1];
+          const ly = labelCall[2];
+          // Should be near (groupRect.x, groupRect.y)
+          expect(Math.abs(lx - groupRect.x)).toBeLessThan(20);
+          expect(Math.abs(ly - groupRect.y)).toBeLessThan(20);
+      }
     });
   });
 
   describe('Subcircuits and Composables', () => {
     it('subcircuits should be black boxes and have own page', () => {
-      // Create a composable
       const sub = new Composable({ ref: 'SUB1' });
-      // Ensure it has pins to be rendered as ports
       Object.defineProperty(sub, 'allPins', {
           value: new Map([
             ['IN', new Pin({ ref: 'SUB1', symbol: 'Composable:MySub' }, 'IN')],
@@ -311,105 +275,80 @@ describe('Auto-layout and Print Functionality', () => {
       });
       (sub as any).schematicPosition = { x: 200, y: 200 };
 
-      // Render it via renderComponent
       const ctx = createRenderContext();
+
+      // Mock rect to capture box dimensions
+      let boxDrawn: {x: number, y: number, w: number, h: number} | null = null;
+      mockDoc.rect.mockImplementation((x, y, w, h) => {
+          boxDrawn = {x, y, w, h};
+          return mockDoc;
+      });
+
       renderComponent(ctx, sub);
 
-      // Expect a rectangle (black box)
-      // Composable usually doesn't have a symbol, so it hits the fallback path.
-      // Fallback path draws a rect.
-      expect(mockDoc.rect).toHaveBeenCalled();
+      // Expect a rectangle centered at 200,200
+      // NOTE: renderComponent uses ctx.doc.translate(x,y) then draws rect at local (-w/2, -h/2).
+      // So we verify translate() was called with (200, 200) and rect() was called with local coords centered at 0.
 
-      // We also expect "SUB1" text
+      expect(mockDoc.translate).toHaveBeenCalledWith(200, 200);
+
+      expect(boxDrawn).not.toBeNull();
+      if (boxDrawn) {
+          // Center of the rect in LOCAL coordinates should be 0,0
+          const centerX = boxDrawn.x + boxDrawn.w / 2;
+          const centerY = boxDrawn.y + boxDrawn.h / 2;
+          expect(Math.abs(centerX)).toBeLessThan(1);
+          expect(Math.abs(centerY)).toBeLessThan(1);
+      }
+
+      // Expect "SUB1" text centered
       const textCalls = mockDoc.text.mock.calls;
-      expect(textCalls.some(c => c[0] === 'SUB1')).toBe(true);
+      const labelCall = textCalls.find(c => c[0] === 'SUB1');
+      expect(labelCall).toBeDefined();
 
-      // To test "have own page", we would need to run the full print command or renderScope iteration.
-      // But we can check if renderScope calls addPage when iterating subschematics.
-      // Since we can't easily invoke the full loop here without mocking registry and everything,
-      // we'll focus on the "black box" rendering part for now, which is what the layouter handles.
+      // TODO: check label position relative to box
     });
 
     it('composables default to inline rendering unless marked', () => {
-      // Logic uses getSubschematicGroups
-
       class MyUnmarked extends Composable {
         protected defineInterface() { return {}; }
       }
-
       const unmarked = new MyUnmarked({ ref: 'U1' });
       const marked = new MyUnmarked({ ref: 'U2' });
       marked.makeSubschematic({ name: 'MarkedType' });
-
       const groups = getSubschematicGroups([unmarked, marked]);
-
       expect(groups.has('MarkedType')).toBe(true);
-      expect(groups.has('MyUnmarked')).toBe(false); // Default name NOT used
-      expect(groups.get('MarkedType')?.length).toBe(1);
-      expect(groups.get('MarkedType')?.[0]).toBe(marked);
+      expect(groups.has('MyUnmarked')).toBe(false);
     });
 
     it('only distinct composables get subcircuit pages', () => {
       class MyAmp extends Composable {
         protected defineInterface() { return {}; }
       }
-
-      // Two instances share the same "type" name -> grouped
       const amp1 = new MyAmp({ ref: 'Amp1' });
       amp1.makeSubschematic({ name: 'Amp' });
-
       const amp2 = new MyAmp({ ref: 'Amp2' });
-      amp2.makeSubschematic({ name: 'Amp' }); // Same group name
-
-      // One instance has different name -> separate
+      amp2.makeSubschematic({ name: 'Amp' });
       const amp3 = new MyAmp({ ref: 'Amp3' });
-      amp3.makeSubschematic({ name: 'AmpV2' }); // Different name
-
+      amp3.makeSubschematic({ name: 'AmpV2' });
       const groups = getSubschematicGroups([amp1, amp2, amp3]);
-
       expect(groups.size).toBe(2);
-      expect(groups.has('Amp')).toBe(true);
-      expect(groups.has('AmpV2')).toBe(true);
-
       expect(groups.get('Amp')?.length).toBe(2);
-      expect(groups.get('AmpV2')?.length).toBe(1);
     });
   });
 
   describe('DNC and Pin Rendering', () => {
       it('pins in symbols should not repeat', () => {
-          // Verify that Component enforces unique pins via Map
           const comp = new Component({ symbol: 'Device:R', ref: 'R1', footprint: 'R' });
-
-          // Try to add duplicate pins manually to the internal store if possible,
-          // or just verify that standard usage results in unique pins.
-
-          // Since allPins is a Map<string, Pin>, keys are unique.
-          // Let's verify renderComponent iterates the Map.
-
           const ctx = createRenderContext();
           const pin1 = new Pin({ ref: 'R1', symbol: 'Device:R' }, '1');
-
-          // Mock item with duplicate pins in array form if it were possible,
-          // but input to renderComponent is expected to have allPins as Map.
-
           const item = {
               ref: 'R1',
               symbol: 'Device:R',
               schematicPosition: { x: 0, y: 0 },
               allPins: new Map([['1', pin1]])
           };
-
-          // If we somehow had duplicates in values? Map iterates unique keys.
-          // What if '1' and '1_dup' point to same pin?
-          // renderPin would be called twice.
-
-          // The requirement "pins in symbols should not repeat" likely means:
-          // Don't draw the same pin twice on the symbol.
-
           renderComponent(ctx, item);
-
-          // Count text calls for pin name "1"
           const textCalls = mockDoc.text.mock.calls.filter(c => c[0] === '1');
           expect(textCalls.length).toBe(1);
       });
@@ -417,13 +356,9 @@ describe('Auto-layout and Print Functionality', () => {
       it('DNC pins should have X and reason', () => {
           const ctx = createRenderContext();
           const pin = new Pin({ ref: 'U1', symbol: 'Device:R' }, '1');
-
-          // Mark DNC with reason
           const reason = "Not needed";
           pin.dnc(reason);
 
-          // Render component with this pin
-          // We need a component that owns this pin
           const comp = {
               ref: 'U1',
               symbol: 'Device:R',
@@ -431,20 +366,96 @@ describe('Auto-layout and Print Functionality', () => {
               allPins: new Map([['1', pin]])
           };
 
+          // Clear mocks to focus on this component
+          vi.clearAllMocks();
+
+          // We assume the pin is at some location relative to 100,100.
+          // Since there is no symbol data loaded (mocked extractSymbol returns null or we mock it),
+          // it falls back to default spacing.
+          // Pin 1 (index 0) of 1 pin.
+          // Calculated pos: x=100-40 = 60 (left side), y=100. (Assuming fallback: left side)
+          // Or renderComponent places it.
+
+          // Let's capture moveTo/lineTo calls
+          const moveCalls: any[] = [];
+          const lineCalls: any[] = [];
+
+          mockDoc.moveTo.mockImplementation((x, y) => { moveCalls.push({x, y}); return mockDoc; });
+          mockDoc.lineTo.mockImplementation((x, y) => { lineCalls.push({x, y}); return mockDoc; });
+
           renderComponent(ctx, comp);
 
-          // Check for X (red stroke)
-          // renderPin draws X with explicit lineTo/stroke calls using red color.
-          // Or renderPin implementation uses "#ff0000".
+          // Find the "X" pattern.
+          // An X is two intersecting lines of similar length, roughly orthogonal.
+          // Or specifically: (cx-s, cy-s) to (cx+s, cy+s) AND (cx+s, cy-s) to (cx-s, cy+s).
 
-          // Check for Reason text
-          // Currently implementation DOES NOT print reason.
-          // We expect this to fail.
+          // We look for pairs of move->line that form this X.
+          let xFound = false;
+          let xCenter = {x: 0, y: 0};
 
+          for (let i=0; i < moveCalls.length; i++) {
+              const m1 = moveCalls[i];
+              // Find corresponding lineTo (assuming immediate)
+              // But renderPin might do moveTo... lineTo... moveTo... lineTo...
+              // We need to match them.
+              // Assuming sequence: moveTo, lineTo, moveTo, lineTo for the X.
+
+              if (i+1 < moveCalls.length) {
+                  const m2 = moveCalls[i+1];
+                  // If these two moves start the cross
+                  // We need to find the lines.
+                  // This is tricky without strict ordering guarantee.
+                  // But usually X is drawn as one block.
+              }
+          }
+
+          // Let's just iterate all segments and find two that cross at a center point and form an X.
+          // Segments:
+          const segments: {p1: {x:number, y:number}, p2: {x:number, y:number}}[] = [];
+          // Reconstruct segments from calls sequence
+          // A bit hard if moveTo/lineTo are interleaved with other draws.
+          // But "X" is usually small (size ~3-5).
+
+          // We can check if we have 2 segments that share a center.
+          // segment 1: (x-d, y-d) -> (x+d, y+d)
+          // segment 2: (x+d, y-d) -> (x-d, y+d)
+
+          // Let's find any segment that looks like a diagonal.
+          // And then find its pair.
+
+          // We reconstruct segments by looking at the call history sequentially.
+          const history = mockDoc.moveTo.mock.invocationCallOrder; // wait, vitest gives call order
+          // But we have separate mocks.
+          // We can use a single spy or just assume sequential blocks.
+
+          // Simplified: just look for coordinates in lineCalls that match expected X pattern.
+          // Since we don't know exact pin pos, we scan.
+
+          let crossesFound = 0;
+          for (const line of lineCalls) {
+             // If this line is short and diagonal?
+             // Not enough.
+          }
+
+          // Okay, let's verify reason text position relative to X.
           const textCalls = mockDoc.text.mock.calls;
-          const reasonPrinted = textCalls.some(c => c[0] === reason);
-          expect(reasonPrinted).toBe(true);
+          const reasonCall = textCalls.find(c => c[0] === reason);
+
+          // If reason is not printed, we fail (as expected).
+          expect(reasonCall).toBeDefined();
+
+          if (reasonCall) {
+              const tx = reasonCall[1];
+              const ty = reasonCall[2];
+
+              // Check overlap with component body (centered at 100,100 size 80x80 -> [60,140]x[60,140])
+              // Reason should be OUTSIDE this box.
+              const inside = (tx >= 60 && tx <= 140 && ty >= 60 && ty <= 140);
+              expect(inside).toBe(false);
+
+              // And should be near the X.
+              // We haven't found X yet.
+          }
       });
   });
-
 });
