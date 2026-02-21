@@ -9,6 +9,7 @@ import { Pin } from "../../../synth/types";
 import { registry } from "../../../synth/Registry";
 import { renderScope } from "./scope";
 import { GravityLayout } from "../../../synth/Layout";
+import { getSubschematicGroups } from "./subschematic-strategy";
 
 function isDescendant(item: any, potentialAncestor: Composable<any>): boolean {
   let current = item.parent;
@@ -82,17 +83,7 @@ export async function cmdPrint(args: string[]): Promise<void> {
   console.log("  -> Rendering subschematics...");
 
   const allComposables = registry.getComposables();
-  const subschematicGroups = new Map<string, Composable<any>[]>();
-
-  for (const c of allComposables) {
-    const name = c._subschematicName || c.constructor.name;
-    if (name && name !== "Composable") {
-      if (!subschematicGroups.has(name)) {
-        subschematicGroups.set(name, []);
-      }
-      subschematicGroups.get(name)!.push(c);
-    }
-  }
+  const subschematicGroups = getSubschematicGroups(allComposables);
 
   for (const [name, instances] of subschematicGroups) {
     console.log(`     - ${name}`);

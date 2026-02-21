@@ -9,6 +9,7 @@ import { renderComponent } from './components';
 import { renderScope } from './scope';
 import { RenderContext, COLORS } from './types';
 import { Pin } from '../../../synth/types';
+import { getSubschematicGroups } from './subschematic-strategy';
 
 // Mock PDFDocument
 const mockDoc = {
@@ -330,13 +331,48 @@ describe('Auto-layout and Print Functionality', () => {
     });
 
     it('composables default to inline rendering unless marked', () => {
-      // Logic relies on index.ts filtering
-      // TODO: Refactor index.ts to be testable or mock registry to test the print loop
+      // Logic uses getSubschematicGroups
+
+      class MyUnmarked extends Composable {
+        protected defineInterface() { return {}; }
+      }
+
+      const unmarked = new MyUnmarked({ ref: 'U1' });
+      const marked = new MyUnmarked({ ref: 'U2' });
+      marked.makeSubschematic({ name: 'MarkedType' });
+
+      const groups = getSubschematicGroups([unmarked, marked]);
+
+      expect(groups.has('MarkedType')).toBe(true);
+      expect(groups.has('MyUnmarked')).toBe(false); // Default name NOT used
+      expect(groups.get('MarkedType')?.length).toBe(1);
+      expect(groups.get('MarkedType')?.[0]).toBe(marked);
     });
 
     it('only distinct composables get subcircuit pages', () => {
-      // Logic relies on index.ts loop
-      // TODO: Test deduplication logic
+      class MyAmp extends Composable {
+        protected defineInterface() { return {}; }
+      }
+
+      // Two instances share the same "type" name -> grouped
+      const amp1 = new MyAmp({ ref: 'Amp1' });
+      amp1.makeSubschematic({ name: 'Amp' });
+
+      const amp2 = new MyAmp({ ref: 'Amp2' });
+      amp2.makeSubschematic({ name: 'Amp' }); // Same group name
+
+      // One instance has different name -> separate
+      const amp3 = new MyAmp({ ref: 'Amp3' });
+      amp3.makeSubschematic({ name: 'AmpV2' }); // Different name
+
+      const groups = getSubschematicGroups([amp1, amp2, amp3]);
+
+      expect(groups.size).toBe(2);
+      expect(groups.has('Amp')).toBe(true);
+      expect(groups.has('AmpV2')).toBe(true);
+
+      expect(groups.get('Amp')?.length).toBe(2);
+      expect(groups.get('AmpV2')?.length).toBe(1);
     });
   });
 
