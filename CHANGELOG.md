@@ -1,3 +1,15 @@
+# [1.4.0](https://github.com/kellertobias/pcbs-framework/compare/v1.3.0...v1.4.0) (2026-02-21)
+
+
+### Bug Fixes
+
+* types ([28d5b7a](https://github.com/kellertobias/pcbs-framework/commit/28d5b7ada0a6ce0d49ad6c2ceaea266d0f06a29a))
+
+
+### Features
+
+* enable string and number pin names, improve codegen for DNC net pin access, add synthesis debug output, and adjust Kicad symbol path priority. ([bbe7501](https://github.com/kellertobias/pcbs-framework/commit/bbe75017633a058c4830cbb3226c37bd1a482255))
+
 # [1.3.0](https://github.com/kellertobias/pcbs-framework/compare/v1.2.0...v1.3.0) (2026-02-20)
 
 
