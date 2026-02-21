@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/kellertobias/pcbs-framework/compare/v1.6.0...v1.7.0) (2026-02-21)
+
+
+### Features
+
+* document the new `parts` command for searching JLC components. ([4e86517](https://github.com/kellertobias/pcbs-framework/commit/4e86517763c453dc94e8a7fa1c0ddd7ebb04bf4c))
+
 # [1.6.0](https://github.com/kellertobias/pcbs-framework/compare/v1.5.0...v1.6.0) (2026-02-21)
 
 
