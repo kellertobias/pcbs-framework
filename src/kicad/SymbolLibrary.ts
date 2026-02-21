@@ -94,9 +94,9 @@ export class SymbolLibrary {
              if (parent) {
                 // Check if already in dependencies to avoid duplicates/cycles
                 if (!dependencies.includes(parent)) {
-                   dependencies.push(parent);
-                   // Recursively collect parent's dependencies
+                   // Recursively collect parent's dependencies first (post-order traversal / topological sort)
                    this.collectDependencies(lib, parent, dependencies);
+                   dependencies.push(parent);
                 }
              } else {
                  console.warn(`Dependent symbol "${parentName}" (extended by symbol) not found in library.`);

@@ -50,10 +50,8 @@ export class SchematicGenerator {
 
     const processSymbol = (symDef: SymbolDefinition) => {
         if (processedSymbols.has(symDef.name)) return;
-        processedSymbols.add(symDef.name);
 
-        libSymbols.push(symDef.definition);
-
+        // Process dependencies first (parents must be defined before children)
         for (const dep of symDef.dependencies) {
             const depName = this.getSymbolName(dep);
             if (depName && !processedSymbols.has(depName)) {
@@ -61,6 +59,10 @@ export class SchematicGenerator {
                 libSymbols.push(dep);
             }
         }
+
+        // Add definition to libSymbols
+        processedSymbols.add(symDef.name);
+        libSymbols.push(symDef.definition);
     };
 
     for (const comp of this.snapshot.components) {

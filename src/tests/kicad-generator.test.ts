@@ -181,5 +181,10 @@ describe("SchematicGenerator", () => {
       expect(output).toContain('(symbol "Child"');
       expect(output).toContain('(extends "Parent")');
       expect(output).toContain('(symbol "Parent"');
+
+      // Verify order: Parent must come before Child
+      const parentIndex = output.indexOf('(symbol "Parent"');
+      const childIndex = output.indexOf('(symbol "Child"');
+      expect(parentIndex).toBeLessThan(childIndex);
   });
 });
