@@ -169,7 +169,7 @@ export async function cmdExport(args: string[]): Promise<void> {
 
     // Convert KiCad pos output → JLCPCB CPL format
     const cplFile = path.join(outputBase, `CPL-${projectName}.csv`);
-    convertPosToCpl(rawPosFile, cplFile, pcbFile);
+    convertPosToCpl(rawPosFile, cplFile, components, process.cwd());
 
     // Clean up raw file
     fs.unlinkSync(rawPosFile);
