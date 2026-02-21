@@ -172,13 +172,15 @@ export function generatePython(snapshot: CircuitSnapshot): string {
       // Check if this net contains a DNC component
       const isDncNet = pinObj.net.pins.some(p => p.component.symbol === "Device:DNC");
 
+      const pinNum = pinObj.name;
+      const isNumeric = !isNaN(parseInt(pinNum, 10)) && /^\d+$/.test(pinNum);
+      const pinAccessor = isNumeric ? `[${pinNum}]` : `[${pyStr(pinNum)}]`;
+
       if (isDncNet) {
         // Find the DNC component to use its ref for the NC net name if possible, 
         // but circuit-synth pattern usually uses NC_<Ref>_<Pin>
-        const pinAccessor = !isNaN(numericKey) ? `[${numericKey}]` : `[${pyStr(pinKey)}]`;
-        connectionLines.push(`    ${compVar}${pinAccessor} += Net(${pyStr(`NC_${comp.ref}_${pinKey}`)})`);
+        connectionLines.push(`    ${compVar}${pinAccessor} += Net(${pyStr(`NC_${comp.ref}_${pinNum}`)})`);
       } else {
-        const pinAccessor = !isNaN(numericKey) ? `[${numericKey}]` : `[${pyStr(pinKey)}]`;
         connectionLines.push(`    ${compVar}${pinAccessor} += ${netVar}`);
       }
     }

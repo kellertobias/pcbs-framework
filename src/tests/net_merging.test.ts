@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Net, Component, Registry } from "../synth";
+import { Pin } from "../synth/types";
 import { registry } from "../synth/Registry";
 
 describe("Net Merging", () => {
@@ -19,13 +20,13 @@ describe("Net Merging", () => {
 
         // Pin 1 starts in NetA
         netA.tie(r1.pins[1]);
-        expect(r1.pins[1].net).toBe(netA);
+        expect((r1.pins[1] as any).net).toBe(netA);
         expect(netA.pins).toContain(r1.pins[1]);
 
         // Now tie Pin 1 to NetB - this should merge NetA into NetB
         netB.tie(r1.pins[1]);
 
-        expect(r1.pins[1].net).toBe(netB);
+        expect((r1.pins[1] as any).net).toBe(netB);
         expect(netB.pins).toContain(r1.pins[1]);
         expect(registry.getNets()).toContain(netB);
         expect(registry.getNets()).not.toContain(netA);
@@ -45,9 +46,9 @@ describe("Net Merging", () => {
         // Merge NetA into NetB
         netB.tie(r1.pins[1]);
 
-        expect(r1.pins[1].net).toBe(netB);
-        expect(r1.pins[2].net).toBe(netB);
-        expect(r2.pins[1].net).toBe(netB);
+        expect((r1.pins[1] as any).net).toBe(netB);
+        expect((r1.pins[2] as any).net).toBe(netB);
+        expect((r2.pins[1] as any).net).toBe(netB);
         expect(netB.pins.length).toBe(3);
         expect(registry.getNets().length).toBe(1);
     });
@@ -69,8 +70,8 @@ describe("Net Merging", () => {
         // if (otherPin.net) { otherPin.net.tie(pin); }
         // So netB.tie(r1.pins[1]) happens, which merges netA into netB (since netB is "newer" in the assignment target sense? no, netB is otherPin.net)
 
-        expect(r1.pins[1].net).toBe(netB);
-        expect(r2.pins[1].net).toBe(netB);
+        expect((r1.pins[1] as any).net).toBe(netB);
+        expect((r2.pins[1] as any).net).toBe(netB);
         expect(registry.getNets()).toContain(netB);
         expect(registry.getNets()).not.toContain(netA);
     });
@@ -111,9 +112,9 @@ describe("Net Merging", () => {
         vccVin.tie(buckVinPin);
 
         // Assertions
-        expect(uBuck.pins[1].net).toBe(vccVin);
-        expect(cIn.pins[1].net).toBe(vccVin);
-        expect(barrelJack.pins[1].net).toBe(vccVin);
+        expect((uBuck.pins[1] as any).net).toBe(vccVin);
+        expect((cIn.pins[1] as any).net).toBe(vccVin);
+        expect((barrelJack.pins[1] as any).net).toBe(vccVin);
         expect(registry.getNets().map(n => n.name)).toContain("+VIN");
         expect(registry.getNets().map(n => n.name)).not.toContain("U4_VIN");
     });
