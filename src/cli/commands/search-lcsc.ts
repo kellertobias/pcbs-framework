@@ -19,6 +19,7 @@ export async function cmdLcsc(args: string[]): Promise<void> {
   let value: string | undefined;
   let jsonOutput = false;
   let debug = false;
+  let basicOnly = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--footprint" && args[i + 1]) {
@@ -29,12 +30,14 @@ export async function cmdLcsc(args: string[]): Promise<void> {
       jsonOutput = true;
     } else if (args[i] === "--debug") {
       debug = true;
+    } else if (args[i] === "--basic-only") {
+      basicOnly = true;
     }
   }
 
   // Interactive mode if no value or footprint
   if (!value && !footprint) {
-    await interactiveLoop(debug);
+    await interactiveLoop(debug, basicOnly);
     return;
   }
 
@@ -43,10 +46,10 @@ export async function cmdLcsc(args: string[]): Promise<void> {
     die("Please provide --value and/or --footprint.");
   }
 
-  await performSearch(query, footprint, jsonOutput, debug);
+  await performSearch(query, footprint, jsonOutput, debug, basicOnly);
 }
 
-async function interactiveLoop(debug: boolean) {
+async function interactiveLoop(debug: boolean, basicOnly: boolean) {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -71,12 +74,12 @@ async function interactiveLoop(debug: boolean) {
     // If I am in interactive mode, I don't have a footprint provided via args.
     // I will just search with the query string.
 
-    await performSearch(query, undefined, false, debug);
+    await performSearch(query, undefined, false, debug, basicOnly);
   }
   rl.close();
 }
 
-async function performSearch(query: string, footprintFilter: string | undefined, jsonOutput: boolean, debug: boolean) {
+async function performSearch(query: string, footprintFilter: string | undefined, jsonOutput: boolean, debug: boolean, basicOnly: boolean) {
   if (!jsonOutput) {
     console.log(`\n🔍  Searching JLC for "${query}"...`);
   }
@@ -180,6 +183,10 @@ async function performSearch(query: string, footprintFilter: string | undefined,
       const isBasic = basicText.includes("Basic");
       const isExtended = basicText.includes("Extended");
       const basic = isBasic; // default false if extended or neither?
+
+      if (basicOnly && !basic) {
+          continue;
+      }
 
       // Description
       let description = "";
