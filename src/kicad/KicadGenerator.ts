@@ -20,12 +20,14 @@ export class KicadGenerator {
       ? process.env.KICAD_SYMBOL_DIR.split(":")
       : [];
 
-    // Add default system paths if no env provided?
-    // Or assume user provides them.
-    // Also include local project library paths if standard?
-    // "lib" directory usually.
+    // Standard system paths for KiCad symbols
+    const systemPaths = [
+        "/usr/share/kicad/symbols",
+        "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols",
+        "C:\\Program Files\\KiCad\\share\\kicad\\symbols"
+    ].filter(p => fs.existsSync(p));
 
-    const paths = libraryPaths ? [...libraryPaths, ...envPaths] : envPaths;
+    const paths = [...(libraryPaths || []), ...envPaths, ...systemPaths];
     this.library.setLibraryPaths(paths);
   }
 
@@ -57,29 +59,9 @@ export class KicadGenerator {
     // Save UUIDs
     this.uuids.save();
 
-    // Generate Project Files (sym-lib-table, fp-lib-table)
-    // We assume project uses local "lib" folder for symbols/footprints?
-    // Or just generating standard tables.
-    // runSynthesis in synthesis.ts did this:
-    /*
-      const relPath = path.relative(outputDir, kicadLib);
-      const fpTable = KicadLibrary.generateFpLibTable(relPath);
-      const symTable = KicadLibrary.generateSymLibTable(relPath);
-      fs.writeFileSync(path.join(outputDir, "fp-lib-table"), fpTable);
-      fs.writeFileSync(path.join(outputDir, "sym-lib-table"), symTable);
-    */
-    // We should probably replicate this if we want to be helpful.
-    // But we need to know where the library is relative to output.
-    // Assuming ".kicad" directory in project root contains project libraries?
-    // Or "lib"?
-    // I'll skip this for now unless strictly required, or implement simplistic version.
-    // The prompt only asked for schematic and netlist.
-    // But for "Project compiles" and tests pass, maybe we need them.
-    // synthesis.test.ts checks for .kicad_pro.
-
+    // Generate minimal project file if missing
     const proPath = path.join(outputDir, `${name}.kicad_pro`);
     if (!fs.existsSync(proPath)) {
-        // Create minimal project file
         const proContent = JSON.stringify({
             meta: { filename: `${name}.kicad_pro`, version: 1 },
             board: {

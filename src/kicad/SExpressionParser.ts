@@ -18,6 +18,60 @@ export class SExpressionParser {
   }
 
   /**
+   * Serialize an S-expression structure into a string.
+   * Uses simple pretty-printing rules:
+   * - Lists starting with keywords like 'at', 'size', 'stroke', 'fill', 'uuid', 'id', 'offset' are kept inline.
+   * - Other lists are expanded with newlines and indentation.
+   */
+  static serialize(expr: SExpr, indentLevel: number = 0): string {
+    if (typeof expr === "string") {
+      return expr;
+    }
+
+    if (expr.length === 0) {
+      return "()";
+    }
+
+    const first = expr[0];
+    const isInline =
+      typeof first === "string" &&
+      [
+        "at", "size", "stroke", "fill", "uuid", "id", "offset", "effects", "font",
+        "hide", "justify", "mirror", "pin_names", "pin_numbers", "exclude_from_sim",
+        "in_bom", "on_board", "tstamps", "sheetpath", "version", "generator", "paper",
+        "title_block", "date", "rev", "company", "comment", "pts", "xy", "start", "end",
+        "rect", "circle", "arc", "polyline", "text", "no_connect"
+      ].includes(first);
+
+    // Also check if all children are atoms/strings (no nested lists)
+    const isSimple = expr.every(e => typeof e === "string");
+
+    if (isInline || isSimple) {
+      return "(" + expr.map(e => this.serialize(e, 0)).join(" ") + ")";
+    }
+
+    const indent = "  ".repeat(indentLevel);
+    const childIndent = "  ".repeat(indentLevel + 1);
+
+    // First element (keyword) on same line
+    let result = "(" + this.serialize(expr[0], 0);
+
+    for (let i = 1; i < expr.length; i++) {
+      const child = expr[i];
+      // Check if child should be inline (e.g. property value) or new line
+
+      if (typeof child === "string") {
+         result += " " + child;
+      } else {
+         result += "\n" + childIndent + this.serialize(child, indentLevel + 1);
+      }
+    }
+
+    result += ")";
+    return result;
+  }
+
+  /**
    * Helper to strip quotes from a string if present.
    */
   static unquote(s: string): string {

@@ -34,7 +34,7 @@ export class NetlistGenerator {
       this.generateNets()
     ];
 
-    return this.serialize(netlist);
+    return SExpressionParser.serialize(netlist);
   }
 
   private generateComponents(): SExpr {
@@ -181,12 +181,5 @@ export class NetlistGenerator {
 
   private quote(s: string): string {
     return `"${s.replace(/"/g, '\\"')}"`;
-  }
-
-  private serialize(expr: SExpr): string {
-    if (Array.isArray(expr)) {
-      return "(" + expr.map(e => this.serialize(e)).join(" ") + ")";
-    }
-    return expr;
   }
 }
