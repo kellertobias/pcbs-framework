@@ -55,7 +55,7 @@ describe("SchematicGenerator", () => {
   const lib = new SymbolLibrary([assetsDir]);
   const uuids = new UuidManager();
 
-  it("generates a schematic with one component", () => {
+  it("generates a schematic with one component and title block", () => {
     // Mock Snapshot
     const comp = {
         symbol: "Device:R",
@@ -72,7 +72,7 @@ describe("SchematicGenerator", () => {
     comp.allPins.set("2", pin2);
 
     const snapshot: CircuitSnapshot = {
-        name: "Test",
+        name: "TestSchematic",
         components: [comp],
         nets: []
     };
@@ -84,8 +84,10 @@ describe("SchematicGenerator", () => {
     expect(output).toContain('(kicad_sch');
     expect(output).toContain('(uuid "ROOT"');
     expect(output).toContain('(symbol "R"');
-    expect(output).toContain('(symbol (lib_id "R") (at 100 100 0)');
+    expect(output).toContain('(lib_id "R")');
+    expect(output).toContain('(at 100 100 0)');
     expect(output).toContain('(property "Reference" "R1"');
+    expect(output).toContain('(title "TestSchematic")');
   });
 
   it("generates wires connecting components", () => {
@@ -117,6 +119,7 @@ describe("SchematicGenerator", () => {
       const gen = new SchematicGenerator(snapshot, lib, uuids);
       const output = gen.generate();
 
-      expect(output).toContain('(wire (pts (xy');
+      expect(output).toContain('(wire');
+      expect(output).toContain('(pts (xy');
   });
 });
