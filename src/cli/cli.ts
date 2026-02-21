@@ -9,6 +9,7 @@ import "tsconfig-paths/register";
 import { ensurePythonEnv } from "./env";
 import { cmdSynth } from "./commands/synth";
 import { cmdExport } from "./commands/export";
+import { cmdPrint } from "./commands/print";
 import { cmdParts } from "./commands/parts";
 import { cmdLib } from "./commands/lib";
 import { cmdTypes } from "./commands/types";
@@ -32,6 +33,7 @@ Usage:
 Commands:
   synth [entry]                  Synthesize a schematic to KiCad project
   export [entry]                 Export gerber, BOM, and placement files
+  print [entry]                  Print schematic to PDF
   parts [--footprint <fp>] [--value <val>]
                                  Search JLC Parts for components
   lib [module ...]               Generate/update KiCad library from TS modules
@@ -46,6 +48,7 @@ Examples:
   npx @tobisk/pcbs synth my_board
   npx @tobisk/pcbs synth ./src/schematics/my_board/index.ts
   npx @tobisk/pcbs export my_board
+  npx @tobisk/pcbs print my_board
   npx @tobisk/pcbs parts --footprint 0603 --value 10k
   npx @tobisk/pcbs parts
 `);
@@ -64,6 +67,8 @@ async function main(): Promise<void> {
       return cmdSynth(commandArgs);
     case "export":
       return cmdExport(commandArgs);
+    case "print":
+      return cmdPrint(commandArgs);
     case "parts":
       return cmdParts(commandArgs);
     case "lib":

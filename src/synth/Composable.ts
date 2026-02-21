@@ -1,6 +1,6 @@
 import { Pin, ComposableOptions, PinProxy, PinAssignable, SchematicPosition, PcbPosition } from "@tobisk/pcbs/types";
 import { Net } from "@tobisk/pcbs/Net";
-import { createPinProxy } from "@tobisk/pcbs/Component";
+import { Component, createPinProxy } from "@tobisk/pcbs/Component";
 import { registry } from "@tobisk/pcbs/Registry";
 
 /**
@@ -42,6 +42,11 @@ export abstract class Composable<InterfaceNets extends string = string> {
   readonly schematicPosition?: SchematicPosition;
   readonly pcbPosition?: PcbPosition;
   readonly parent?: Composable<any>;
+  readonly group?: string;
+  readonly subschematic?: string;
+
+  /** @internal Name for the subschematic if this composable is to be rendered separately */
+  _subschematicName?: string;
 
   /** @internal The current composable being initialized — used for parent assignment */
   static activeComposable: Composable<any> | undefined = undefined;
@@ -60,12 +65,23 @@ export abstract class Composable<InterfaceNets extends string = string> {
     this.parent = Composable.activeComposable;
     this._layout = options.layout;
 
+    this.group = Component.activeGroup;
+    this.subschematic = Component.activeSubschematic;
+
     this._pinProxy = createPinProxy<InterfaceNets>(
       { ref: this.ref, symbol: `Composable:${this.ref}` },
       this._pinStore
     );
 
     registry.registerComposable(this);
+  }
+
+  /**
+   * Mark this composable to be rendered as a subschematic on a separate page.
+   * @param options Options for the subschematic.
+   */
+  makeSubschematic(options: { name?: string } = {}): void {
+    this._subschematicName = options.name ?? this.constructor.name;
   }
 
   /**
@@ -132,6 +148,14 @@ export abstract class Composable<InterfaceNets extends string = string> {
   get allPins(): ReadonlyMap<string, Pin> {
     this._ensureInterface();
     return this._pinStore;
+  }
+
+  /** Helper to quickly assign power pins from a record */
+  power(mapping: Partial<Record<InterfaceNets, PinAssignable>>): this {
+    for (const [key, val] of Object.entries(mapping)) {
+      (this.pins as any)[key].tie(val);
+    }
+    return this;
   }
 
   /** Get absolute schematic position (recursive) */

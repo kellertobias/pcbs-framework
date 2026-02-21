@@ -41,7 +41,7 @@ describe("DNC Component and Validation", () => {
       constructor() { super({ name: "NullTest" }); }
       generate() {
         const r1 = new Component({ symbol: "Device:R", ref: "R1", footprint: "Resistor_SMD:R_0603_1608Metric" });
-        r1.pins[1] = null;
+        r1.pins[1].tie(null);
       }
     }
     const board = new NullTest();
@@ -55,7 +55,7 @@ describe("DNC Component and Validation", () => {
       constructor() { super({ name: "DirectTest" }); }
       generate() {
         const r1 = new Component({ symbol: "Device:R", ref: "R1", footprint: "Resistor_SMD:R_0603_1608Metric" });
-        r1.pins[2] = new DNC();
+        r1.pins[2].tie(new DNC());
       }
     }
     const board = new DirectTest();
@@ -71,7 +71,7 @@ describe("TP (TestPoint) Component", () => {
       constructor() { super({ name: "TpTest" }); }
       generate() {
         const r1 = new Component({ symbol: "Device:R", ref: "R1", footprint: "Resistor_SMD:R_0603_1608Metric" });
-        r1.pins[1] = new TP({ ref: "TP1" });
+        r1.pins[1].tie(new TP({ ref: "TP1" }));
       }
     }
     const board = new TpTest();
@@ -90,7 +90,7 @@ describe("TP (TestPoint) Component", () => {
         const vcc = new Net({ name: "VCC" });
         vcc.tie(r1.pins[1]);
         // Assign TP to R1 pin 1 — should also be on VCC net
-        r1.pins[1] = new TP({ ref: "TP_VCC" });
+        r1.pins[1].tie(new TP({ ref: "TP_VCC" }));
       }
     }
     const board = new TpNetTest();

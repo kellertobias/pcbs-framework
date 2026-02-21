@@ -33,8 +33,14 @@ npm install @tobisk/pcbs
 ```bash
 npx @tobisk/pcbs synth <schematic-name>
 npx @tobisk/pcbs export <schematic-name>
-npx @tobisk/pcbs lib <schematic-name>
+npx @tobisk/pcbs lib <lib-name (optional)>
+npx @tobisk/pcbs print <schematic-name>
 ```
+
+- **synth**: Generates the KiCad schematic and netlist.
+- **export**: Generates production files (Gerbers, BOM, Pick'n'Place).
+- **lib**: Generates local KiCad library files from your code-defined Symbols and Footprints.
+- **print**: Generates a PDF schematic of the project.
 
 Once you have `synth`-ethized your schematic, you can open the kicad schematic file and generate a PCB from it. Every time we synth, we update the schematic and the netlist.
 
@@ -86,10 +92,9 @@ export class LedIndicator extends Composable<"SIGNAL" | "GND"> {
     });
   
     const internal = new Net();
-    internal.tie(resistor.pins[2]);
-    internal.tie(led.pins[1]);
+    internal.tie(resistor.pins[2], led.pins[1]);
 
-    this.resistor = resistor; // Store for defineInterface
+    this.resistor = resistor;
     this.led = led;
   }
 
@@ -122,14 +127,33 @@ export class UsbPowerModule extends Module<"VBUS" | "GND"> {
   }
 
   public static makeFootprint(): KicadFootprint {
-     const fp = new KicadFootprint({ name: "USB_Power_Module" });
-     // ... define pads and graphics ...
+     const fp = new KicadFootprint({ name: "USB_Power_Module", attr: "smd" });
+     
+     // Define pads
+     fp.addPad({ number: "1", type: "smd", shape: "roundrect", x: -1.5, y: 0, width: 1.2, height: 1.5 });
+     fp.addPad({ number: "2", type: "smd", shape: "roundrect", x: 1.5, y: 0, width: 1.2, height: 1.5 });
+
+     // Define graphics (silkscreen)
+     fp.addLine({ x1: -2, y1: -1, x2: 2, y2: -1 });
+     fp.addLine({ x1: -2, y1: 1, x2: 2, y2: 1 });
+     
      return fp;
   }
 
   public static makeSymbol(): KicadSymbol {
-     const sym = new KicadSymbol({ name: "USB_Power_Module", reference: "J" });
-     // ... define pins and shapes ...
+     const sym = new KicadSymbol({ 
+       name: "USB_Power_Module", 
+       reference: "J", 
+       footprint: "Project_Footprints:USB_Power_Module" 
+     });
+     
+     // Define pins
+     sym.addPin({ name: "GND", number: "1", x: -5.08, y: 0, side: "left", type: "power_in" });
+     sym.addPin({ name: "VBUS", number: "2", x: 5.08, y: 0, side: "right", type: "power_out" });
+
+     // Define graphics
+     sym.addRect({ x1: -2.54, y1: 2.54, x2: 2.54, y2: -2.54 });
+     
      return sym;
   }
 
@@ -167,20 +191,38 @@ export class MyProject extends Schematic {
   }
 
   generate() {
-    const gnd = new Net({ name: "GND" });
-    const vcc = new Net({ name: "+5V" });
+    const gnd = new Net({ name: "GND", class: "Power" });
+    const vcc = new Net({ name: "+5V", class: "Power" });
 
     const pwr = new UsbPowerModule();
     const statusLed = new LedIndicator({ ref: "STATUS" });
 
-    // Wiring
-    pwr.pins.VBUS = vcc;
-    pwr.pins.GND = gnd;
+    // Wiring via .tie() and .power()
+    pwr.pins.VBUS.tie(vcc);
+    pwr.pins.GND.tie(gnd);
 
-    statusLed.pins.SIGNAL = vcc;
-    statusLed.pins.GND = gnd;
+    statusLed.pins.SIGNAL.tie(vcc);
+    statusLed.pins.GND.tie(gnd);
   }
 }
+
+### 4. Grouping & Subschematics
+
+Organize large designs using decorators to group components for layout or separate them into subschematic PDF pages.
+
+```typescript
+import { Schematic, group, subschematic } from "@tobisk/pcbs";
+
+export class ComplexProject extends Schematic {
+  @group({ name: "Power System" })
+  @subschematic({ name: "Buck_Converter" })
+  private makePower() {
+    // Every Component instantiated here inherits the group and subschematic tags
+    const buck = new BuckConverter({ ref: "U1" });
+    // ...
+  }
+}
+```
 
 export default new MyProject();
 ```
