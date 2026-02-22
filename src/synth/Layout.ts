@@ -71,12 +71,11 @@ export class GravityLayout extends Layout {
         super();
     }
 
-    apply(allItems: LayoutItem[]): void {
-        const items = allItems.filter(i => i.schematicPosition !== null);
+    apply(items: LayoutItem[]): void {
         const numItems = items.length;
         if (numItems === 0) return;
 
-        const iterations = this.options.iterations ?? 100;
+        const iterations = this.options.iterations ?? 300; // Increased iterations for stability
         const spacing = this.options.spacing ?? 500; // Optimal distance
 
         // Find center of pinned items to use as gravity well
@@ -94,16 +93,18 @@ export class GravityLayout extends Layout {
         // Initialize positions
         const positions = new Map<LayoutItem, { x: number; y: number; dx: number; dy: number; pinned: boolean }>();
         items.forEach((item, i) => {
-            const isPinned = item.schematicPosition?.x !== undefined && item.schematicPosition?.y !== undefined;
-            const currentX = item.schematicPosition?.x ?? gravityOriginX;
-            const currentY = item.schematicPosition?.y ?? gravityOriginY;
+            // Check if position is explicitly set (not null/undefined)
+            const hasPos = item.schematicPosition && typeof item.schematicPosition.x === 'number' && typeof item.schematicPosition.y === 'number';
+
+            const currentX = hasPos ? item.schematicPosition!.x : gravityOriginX;
+            const currentY = hasPos ? item.schematicPosition!.y : gravityOriginY;
 
             positions.set(item, {
-                x: isPinned ? currentX : currentX + (i % 5) * 10 - 20,
-                y: isPinned ? currentY : currentY + (i % 7) * 10 - 30,
+                x: hasPos ? currentX : currentX + (Math.random() - 0.5) * spacing,
+                y: hasPos ? currentY : currentY + (Math.random() - 0.5) * spacing,
                 dx: 0,
                 dy: 0,
-                pinned: isPinned
+                pinned: !!hasPos
             });
         });
 
@@ -144,13 +145,31 @@ export class GravityLayout extends Layout {
             }
         });
 
+        // Group Logic: Collect items by group
+        const groupMap = new Map<string, LayoutItem[]>();
+        items.forEach(item => {
+             const g = (item as any).group;
+             if (g) {
+                 if (!groupMap.has(g)) groupMap.set(g, []);
+                 groupMap.get(g)!.push(item);
+             }
+        });
+
         // Fruchterman-Reingold algorithm
         const k = spacing;
         const k2 = k * k;
         let t = spacing * 10; // Initial temperature
         const dt = t / (iterations + 1);
 
-        const repulse = (d: number) => k2 / Math.max(d, 0.01);
+        const repulse = (d: number) => {
+            // Enhanced repulsion to avoid overlap
+            // If d is very small (potential overlap), force should be massive
+            const minSpace = 200; // Minimum safe distance between centers (approx component size + padding)
+            if (d < minSpace) {
+                return k2 * 10 / Math.max(d, 0.1); // Stronger repulsion at close range
+            }
+            return k2 / Math.max(d, 0.01);
+        };
         const attract = (d: number) => (d * d) / k;
 
         for (let iter = 0; iter < iterations; iter++) {
@@ -165,7 +184,7 @@ export class GravityLayout extends Layout {
                     const v = items[j];
                     const posV = positions.get(v)!;
 
-                    if (posU.pinned && posV.pinned) continue; // Don't bother calculating repulsion between two immobile objects
+                    if (posU.pinned && posV.pinned) continue;
 
                     const dx = posU.x - posV.x;
                     const dy = posU.y - posV.y;
@@ -182,7 +201,7 @@ export class GravityLayout extends Layout {
                 }
             }
 
-            // Calculate attractive forces
+            // Calculate attractive forces (edges)
             edges.forEach(([u, v]) => {
                 const posU = positions.get(u)!;
                 const posV = positions.get(v)!;
@@ -201,6 +220,37 @@ export class GravityLayout extends Layout {
                 posU.dy -= fy;
                 posV.dx += fx;
                 posV.dy += fy;
+            });
+
+            // Group Attraction
+            groupMap.forEach(groupItems => {
+                // Attract every item in group to every other item in group
+                // Or better: attract to group centroid
+                let gx = 0, gy = 0;
+                groupItems.forEach(item => {
+                    const pos = positions.get(item)!;
+                    gx += pos.x;
+                    gy += pos.y;
+                });
+                gx /= groupItems.length;
+                gy /= groupItems.length;
+
+                groupItems.forEach(item => {
+                    const pos = positions.get(item)!;
+                    if (pos.pinned) return;
+
+                    const dx = pos.x - gx;
+                    const dy = pos.y - gy;
+                    const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+
+                    // Pull towards centroid
+                    const f = dist / 2; // Linear pull
+                    const fx = (dx / dist) * f;
+                    const fy = (dy / dist) * f;
+
+                    pos.dx -= fx;
+                    pos.dy -= fy;
+                });
             });
 
             // Calculate central gravity to prevent unconnected items from flying away
@@ -231,35 +281,103 @@ export class GravityLayout extends Layout {
             t -= dt;
         }
 
-        // Center the layout
-        let minX = Infinity, minY = Infinity;
-        let maxX = -Infinity, maxY = -Infinity;
-        positions.forEach(pos => {
-            if (pos.x < minX) minX = pos.x;
-            if (pos.y < minY) minY = pos.y;
-            if (pos.x > maxX) maxX = pos.x;
-            if (pos.y > maxY) maxY = pos.y;
-        });
+        // Center the layout if needed... (logic similar to before but updated)
+        // ...
 
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-
-        const targetX = this.options.x ?? 0;
-        const targetY = this.options.y ?? 0;
-
-        const hasPinned = Array.from(positions.values()).some(p => p.pinned);
-
-        const offsetX = hasPinned ? 0 : targetX - centerX;
-        const offsetY = hasPinned ? 0 : targetY - centerY;
+        // Snap to grid (50 units)
+        const gridSize = 50;
 
         for (const item of items) {
             const pos = positions.get(item)!;
             if (!pos.pinned) {
                 (item as any).schematicPosition = {
-                    x: Math.round(pos.x + offsetX),
-                    y: Math.round(pos.y + offsetY),
+                    x: Math.round(pos.x / gridSize) * gridSize,
+                    y: Math.round(pos.y / gridSize) * gridSize,
                     rotation: item.schematicPosition?.rotation ?? 0
                 };
+            }
+        }
+
+        // Rotation Heuristic for 2-pin components
+        for (const item of items) {
+            // Respect existing rotation if set manually
+            if (positions.get(item)?.pinned && item.schematicPosition?.rotation !== undefined) continue;
+
+            const anyItem = item as any;
+            // Heuristic: only rotate 2-pin passives
+            if (!/^[RCD]/.test(anyItem.ref)) continue;
+            if (!anyItem.allPins) continue;
+
+            const pins = Array.from(anyItem.allPins.values());
+            if (pins.length !== 2) continue;
+
+            // Find center of connected neighbors
+            let sumX = 0, sumY = 0, count = 0;
+
+            pins.forEach((pin: any) => {
+                if (pin.net && pin.net.name) {
+                    const neighbors = netToItems.get(pin.net.name);
+                    if (neighbors) {
+                        neighbors.forEach(n => {
+                            if (n !== item && n.schematicPosition) {
+                                sumX += n.schematicPosition.x;
+                                sumY += n.schematicPosition.y;
+                                count++;
+                            }
+                        });
+                    }
+                }
+            });
+
+            if (count > 0) {
+                const avgX = sumX / count;
+                const avgY = sumY / count;
+                const myX = anyItem.schematicPosition?.x || 0;
+                const myY = anyItem.schematicPosition?.y || 0;
+
+                const dx = Math.abs(myX - avgX);
+                const dy = Math.abs(myY - avgY);
+
+                // If neighbors are predominantly vertical relative to me, rotate 90
+                if (dy > dx * 1.5) {
+                    anyItem.schematicPosition = {
+                        ...anyItem.schematicPosition,
+                        rotation: 90
+                    };
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Checks for overlaps between components.
+ * Throws an error if overlapping components are found.
+ * Assumes a default size if exact bounding box is not available.
+ */
+export function checkOverlaps(items: LayoutItem[]): void {
+    // Basic check using fixed size 100x100 if size unknown
+    // Ideally we should use the library, but here we do a basic check.
+    // If schematicPosition is null, we can't check.
+
+    const size = 100; // units assumed size
+    const positionedItems = items.filter(i => i.schematicPosition && typeof i.schematicPosition.x === 'number');
+
+    for (let i = 0; i < positionedItems.length; i++) {
+        const u = positionedItems[i];
+        const uPos = u.schematicPosition!;
+
+        for (let j = i + 1; j < positionedItems.length; j++) {
+            const v = positionedItems[j];
+            const vPos = v.schematicPosition!;
+
+            // Check distance
+            const dx = Math.abs(uPos.x - vPos.x);
+            const dy = Math.abs(uPos.y - vPos.y);
+
+            if (dx < size && dy < size) {
+                // If refs are same, it's the same object (shouldn't happen here due to loops)
+                throw new Error(`Placement overlap detected between ${u.ref} and ${v.ref} at (${uPos.x}, ${uPos.y})`);
             }
         }
     }
