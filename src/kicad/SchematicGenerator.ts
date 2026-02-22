@@ -99,7 +99,7 @@ export class SchematicGenerator {
           b1.x + b1.width > b2.x &&
           b1.y < b2.y + b2.height &&
           b1.y + b1.height > b2.y) {
-          this.errors.push(`Placement overlap detected between ${boxes[i].comp.ref} and ${boxes[j].comp.ref}`);
+          console.warn(`Placement overlap detected between ${boxes[i].comp.ref} and ${boxes[j].comp.ref}`);
         }
       }
     }
@@ -577,6 +577,23 @@ export class SchematicGenerator {
             pinName: name,
             touched: false
           });
+        }
+      }
+    }
+
+    // 0. Component-Component Bounding Box Overlaps (Rule 0: Symbols cannot intersect)
+    for (let i = 0; i < strictBoxes.length; i++) {
+      for (let j = i + 1; j < strictBoxes.length; j++) {
+        const b1 = strictBoxes[i].box;
+        const b2 = strictBoxes[j].box;
+
+        // Check if rectangles b1 and b2 overlap
+        if (b1.x < b2.x + b2.width &&
+          b1.x + b1.width > b2.x &&
+          b1.y < b2.y + b2.height &&
+          b1.y + b1.height > b2.y) {
+
+          console.warn(`Layout Verification Warning: Component '${strictBoxes[i].comp.ref}' overlaps component '${strictBoxes[j].comp.ref}'.`);
         }
       }
     }

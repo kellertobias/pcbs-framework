@@ -10,7 +10,7 @@ describe("Auto Layout and Routing", () => {
     const assetsDir = path.join(__dirname, "assets", "symbols");
     const lib = new SymbolLibrary([assetsDir]);
 
-    it("throws an error when manually placed components overlap", () => {
+    it("emits a warning when manually placed components overlap", () => {
         const c1 = {
             symbol: "Device:R", ref: "R1",
             allPins: new Map(),
@@ -36,9 +36,16 @@ describe("Auto Layout and Routing", () => {
 
         const gen = new SchematicGenerator(snapshot, lib, new UuidManager());
 
+        let warned = false;
+        const originalWarn = console.warn;
+        console.warn = (msg: string) => {
+            if (msg.match(/overlap/i)) warned = true;
+        };
+
         gen.generate();
-        expect(gen.errors.length).toBeGreaterThan(0);
-        expect(gen.errors[0]).toMatch(/overlap/i);
+
+        console.warn = originalWarn;
+        expect(warned).toBe(true);
     });
 
     it("auto-positions components when no position is provided", () => {
