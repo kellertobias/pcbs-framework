@@ -11,3 +11,4 @@
 - [KicadFootprint](KicadFootprint.md)
 - [KicadSymbol](KicadSymbol.md)
 - [Kicad3DModel](Kicad3DModel.md)
+- [Decorators](Decorators.md)

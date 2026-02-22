@@ -15,8 +15,8 @@ npx pcbs synth src/schematics/MyBoard.ts
 ```
 
 **Options:**
-*   `--no-wires`: Skip wire generation (symbols only).
-*   `--no-symbols`: Skip symbol generation (wires only).
+*   `--no-wires`: Skip wire generation (symbols only). **For debugging purposes.**
+*   `--no-symbols`: Skip symbol generation (wires only). **For debugging purposes.**
 *   `--experimental-routing`: Enable experimental auto-routing algorithm.
 
 ### `parts`
@@ -36,6 +36,12 @@ Use flags to search directly.
 ```bash
 npx pcbs parts --footprint "SOIC-8" --value "10k"
 ```
+
+**Options:**
+*   `--footprint`: Filter by footprint.
+*   `--value`: Filter by component value.
+*   `--basic-only`: Search only for "Basic" parts (cheaper/no setup fee).
+*   `--json`: Output results in JSON format.
 
 *Note: This command requires Python and the `search_lib.py` script to be set up correctly.*
 

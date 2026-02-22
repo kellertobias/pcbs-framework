@@ -20,12 +20,24 @@ const pin = model.cylinder({ r: 0.5, h: 4 })
 
 // Combine them
 model.union(body, pin);
+```
 
-// Export to VRML/STEP
-await model.export({
-  outDir: "./3d_models",
-  baseName: "My_Connector",
-  formats: ["wrl", "step"]
+**Note:** You do not need to call `model.export()` manually in your module code. When you run `npx pcbs lib`, the framework automatically detects your `make3DModel()` method, generates the model files (VRML/STEP), and links them to the footprint.
+
+## Linking External Models
+
+If you have an existing STEP or VRML file (e.g., downloaded from a manufacturer), you can link it directly to your footprint instead of building one from scratch.
+
+```typescript
+// Inside your Module's makeFootprint method:
+const fp = new KicadFootprint({ name: "MyModule" });
+// ... define pads ...
+
+// Link to a file relative to this source file
+fp.addExternal3DModel(__dirname, "./models/connector.step", {
+  scale: { x: 1, y: 1, z: 1 },
+  rotate: { x: 90, y: 0, z: 0 },
+  offset: { x: 0, y: 0, z: 0 }
 });
 ```
 
@@ -91,7 +103,7 @@ Intersects solid `a` and solid `b`. Modifies `a` in place to be the common volum
 
 ### `export(options)`
 
-Exports the model to disk.
+Exports the model to disk. Usually handled automatically by the CLI.
 
 **Options:**
 *   `outDir`: Output directory path.

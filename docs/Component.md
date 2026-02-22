@@ -40,8 +40,6 @@ new Component(options: {
   description?: string;
   partNo?: string;
   pins?: (pin: (n: string | number) => Pin) => Record<string, Pin>;
-  schematicPosition?: { x: number; y: number; r?: number }; // Optional manual placement
-  pcbPosition?: { x: number; y: number; r?: number; side?: "front" | "back" }; // Optional manual PCB placement
 })
 ```
 
@@ -62,6 +60,17 @@ A proxy object that allows accessing pins by number or name.
 
 *   `component.pins[1]`: Returns the `Pin` object for pin 1.
 *   `component.pins.VCC`: Returns the `Pin` object for the mapped pin named "VCC".
+
+**`pin.tie(target)`**
+Connects the pin to a `Net` or another `Pin`.
+
+**`pin.dnc(reason?)`**
+Explicitly marks the pin as "Do Not Connect". This suppresses warnings about unconnected pins and adds a visual "No Connect" marker (X) in the schematic.
+
+```typescript
+// Mark pin 5 as unused
+u1.pins[5].dnc("Not used in this design");
+```
 
 ### `power(mapping)`
 

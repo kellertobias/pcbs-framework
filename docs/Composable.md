@@ -39,8 +39,6 @@ class VoltageDivider extends Composable<VoltageDividerPins> {
 new Composable(options: {
   ref: string;
   description?: string;
-  schematicPosition?: { x: number; y: number; r?: number }; // Optional layout
-  pcbPosition?: { x: number; y: number; r?: number; side?: "front" | "back" }; // Optional layout
   layout?: Layout; // Optional internal layout algorithm
 })
 ```
