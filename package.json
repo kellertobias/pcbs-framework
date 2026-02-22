@@ -24,7 +24,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
-    "postinstall": "ts-node scripts/patch-opencascade.ts && ts-node -P tsconfig.json ./src/cli/cli.ts setup"
+    "postinstall": "ts-node scripts/patch-opencascade.ts && ts-node -P tsconfig.json ./src/cli/cli.ts setup",
+    "kicad-diff": "ts-node scripts/kicad-diff.ts"
   },
   "keywords": [
     "kicad",
