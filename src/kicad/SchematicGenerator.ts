@@ -158,8 +158,8 @@ export class SchematicGenerator {
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
 
     for (const pin of pins) {
-      const rx = pin.x * cos - pin.y * sin;
-      const ry = pin.x * sin + pin.y * cos;
+      const rx = pin.x * cos - (-pin.y) * sin;
+      const ry = pin.x * sin + (-pin.y) * cos;
       const ax = cx + rx;
       const ay = cy + ry;
 
@@ -423,6 +423,8 @@ export class SchematicGenerator {
       } else {
         const points: { pos: PinPos, pin: Pin }[] = [];
         for (const pin of pins) {
+          if (pin.isDNC) continue; // DNC nets skip global labels (handled by no_connect marks)
+
           const pinKey = `${pin.component.ref}_${pin.name}`;
           if (processedPins.has(pinKey)) continue;
           processedPins.add(pinKey);
@@ -435,14 +437,18 @@ export class SchematicGenerator {
           // By default, just put a global label at the escape point
           for (const pt of points) {
             const p = pt.pos;
+            // The pin direction is INTO the component. The label/wire should go AWAY from it.
             const dir = this.getDirectionVector(p.rotation);
-            const s = { x: p.x - dir.dx * 1.27, y: p.y - dir.dy * 1.27 };
+            const outDir = { dx: -dir.dx, dy: -dir.dy };
+            const s = { x: p.x + outDir.dx * 1.27, y: p.y + outDir.dy * 1.27 };
+
+            // Connect the pin precisely to the start of the label graphics
             addWire(p, s, net.name);
 
             const uuid = this.uuids.getOrGenerate(`label_${pt.pin.component.ref}_${pt.pin.name}_${net.name}`);
             if (!emittedLabels.has(uuid)) {
               emittedLabels.add(uuid);
-              nets.push(this.createGlobalLabel(net.name, s.x, s.y, dir, uuid));
+              nets.push(this.createGlobalLabel(net.name, s.x, s.y, outDir, uuid));
             }
           }
         } else {
@@ -662,10 +668,21 @@ export class SchematicGenerator {
 
   private createGlobalLabel(netName: string, x: number, y: number, dir: { dx: number, dy: number }, uuid: string): SExpr {
     let angle = 0;
-    if (dir.dx > 0) angle = 0;
-    else if (dir.dx < 0) angle = 180;
-    else if (dir.dy > 0) angle = 270; // KiCad Y is down
-    else angle = 90;
+    // For global labels in KiCad, angle represents the rotation of the entire shape.
+    // The attachment point is natively on the left (when angle=0).
+    // If the wire is pointing right (dir.dx > 0), the component is on the left.
+    // So the label should have its attachment point on the left. (angle = 0)
+    // If the wire is pointing left (dir.dx < 0), the component is on the right.
+    // So the label should have its attachment point on the right. (angle = 180)
+    // If the wire is pointing down (dir.dy > 0), the component is above.
+    // So the label should have its attachment point on the top. (angle = 270)
+    // If the wire is pointing up (dir.dy < 0), the component is below.
+    // So the label should have its attachment point on the bottom. (angle = 90)
+    // Wait, the user said they are pointing the WRONG direction. We'll invert them.
+    if (dir.dx > 0) angle = 180;
+    else if (dir.dx < 0) angle = 0;
+    else if (dir.dy > 0) angle = 90;
+    else angle = 270;
 
     // Add a tiny offset to the text property based on the angle so it doesn't overlap the label shape
     const textX = x + dir.dx * 1.27;
@@ -679,7 +696,7 @@ export class SchematicGenerator {
       ["fields_autoplaced", "yes"],
       ["effects",
         ["font", ["size", "1.27", "1.27"]],
-        ["justify", "left"]
+        ["justify", dir.dx > 0 ? "right" : "left"]
       ],
       ["uuid", this.quote(uuid)],
       ["property", '"Intersheetrefs"', '"${INTERSHEET_REFS}"',
@@ -747,8 +764,8 @@ export class SchematicGenerator {
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);
 
-    const rx = pinInfo.x * cos - pinInfo.y * sin;
-    const ry = pinInfo.x * sin + pinInfo.y * cos;
+    const rx = pinInfo.x * cos - (-pinInfo.y) * sin;
+    const ry = pinInfo.x * sin + (-pinInfo.y) * cos;
 
     return {
       x: cx + rx,

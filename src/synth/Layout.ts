@@ -148,11 +148,11 @@ export class GravityLayout extends Layout {
         // Group Logic: Collect items by group
         const groupMap = new Map<string, LayoutItem[]>();
         items.forEach(item => {
-             const g = (item as any).group;
-             if (g) {
-                 if (!groupMap.has(g)) groupMap.set(g, []);
-                 groupMap.get(g)!.push(item);
-             }
+            const g = (item as any).group;
+            if (g) {
+                if (!groupMap.has(g)) groupMap.set(g, []);
+                groupMap.get(g)!.push(item);
+            }
         });
 
         // Fruchterman-Reingold algorithm
@@ -329,7 +329,29 @@ export class GravityLayout extends Layout {
                 }
             });
 
-            if (count > 0) {
+            // Check for Power/GND connections first to force vertical orientation
+            let isPowerAligned = false;
+            const p1Net = (pins[0] as any).net?.name || "";
+            const p2Net = (pins[1] as any).net?.name || "";
+
+            const isGnd = (n: string) => /gnd|vss|earth|0v/i.test(n);
+            const isVcc = (n: string) => /vcc|vdd|5v|3v|vin/i.test(n);
+
+            if (isGnd(p1Net) && !isGnd(p2Net)) {
+                anyItem.schematicPosition = { ...anyItem.schematicPosition, rotation: 270 };
+                isPowerAligned = true;
+            } else if (isGnd(p2Net) && !isGnd(p1Net)) {
+                anyItem.schematicPosition = { ...anyItem.schematicPosition, rotation: 90 };
+                isPowerAligned = true;
+            } else if (isVcc(p1Net) && !isVcc(p2Net)) {
+                anyItem.schematicPosition = { ...anyItem.schematicPosition, rotation: 90 };
+                isPowerAligned = true;
+            } else if (isVcc(p2Net) && !isVcc(p1Net)) {
+                anyItem.schematicPosition = { ...anyItem.schematicPosition, rotation: 270 };
+                isPowerAligned = true;
+            }
+
+            if (!isPowerAligned && count > 0) {
                 const avgX = sumX / count;
                 const avgY = sumY / count;
                 const myX = anyItem.schematicPosition?.x || 0;
