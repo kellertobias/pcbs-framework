@@ -43,8 +43,8 @@ describe("SExpressionParser", () => {
     const output = SExpressionParser.serialize(expr);
     // Serializer formats nested lists with newlines
     expect(output).toContain('(title_block');
-    expect(output).toContain('  (title "Test")');
-    expect(output).toContain('  (date "2024"))');
+    expect(output).toContain('\t(title "Test")');
+    expect(output).toContain('\t(date "2024")\n)');
   });
 });
 
@@ -93,9 +93,9 @@ describe("SchematicGenerator", () => {
 
     expect(output).toContain('(kicad_sch');
     expect(output).toContain('(uuid "ROOT"');
-    expect(output).toContain('    (symbol "Device:R"');
-    expect(output).toContain('  (symbol\n    (lib_id "Device:R")');
-    expect(output).toContain('    (at 100.00 100.00 0.00)');
+    expect(output).toContain('\t\t(symbol "Device:R"');
+    expect(output).toContain('\t(symbol\n\t\t(lib_id "Device:R")');
+    expect(output).toContain('\t\t(at 100.00 100.00 0.00)');
     expect(output).toContain('(property "Reference" "R1"');
 
     // Check title block
@@ -133,7 +133,7 @@ describe("SchematicGenerator", () => {
     const gen = new SchematicGenerator(snapshot, lib, uuids);
     const output = gen.generate();
 
-    expect(output).toContain('  (wire\n    (pts\n      (xy');
+    expect(output).toContain('\t(wire\n\t\t(pts\n\t\t\t(xy');
   });
 
   it("handles symbol inheritance (extends)", () => {
@@ -179,9 +179,9 @@ describe("SchematicGenerator", () => {
     fs.rmSync(tempLibDir, { recursive: true, force: true });
 
     // Check if both symbols are present in lib_symbols
-    expect(output).toContain('    (symbol "TestLib:Child"');
-    expect(output).toContain('      (property "Value" "Child"');
-    expect(output).toContain('      (symbol "Child_1_1"');
+    expect(output).toContain('\t\t(symbol "TestLib:Child"');
+    expect(output).toContain('\t\t\t(property "Value" "Child"');
+    expect(output).toContain('\t\t\t(symbol "Child_1_1"');
 
     // Verify order: Parent must come before Child
     const parentIndex = output.indexOf('(symbol "Parent"');

@@ -21,6 +21,7 @@ export class SchematicGenerator {
   private _cachedBoxes: Box[] | undefined;
   private _generatedWires: { p1: Point, p2: Point, netName: string }[] = [];
   private wireCounter = 0;
+  private powerSymbolCounter = 0;
   private options: KicadGeneratorOptions;
 
   constructor(snapshot: CircuitSnapshot, library: SymbolLibrary, uuids: UuidManager, options: KicadGeneratorOptions = {}) {
@@ -277,16 +278,16 @@ export class SchematicGenerator {
         ["on_board", "yes"],
         ["dnp", "no"],
         ["uuid", this.quote(uuid)],
-        ["property", '"Reference"', this.quote(comp.ref), ["at", `${x}`, `${y - 2.54}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
-        ["property", '"Value"', this.quote(comp.value || symName), ["at", `${x}`, `${y + 2.54}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
-        ["property", '"Footprint"', this.quote(comp.footprint || ""), ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
-        ["property", '"Datasheet"', '""', ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
-        ["property", '"Description"', '""', ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
-        ["property", '"LCSC_Part"', this.quote(comp.partNo || ""), ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
-        ["property", '"ki_keywords"', '""', ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
-        ["property", '"hierarchy_path"', this.quote(`/${rootUuid}`), ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
-        ["property", '"root_uuid"', this.quote(rootUuid), ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
-        ...Array.from(comp.allPins.values()).map(pin => [
+        ["property", '"Reference"', this.quote(comp.ref), ["at", `${x.toFixed(2)}`, `${(y - 2.54).toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
+        ["property", '"Value"', this.quote(comp.value || symName), ["at", `${x.toFixed(2)}`, `${(y + 2.54).toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
+        ["property", '"Footprint"', this.quote(comp.footprint || ""), ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
+        ["property", '"Datasheet"', '""', ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
+        ["property", '"Description"', '""', ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
+        ["property", '"LCSC_Part"', this.quote(comp.partNo || ""), ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
+        ["property", '"ki_keywords"', '""', ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
+        ["property", '"hierarchy_path"', this.quote(`/${rootUuid}`), ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
+        ["property", '"root_uuid"', this.quote(rootUuid), ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
+        ...Array.from(new Set(comp.allPins.values())).map(pin => [
           "pin",
           this.quote(pin.name),
           ["uuid", this.quote(this.uuids.getOrGenerate(`${comp.ref}_pin_${pin.name}`))]
@@ -325,6 +326,8 @@ export class SchematicGenerator {
     const rootUuid = this.uuids.getOrGenerate("ROOT");
     const powerSymbols: SExpr[] = [];
     const nets: SExpr[] = [];
+    const processedPins = new Set<string>();
+    const emittedLabels = new Set<string>();
 
     // Map to deduplicate wires (A->B == B->A) and ignore zero-length segments
     const uniqueWires = new Map<string, SExpr>();
@@ -350,7 +353,14 @@ export class SchematicGenerator {
 
     for (const comp of this.snapshot.components) {
       if (comp.symbol === "Device:DNC") continue;
+
+      // Deduplicate pins since allPins yields both name aliases and numbered aliases
+      const uniquePins = new Set<Pin>();
       for (const [name, pin] of comp.allPins) {
+        uniquePins.add(pin);
+      }
+
+      for (const pin of uniquePins) {
         if (pin.net) {
           if (!netPins.has(pin.net)) netPins.set(pin.net, []);
           netPins.get(pin.net)!.push(pin as Pin);
@@ -382,6 +392,10 @@ export class SchematicGenerator {
 
       if (net.class === "Power") {
         for (const pin of pins) {
+          const pinKey = `${pin.component.ref}_${pin.name}`;
+          if (processedPins.has(pinKey)) continue;
+          processedPins.add(pinKey);
+
           const pos = this.getPinAbsolutePosition(pin);
           if (pos) {
             const isGnd = /gnd/i.test(net.name) || /vss/i.test(net.name);
@@ -409,36 +423,71 @@ export class SchematicGenerator {
       } else {
         const points: { pos: PinPos, pin: Pin }[] = [];
         for (const pin of pins) {
+          const pinKey = `${pin.component.ref}_${pin.name}`;
+          if (processedPins.has(pinKey)) continue;
+          processedPins.add(pinKey);
+
           const p = this.getPinAbsolutePosition(pin);
           if (p) points.push({ pos: p, pin });
         }
 
-        for (let i = 0; i < points.length - 1; i++) {
-          const pt1 = points[i];
-          const pt2 = points[i + 1];
-          const p1 = pt1.pos;
-          const p2 = pt2.pos;
+        if (!this.options.experimentalRouting) {
+          // By default, just put a global label at the escape point
+          for (const pt of points) {
+            const p = pt.pos;
+            const dir = this.getDirectionVector(p.rotation);
+            const s = { x: p.x - dir.dx * 1.27, y: p.y - dir.dy * 1.27 };
+            addWire(p, s, net.name);
 
-          const dir1 = this.getDirectionVector(p1.rotation);
-          const dir2 = this.getDirectionVector(p2.rotation);
-
-          // 1.27 unit micro-escape AWAY from the component body 
-          const s1 = { x: p1.x - dir1.dx * 1.27, y: p1.y - dir1.dy * 1.27 };
-          const s2 = { x: p2.x - dir2.dx * 1.27, y: p2.y - dir2.dy * 1.27 };
-
-          addWire(p1, s1, net.name);
-          addWire(p2, s2, net.name);
-
-          let path: Point[] = [];
-          try {
-            path = this.router.route(s1, s2, obstacles);
-          } catch (e: any) {
-            this.errors.push(`ROUTER_DEAD_END: Net '${net.name}' failed to route between ${pt1.pin.component.ref}.${pt1.pin.name} and ${pt2.pin.component.ref}.${pt2.pin.name}. Details: ${e.message}`);
-            path = [s1, s2];
+            const uuid = this.uuids.getOrGenerate(`label_${pt.pin.component.ref}_${pt.pin.name}_${net.name}`);
+            if (!emittedLabels.has(uuid)) {
+              emittedLabels.add(uuid);
+              nets.push(this.createGlobalLabel(net.name, s.x, s.y, dir, uuid));
+            }
           }
+        } else {
+          for (let i = 0; i < points.length - 1; i++) {
+            const pt1 = points[i];
+            const pt2 = points[i + 1];
+            const p1 = pt1.pos;
+            const p2 = pt2.pos;
 
-          for (let k = 0; k < path.length - 1; k++) {
-            addWire(path[k], path[k + 1], net.name);
+            const dir1 = this.getDirectionVector(p1.rotation);
+            const dir2 = this.getDirectionVector(p2.rotation);
+
+            // 1.27 unit micro-escape AWAY from the component body 
+            const s1 = { x: p1.x - dir1.dx * 1.27, y: p1.y - dir1.dy * 1.27 };
+            const s2 = { x: p2.x - dir2.dx * 1.27, y: p2.y - dir2.dy * 1.27 };
+
+            let path: Point[] = [];
+            try {
+              path = this.router.route(s1, s2, obstacles);
+
+              // Only add micro-escapes if routing succeeds
+              addWire(p1, s1, net.name);
+              addWire(p2, s2, net.name);
+
+              for (let k = 0; k < path.length - 1; k++) {
+                addWire(path[k], path[k + 1], net.name);
+              }
+            } catch (e: any) {
+              console.warn(`WARNING: Net '${net.name}' failed to route between ${pt1.pin.component.ref}.${pt1.pin.name} and ${pt2.pin.component.ref}.${pt2.pin.name}. Using global labels instead. Details: ${e.message}`);
+
+              addWire(p1, s1, net.name);
+              addWire(p2, s2, net.name);
+
+              const uuid1 = this.uuids.getOrGenerate(`label_${pt1.pin.component.ref}_${pt1.pin.name}_${net.name}`);
+              if (!emittedLabels.has(uuid1)) {
+                emittedLabels.add(uuid1);
+                nets.push(this.createGlobalLabel(net.name, s1.x, s1.y, dir1, uuid1));
+              }
+
+              const uuid2 = this.uuids.getOrGenerate(`label_${pt2.pin.component.ref}_${pt2.pin.name}_${net.name}`);
+              if (!emittedLabels.has(uuid2)) {
+                emittedLabels.add(uuid2);
+                nets.push(this.createGlobalLabel(net.name, s2.x, s2.y, dir2, uuid2));
+              }
+            }
           }
         }
       }
@@ -457,7 +506,7 @@ export class SchematicGenerator {
           if (pos) {
             items.push([
               "no_connect",
-              ["at", `${pos.x}`, `${pos.y}`],
+              ["at", `${pos.x.toFixed(2)}`, `${pos.y.toFixed(2)}`],
               ["uuid", this.quote(this.uuids.getOrGenerate(`${comp.ref}_${name}_nc`))]
             ]);
           }
@@ -605,13 +654,49 @@ export class SchematicGenerator {
     this.wireCounter++;
     return [
       "wire",
-      ["pts", ["xy", `${p1.x}`, `${p1.y}`], ["xy", `${p2.x}`, `${p2.y}`]],
+      ["pts", ["xy", `${p1.x.toFixed(2)}`, `${p1.y.toFixed(2)}`], ["xy", `${p2.x.toFixed(2)}`, `${p2.y.toFixed(2)}`]],
       ["stroke", ["width", "0"], ["type", "default"]],
       ["uuid", this.quote(this.uuids.getOrGenerate(`${netName}_wire_${this.wireCounter}`))]
     ];
   }
 
+  private createGlobalLabel(netName: string, x: number, y: number, dir: { dx: number, dy: number }, uuid: string): SExpr {
+    let angle = 0;
+    if (dir.dx > 0) angle = 0;
+    else if (dir.dx < 0) angle = 180;
+    else if (dir.dy > 0) angle = 270; // KiCad Y is down
+    else angle = 90;
+
+    // Add a tiny offset to the text property based on the angle so it doesn't overlap the label shape
+    const textX = x + dir.dx * 1.27;
+    const textY = y + dir.dy * 1.27;
+
+    return [
+      "global_label",
+      this.quote(netName),
+      ["shape", "input"],
+      ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, `${angle}`],
+      ["fields_autoplaced", "yes"],
+      ["effects",
+        ["font", ["size", "1.27", "1.27"]],
+        ["justify", "left"]
+      ],
+      ["uuid", this.quote(uuid)],
+      ["property", '"Intersheetrefs"', '"${INTERSHEET_REFS}"',
+        ["at", `${textX.toFixed(2)}`, `${textY.toFixed(2)}`, "0"],
+        ["effects",
+          ["font", ["size", "1.27", "1.27"]],
+          ["justify", "left"],
+          ["hide", "yes"]
+        ]
+      ]
+    ];
+  }
+
   private createPowerSymbol(netName: string, x: number, y: number, rot: number, outDir: { dx: number, dy: number }, rootUuid: string, symUuid: string): SExpr {
+    this.powerSymbolCounter++;
+    const pwrRef = `#PWR${String(this.powerSymbolCounter).padStart(3, '0')}`;
+
     // Determine text orientation. If body points left/right, text can be vertical.
     const textRot = (outDir.dx !== 0) ? 90 : 0;
     const textX = x + outDir.dx * 2.54;
@@ -625,41 +710,14 @@ export class SchematicGenerator {
       ["in_bom", "yes"],
       ["on_board", "yes"],
       ["uuid", this.quote(symUuid)],
-      ["property", '"Reference"', '"#PWR"', ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
+      ["property", '"Reference"', this.quote(pwrRef), ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
       ["property", '"Value"', this.quote(netName), ["at", `${textX.toFixed(2)}`, `${textY.toFixed(2)}`, `${textRot}`], ["effects", ["font", ["size", "1.27", "1.27"]]]],
-      ["property", '"Footprint"', '""', ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
-      ["property", '"Datasheet"', '""', ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
-      ["property", '"Description"', '""', ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
-      ["property", '"ki_keywords"', '""', ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
-      ["property", '"hierarchy_path"', this.quote(`/${rootUuid}`), ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
-      ["property", '"root_uuid"', this.quote(rootUuid), ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
+      ["property", '"Footprint"', '""', ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
+      ["property", '"Datasheet"', '""', ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
       [
         "pin",
         '"1"',
         ["uuid", this.quote(this.uuids.getOrGenerate(`${symUuid}_pin_1`))]
-      ],
-      [
-        "instances",
-        [
-          "project",
-          '""',
-          [
-            "path",
-            this.quote(`/${rootUuid}`),
-            ["reference", '"#PWR"'],
-            ["unit", "1"]
-          ]
-        ],
-        [
-          "project",
-          this.quote(this.snapshot.name),
-          [
-            "path",
-            this.quote(`/${rootUuid}`),
-            ["reference", '"#PWR"'],
-            ["unit", "1"]
-          ]
-        ]
       ]
     ];
   }

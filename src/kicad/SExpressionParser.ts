@@ -27,8 +27,17 @@ export class SExpressionParser {
    *   - Every sub-expression starts on a new line with indentation.
    *   - The closing parenthesis is on its own line (matching the opening indentation).
    */
-  static serialize(expr: SExpr, indentLevel: number = 0): string {
+  static serialize(expr: SExpr, indentLevel: number = 0, forceInline: boolean = false): string {
     if (typeof expr === "string") {
+      // KiCad crashes on excessively long IEEE 754 floats. Truncate matching long decimals.
+      const match = expr.match(/^("?)(-?\d+\.\d{5,})("?)$/);
+      if (match) {
+        const val = parseFloat(match[2]);
+        if (!isNaN(val)) {
+          const fixed = val.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+          return `${match[1]}${fixed}${match[3]}`;
+        }
+      }
       return expr;
     }
 
@@ -38,24 +47,19 @@ export class SExpressionParser {
 
     // Deepest level (inline): No sub-expressions (nested arrays)
     const isSimple = expr.every(e => typeof e === "string");
-    if (isSimple) {
-      return "(" + expr.join(" ") + ")";
+    if (isSimple || forceInline) {
+      return "(" + expr.map(e => this.serialize(e, 0, true)).join(" ") + ")";
     }
 
     const keyword = typeof expr[0] === "string" ? expr[0] : "";
 
-    // Exception for specific node types that KiCad formats entirely inline
     const forceInlineKeywords = ["libsource", "sheetpath", "property", "field", "node", "pin", "comment"];
-    if (forceInlineKeywords.includes(keyword)) {
-      let inlineStr = "(" + (typeof expr[0] === "string" ? expr[0] : this.serialize(expr[0], 0));
-      for (let i = 1; i < expr.length; i++) {
-        inlineStr += " " + this.serialize(expr[i], 0);
-      }
-      inlineStr += ")";
-      return inlineStr; // Always inline, disregard length limit
+    if (forceInlineKeywords.includes(keyword) || forceInline) {
+      return "(" + expr.map(e => this.serialize(e, 0, true)).join(" ") + ")";
     }
 
-    const childIndent = "  ".repeat(indentLevel + 1);
+    const nodeIndent = indentation.repeat(indentLevel);
+    const childIndent = indentation.repeat(indentLevel + 1);
 
     const inlineChildrenRules: Record<string, string[]> = {
       "export": ["version"],
@@ -69,6 +73,7 @@ export class SExpressionParser {
 
     let inlineNext = true;
     const rule = inlineChildrenRules[keyword] || [];
+    let isMultiline = false;
 
     for (let i = 1; i < expr.length; i++) {
       const child = expr[i];
@@ -78,15 +83,20 @@ export class SExpressionParser {
         const childKeyword = Array.isArray(child) && child.length > 0 && typeof child[0] === "string" ? child[0] : "";
         if (inlineNext && rule.includes(childKeyword)) {
           // Serialize inline without newline
-          result += " " + this.serialize(child, 0);
+          result += " " + this.serialize(child, 0, false);
         } else {
           inlineNext = false; // Once a child drops to a new line, all subsequent children wrap
+          isMultiline = true;
           result += "\n" + childIndent + this.serialize(child, indentLevel + 1);
         }
       }
     }
 
-    result += ")";
+    if (isMultiline) {
+      result += "\n" + nodeIndent + ")";
+    } else {
+      result += ")";
+    }
     return result;
   }
 

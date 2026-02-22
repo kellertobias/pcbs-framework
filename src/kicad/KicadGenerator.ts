@@ -10,6 +10,7 @@ import { KicadLibrary } from "../synth/KicadLibrary";
 export interface KicadGeneratorOptions {
   noWires?: boolean;
   noSymbols?: boolean;
+  experimentalRouting?: boolean;
 }
 
 export class KicadGenerator {

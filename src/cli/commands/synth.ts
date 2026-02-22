@@ -24,6 +24,7 @@ export async function cmdSynth(args: string[]): Promise<void> {
 
     const noWires = args.includes("--no-wires");
     const noSymbols = args.includes("--no-symbols");
+    const experimentalRouting = args.includes("--experimental-routing");
 
     console.log(`  → Generating circuit: ${schematic.name}...`);
     schematic.generate();
@@ -33,7 +34,7 @@ export async function cmdSynth(args: string[]): Promise<void> {
     const { runSynthesis } = require("@tobisk/pcbs/cli/synthesis");
 
     const snapshot = schematic._generateWithCapture() as CircuitSnapshot;
-    const result = runSynthesis(snapshot, schematicDir, { noWires, noSymbols });
+    const result = runSynthesis(snapshot, schematicDir, { noWires, noSymbols, experimentalRouting });
 
     if (result.success) {
       console.log(`  ✅ Synthesis successful!`);
