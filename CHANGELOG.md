@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/kellertobias/pcbs-framework/compare/v1.8.0...v1.8.1) (2026-02-22)
+
+
+### Bug Fixes
+
+* remove the last remains of circuit-synth ([a0e2005](https://github.com/kellertobias/pcbs-framework/commit/a0e20057023b16688e9286fc4d6f0558afd51086))
+
 # [1.8.0](https://github.com/kellertobias/pcbs-framework/compare/v1.7.0...v1.8.0) (2026-02-22)
 
 
