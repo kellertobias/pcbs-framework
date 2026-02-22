@@ -668,21 +668,21 @@ export class SchematicGenerator {
 
   private createGlobalLabel(netName: string, x: number, y: number, dir: { dx: number, dy: number }, uuid: string): SExpr {
     let angle = 0;
-    // For global labels in KiCad, angle represents the rotation of the entire shape.
-    // The attachment point is natively on the left (when angle=0).
-    // If the wire is pointing right (dir.dx > 0), the component is on the left.
-    // So the label should have its attachment point on the left. (angle = 0)
-    // If the wire is pointing left (dir.dx < 0), the component is on the right.
-    // So the label should have its attachment point on the right. (angle = 180)
-    // If the wire is pointing down (dir.dy > 0), the component is above.
-    // So the label should have its attachment point on the top. (angle = 270)
-    // If the wire is pointing up (dir.dy < 0), the component is below.
-    // So the label should have its attachment point on the bottom. (angle = 90)
-    // Wait, the user said they are pointing the WRONG direction. We'll invert them.
-    if (dir.dx > 0) angle = 180;
-    else if (dir.dx < 0) angle = 0;
-    else if (dir.dy > 0) angle = 90;
-    else angle = 270;
+    let justify = "left";
+
+    if (dir.dx > 0) {
+      angle = 0;
+      justify = "left";
+    } else if (dir.dx < 0) {
+      angle = 180;
+      justify = "right";
+    } else if (dir.dy > 0) {
+      angle = 270;
+      justify = "left";
+    } else {
+      angle = 90;
+      justify = "left";
+    }
 
     // Add a tiny offset to the text property based on the angle so it doesn't overlap the label shape
     const textX = x + dir.dx * 1.27;
@@ -696,14 +696,14 @@ export class SchematicGenerator {
       ["fields_autoplaced", "yes"],
       ["effects",
         ["font", ["size", "1.27", "1.27"]],
-        ["justify", dir.dx > 0 ? "right" : "left"]
+        ["justify", justify]
       ],
       ["uuid", this.quote(uuid)],
       ["property", '"Intersheetrefs"', '"${INTERSHEET_REFS}"',
         ["at", `${textX.toFixed(2)}`, `${textY.toFixed(2)}`, "0"],
         ["effects",
           ["font", ["size", "1.27", "1.27"]],
-          ["justify", "left"],
+          ["justify", justify],
           ["hide", "yes"]
         ]
       ]
