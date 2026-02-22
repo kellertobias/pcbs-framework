@@ -24,7 +24,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
-    "postinstall": "ts-node scripts/patch-opencascade.ts && ts-node -P tsconfig.json ./src/cli/cli.ts setup"
+    "postinstall": "ts-node scripts/patch-opencascade.ts && ts-node -P tsconfig.json ./src/cli/cli.ts setup",
+    "kicad-diff": "ts-node scripts/kicad-diff.ts"
   },
   "keywords": [
     "kicad",
@@ -55,7 +56,6 @@
     "js-yaml": "^4.1.1",
     "opencascade.js": "^2.0.0-beta.b5ff984",
     "pdfkit": "^0.17.2",
-    "playwright": "^1.58.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "vite-tsconfig-paths": "^6.1.1"

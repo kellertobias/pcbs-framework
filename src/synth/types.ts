@@ -70,6 +70,7 @@ export class Pin {
 
       if (target instanceof Component && (target as any).symbol === "Device:DNC") {
         this.tie((target as any).pins[1]);
+        this._isDNC = true;
         continue;
       }
 
@@ -145,6 +146,7 @@ export interface ComponentOptions {
   description?: string;
   partNo?: string;
   value?: string;
+  pos?: { x: number; y: number; r?: number };
   schematicPosition?: SchematicPosition | null;
   pcbPosition?: PcbPosition;
   /** Group assignment for layout clustering */
@@ -159,6 +161,7 @@ export interface ComponentOptions {
 export interface ComposableOptions {
   ref: string;
   description?: string;
+  pos?: { x: number; y: number; r?: number };
   schematicPosition?: SchematicPosition | null;
   pcbPosition?: PcbPosition;
   /** Optional layout to apply to internal components */
@@ -183,6 +186,8 @@ export interface SchematicOptions {
   revision?: string;
   /** Description of the schematic */
   description?: string;
+  /** Company of the schematic */
+  company?: string;
 }
 
 /**
@@ -209,3 +214,15 @@ export type PinProxy<T extends string | number> = {
 } & {
   assign(map: Partial<Record<T, PinAssignable>>): void;
 };
+
+/** A snapshot of the circuit state needed for codegen/synthesis. */
+export interface CircuitSnapshot {
+  name: string;
+  author?: string;
+  revision?: string;
+  description?: string;
+  company?: string;
+  components: Component<any>[];
+  nets: Net[];
+  placementAlgorithm?: PlacementAlgorithm;
+}

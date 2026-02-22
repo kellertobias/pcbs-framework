@@ -111,12 +111,11 @@ export class KicadLibrary {
 
   /**
    * Generate the content for a KiCad fp-lib-table file.
-   * @param relativePathToLibDir - Path from project dir to the directory containing .pretty
+   * @param absolutePathToLibDir - Absolute path to the directory containing .pretty
    * @param libName - The name of the library (default: "Project_Footprints")
    */
-  public static generateFpLibTable(relativePathToLibDir: string, libName = "Project_Footprints"): string {
-    // Do NOT use path.join here — it normalizes away ${KIPRJMOD}
-    const uri = `\${KIPRJMOD}/${relativePathToLibDir}/${libName}.pretty`;
+  public static generateFpLibTable(absolutePathToLibDir: string, libName = "Project_Footprints"): string {
+    const uri = path.join(absolutePathToLibDir, `${libName}.pretty`);
     return [
       `(fp_lib_table`,
       `  (version 7)`,
@@ -128,12 +127,11 @@ export class KicadLibrary {
 
   /**
    * Generate the content for a KiCad sym-lib-table file.
-   * @param relativePathToLibDir - Path from project dir to the directory containing .kicad_sym
+   * @param absolutePathToLibDir - Absolute path to the directory containing .kicad_sym
    * @param libName - The name of the library (default: "Project_Symbols")
    */
-  public static generateSymLibTable(relativePathToLibDir: string, libName = "Project_Symbols"): string {
-    // Do NOT use path.join here — it normalizes away ${KIPRJMOD}
-    const uri = `\${KIPRJMOD}/${relativePathToLibDir}/${libName}.kicad_sym`;
+  public static generateSymLibTable(absolutePathToLibDir: string, libName = "Project_Symbols"): string {
+    const uri = path.join(absolutePathToLibDir, `${libName}.kicad_sym`);
     return [
       `(sym_lib_table`,
       `  (version 7)`,

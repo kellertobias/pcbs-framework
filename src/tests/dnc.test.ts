@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Schematic, Net, Component, DNC, TP } from "../synth";
-import { generatePython } from "../cli/codegen";
+import { Pin } from "../synth/types";
 
 describe("DNC Component and Validation", () => {
   it("allows connecting exactly one functional pin to a DNC component", () => {
@@ -17,7 +17,9 @@ describe("DNC Component and Validation", () => {
         net.tie(r1.pins[1]);
       }
     }
-    new DncTest().generate();
+    const board = new DncTest();
+    // Should not throw
+    board._generateWithCapture();
   });
 
   it("throws when connecting two functional pins to a DNC net", () => {
@@ -33,7 +35,8 @@ describe("DNC Component and Validation", () => {
         expect(() => net.tie(r2.pins[1])).toThrow(/already has a functional connection and is marked as DNC/);
       }
     }
-    new DncTest().generate();
+    const board = new DncTest();
+    board.generate(); // Logic runs immediately in constructor for this test or generate()
   });
 
   it("marks a pin as NC by assigning null", () => {
@@ -46,8 +49,13 @@ describe("DNC Component and Validation", () => {
     }
     const board = new NullTest();
     const snapshot = board._generateWithCapture();
-    const python = generatePython(snapshot);
-    expect(python).toContain('r1[1] += Net("NC_R1_1")');
+
+    // Find R1
+    const r1 = snapshot.components.find(c => c.ref === "R1");
+    expect(r1).toBeDefined();
+    // Check pin 1 is DNC
+    const p1 = r1!.pins[1] as Pin;
+    expect(p1.isDNC).toBe(true);
   });
 
   it("marks a pin as NC by assigning DNC directly", () => {
@@ -60,8 +68,11 @@ describe("DNC Component and Validation", () => {
     }
     const board = new DirectTest();
     const snapshot = board._generateWithCapture();
-    const python = generatePython(snapshot);
-    expect(python).toContain('r1[2] += Net("NC_R1_2")');
+
+    const r1 = snapshot.components.find(c => c.ref === "R1");
+    expect(r1).toBeDefined();
+    const p2 = r1!.pins[2] as Pin;
+    expect(p2.isDNC).toBe(true);
   });
 });
 
@@ -76,10 +87,21 @@ describe("TP (TestPoint) Component", () => {
     }
     const board = new TpTest();
     const snapshot = board._generateWithCapture();
-    const python = generatePython(snapshot);
-    // TP should be a registered component and connected to R1's pin
-    expect(python).toContain('tp1 = Component(');
-    expect(python).toContain('symbol="Connector:TestPoint"');
+
+    // Find TP1
+    const tp1 = snapshot.components.find(c => c.ref === "TP1");
+    expect(tp1).toBeDefined();
+    expect(tp1!.symbol).toBe("Connector:TestPoint");
+
+    // Check connection
+    const r1 = snapshot.components.find(c => c.ref === "R1");
+    const p1 = r1!.pins[1] as Pin;
+    const tpPin = tp1!.pins[1] as Pin;
+
+    // They should share a net (explicit or implicit)
+    // tie() logic ensures they are on same net
+    expect(p1.net).toBeDefined();
+    expect(p1.net).toBe(tpPin.net);
   });
 
   it("connects TP pin to a shared net", () => {
@@ -95,9 +117,11 @@ describe("TP (TestPoint) Component", () => {
     }
     const board = new TpNetTest();
     const snapshot = board._generateWithCapture();
-    const python = generatePython(snapshot);
-    // Both R1 pin 1 and TP should be on VCC
-    expect(python).toContain('tp_vcc = Component(');
-    expect(python).toContain('tp_vcc[1] += net_vcc');
+
+    const tp = snapshot.components.find(c => c.ref === "TP_VCC");
+    expect(tp).toBeDefined();
+
+    const tpPin = tp!.pins[1] as Pin;
+    expect(tpPin.net?.name).toBe("VCC");
   });
 });
