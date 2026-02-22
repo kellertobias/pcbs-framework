@@ -130,5 +130,5 @@ Now that we have our schematic defined in code, let's generate the KiCad files.
 
 ## Next Steps
 
-*   Explore **[API Documentation](API.md)** to learn about `Composable` blocks and `Modules`.
+*   Explore **[API Documentation](Schematic.md)** to learn about `Composable` blocks and `Modules`.
 *   Check out **[CLI Documentation](CLI.md)** for advanced usage like exporting fabrication files.

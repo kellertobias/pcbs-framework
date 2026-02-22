@@ -41,7 +41,7 @@ npx pcbs parts --footprint "SOIC-8" --value "10k"
 
 ### `lib`
 
-Generates project-specific KiCad libraries (`.kicad_sym` and `.pretty`) from your `Module` definitions in `src/module/`.
+Generates project-specific KiCad libraries (`.kicad_sym` and `.pretty`) from your **[Module](Module.md)** definitions in `src/module/`.
 
 ```bash
 npx pcbs lib
