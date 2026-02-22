@@ -55,6 +55,12 @@ export function createPinProxy<T extends string | number>(
   });
 }
 
+export interface CplOptions {
+  x?: number;
+  y?: number;
+  r?: number;
+}
+
 /**
  * Represents an electronic component in a circuit.
  *
@@ -101,6 +107,7 @@ export class Component<PinNames extends string | number = number> {
   readonly parent?: Composable<any>;
   readonly group?: string;
   readonly subschematic?: string;
+  readonly cpl?: CplOptions;
 
   /** Pin storage */
   private _pinStore = new Map<string, Pin>();
@@ -110,6 +117,7 @@ export class Component<PinNames extends string | number = number> {
 
   constructor(options: ComponentOptions & {
     pins?: PinMapFn<PinNames & string>;
+    cpl?: CplOptions;
   }) {
     this.symbol = options.symbol;
     this.ref = options.ref;
@@ -117,11 +125,20 @@ export class Component<PinNames extends string | number = number> {
     this.description = options.description;
     this.partNo = options.partNo;
     this.value = options.value;
-    this.schematicPosition = options.schematicPosition;
+
+    if (options.pos?.r !== undefined) {
+      this.schematicPosition = { x: options.pos.x, y: options.pos.y, rotation: options.pos.r };
+    } else if (options.pos) {
+      this.schematicPosition = { x: options.pos.x, y: options.pos.y };
+    } else {
+      this.schematicPosition = options.schematicPosition;
+    }
+
     this.pcbPosition = options.pcbPosition;
     this.parent = options.parent ?? Composable.activeComposable;
     this.group = options.group || Component.activeGroup;
     this.subschematic = options.subschematic || Component.activeSubschematic;
+    this.cpl = options.cpl;
 
     // If a pin mapping function is provided, call it to create named aliases
     if (options.pins) {
@@ -172,9 +189,17 @@ export class Component<PinNames extends string | number = number> {
 
     const parentPos = this.parent.absoluteSchematicPosition;
     if (parentPos === null) return null;
+
+    const pRot = (parentPos.rotation || 0) * (Math.PI / 180);
+    const cos = Math.cos(pRot);
+    const sin = Math.sin(pRot);
+
+    const localX = local.x || 0;
+    const localY = local.y || 0;
+
     return {
-      x: parentPos.x + (local.x || 0),
-      y: parentPos.y + (local.y || 0),
+      x: parentPos.x + (localX * cos - localY * sin),
+      y: parentPos.y + (localX * sin + localY * cos),
       rotation: (parentPos.rotation || 0) + (local.rotation || 0),
     };
   }

@@ -1,14 +1,14 @@
 import * as path from "path";
 import * as fs from "fs";
 import { CircuitSnapshot } from "../synth/types";
-import { KicadGenerator } from "../kicad/KicadGenerator";
+import { KicadGenerator, KicadGeneratorOptions } from "../kicad/KicadGenerator";
 import { KicadLibrary } from "../synth/KicadLibrary";
 import { getConfig } from "./config";
 
 /**
  * Execute the circuit generation using native TypeScript generator.
  */
-export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string): { success: boolean; output: string } {
+export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string, options: KicadGeneratorOptions = {}): { success: boolean; output: string, errors?: string[] } {
   const { projectRoot } = getConfig();
 
   // Define library search paths
@@ -24,7 +24,7 @@ export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string): { su
   const generator = new KicadGenerator(libPaths);
 
   try {
-    const result = generator.generate(snapshot, outputDir);
+    const result = generator.generate(snapshot, outputDir, options);
 
     if (result.success) {
       // Generate library tables in the project directory
@@ -45,13 +45,15 @@ export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string): { su
     }
 
     return {
-      success: true,
-      output: "Successfully generated KiCad schematic and netlist.",
+      success: result.success,
+      output: result.success ? "Successfully generated KiCad schematic and netlist." : "Generated with warnings/errors.",
+      errors: result.errors
     };
   } catch (e: any) {
     return {
       success: false,
-      output: `Generation failed: ${e.message}\n${e.stack}`,
+      output: `Generation failed: ${e.message}`,
+      errors: [e.stack || e.message]
     };
   }
 }

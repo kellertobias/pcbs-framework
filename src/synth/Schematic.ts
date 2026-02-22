@@ -2,6 +2,7 @@ import { SchematicOptions, PlacementAlgorithm, CircuitSnapshot } from "@tobisk/p
 import { registry } from "@tobisk/pcbs/Registry";
 import { Component } from "@tobisk/pcbs/Component";
 import { Net } from "@tobisk/pcbs/Net";
+import { GravityLayout } from "./Layout";
 
 /**
  * Abstract base class for all schematics.
@@ -55,6 +56,12 @@ export abstract class Schematic {
 
       if (this._layout) {
         this._layout.apply(topLevelItems);
+      } else {
+        // Auto-layout trigger if any item is unpositioned
+        const unpositioned = topLevelItems.filter((i: any) => !i.schematicPosition);
+        if (unpositioned.length > 0) {
+          new GravityLayout().apply(topLevelItems);
+        }
       }
     } finally {
       registry.stop();
