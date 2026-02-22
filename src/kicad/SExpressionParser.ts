@@ -42,34 +42,47 @@ export class SExpressionParser {
       return "(" + expr.join(" ") + ")";
     }
 
-    const childIndent = "  ".repeat(indentLevel + 1);
-
-    // Exception for specific node types that KiCad formats entirely inline
-    // e.g., (libsource (lib "Device") (part "C") (description ""))
-    const inlineKeywords = ["libsource", "sheetpath", "property", "title_block", "field"];
     const keyword = typeof expr[0] === "string" ? expr[0] : "";
 
-    if (inlineKeywords.includes(keyword)) {
+    // Exception for specific node types that KiCad formats entirely inline
+    const forceInlineKeywords = ["libsource", "sheetpath", "property", "field", "node", "pin", "comment"];
+    if (forceInlineKeywords.includes(keyword)) {
       let inlineStr = "(" + (typeof expr[0] === "string" ? expr[0] : this.serialize(expr[0], 0));
       for (let i = 1; i < expr.length; i++) {
         inlineStr += " " + this.serialize(expr[i], 0);
       }
       inlineStr += ")";
-      // If it isn't ridiculously long, keep it inline (KiCad does this for properties and libsources)
-      if (inlineStr.length < 120) {
-        return inlineStr;
-      }
+      return inlineStr; // Always inline, disregard length limit
     }
+
+    const childIndent = "  ".repeat(indentLevel + 1);
+
+    const inlineChildrenRules: Record<string, string[]> = {
+      "export": ["version"],
+      "library": ["logical"],
+      "libpart": ["lib", "part"],
+      "net": ["code", "name", "class"]
+    };
 
     // Standard multiline expansion
     let result = "(" + (typeof expr[0] === "string" ? expr[0] : this.serialize(expr[0], 0));
+
+    let inlineNext = true;
+    const rule = inlineChildrenRules[keyword] || [];
 
     for (let i = 1; i < expr.length; i++) {
       const child = expr[i];
       if (typeof child === "string") {
         result += " " + child;
       } else {
-        result += "\n" + childIndent + this.serialize(child, indentLevel + 1);
+        const childKeyword = Array.isArray(child) && child.length > 0 && typeof child[0] === "string" ? child[0] : "";
+        if (inlineNext && rule.includes(childKeyword)) {
+          // Serialize inline without newline
+          result += " " + this.serialize(child, 0);
+        } else {
+          inlineNext = false; // Once a child drops to a new line, all subsequent children wrap
+          result += "\n" + childIndent + this.serialize(child, indentLevel + 1);
+        }
       }
     }
 

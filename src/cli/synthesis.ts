@@ -24,35 +24,34 @@ export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string): { su
   const generator = new KicadGenerator(libPaths);
 
   try {
-      const result = generator.generate(snapshot, outputDir);
+    const result = generator.generate(snapshot, outputDir);
 
-      if (result.success) {
-        // Generate library tables in the project directory
-        // This logic is preserved from original implementation
-        try {
-          const kicadLib = path.join(projectRoot, ".kicad");
-          const relPath = path.relative(outputDir, kicadLib);
+    if (result.success) {
+      // Generate library tables in the project directory
+      // This logic is preserved from original implementation
+      try {
+        const kicadLib = path.join(projectRoot, ".kicad");
 
-          const fpTable = KicadLibrary.generateFpLibTable(relPath);
-          const symTable = KicadLibrary.generateSymLibTable(relPath);
+        const fpTable = KicadLibrary.generateFpLibTable(kicadLib);
+        const symTable = KicadLibrary.generateSymLibTable(kicadLib);
 
-          fs.writeFileSync(path.join(outputDir, "fp-lib-table"), fpTable);
-          fs.writeFileSync(path.join(outputDir, "sym-lib-table"), symTable);
+        fs.writeFileSync(path.join(outputDir, "fp-lib-table"), fpTable);
+        fs.writeFileSync(path.join(outputDir, "sym-lib-table"), symTable);
 
-          console.log(`  ✅ Generated KiCad library tables in project directory.`);
-        } catch (err: any) {
-          console.warn(`  ⚠️  Failed to generate library tables: ${err.message}`);
-        }
+        console.log(`  ✅ Generated KiCad library tables in project directory.`);
+      } catch (err: any) {
+        console.warn(`  ⚠️  Failed to generate library tables: ${err.message}`);
       }
+    }
 
-      return {
-        success: true,
-        output: "Successfully generated KiCad schematic and netlist.",
-      };
+    return {
+      success: true,
+      output: "Successfully generated KiCad schematic and netlist.",
+    };
   } catch (e: any) {
-      return {
-          success: false,
-          output: `Generation failed: ${e.message}\n${e.stack}`,
-      };
+    return {
+      success: false,
+      output: `Generation failed: ${e.message}\n${e.stack}`,
+    };
   }
 }

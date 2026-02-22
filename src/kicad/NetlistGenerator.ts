@@ -4,6 +4,7 @@ import { Net } from "../synth/Net";
 import { SymbolLibrary, SymbolDefinition } from "./SymbolLibrary";
 import { SExpr, SExpressionParser } from "./SExpressionParser";
 import { UuidManager } from "./UuidManager";
+import * as path from "path";
 
 export class NetlistGenerator {
   private snapshot: CircuitSnapshot;
@@ -77,14 +78,45 @@ export class NetlistGenerator {
 
       const rootUuid = this.uuids.getOrGenerate("ROOT");
 
+      const compProps = new Map<string, string>();
+      if (symDef) {
+        const extractProps = (expr: SExpr) => {
+          if (!Array.isArray(expr)) return;
+          for (const item of expr) {
+            if (Array.isArray(item) && item[0] === "property" && typeof item[1] === "string" && typeof item[2] === "string") {
+              const pName = SExpressionParser.unquote(item[1]);
+              const pVal = SExpressionParser.unquote(item[2]);
+              if (!compProps.has(pName)) compProps.set(pName, pVal);
+            }
+          }
+        };
+        for (const dep of symDef.dependencies) extractProps(dep);
+        extractProps(symDef.definition);
+      }
+
+      const kiKeywords = compProps.get("ki_keywords");
+      const kiFpFilters = compProps.get("ki_fp_filters");
+
       const fields: SExpr[] = ["fields"];
-      fields.push(["field", ["name", this.quote("LCSC_Part")], this.quote(comp.partNo || "")]);
-      fields.push(["field", ["name", this.quote("ki_keywords")], '""']);
-      fields.push(["field", ["name", this.quote("hierarchy_path")], this.quote(`/${rootUuid}`)]);
-      fields.push(["field", ["name", this.quote("root_uuid")], this.quote(rootUuid)]);
-      fields.push(["field", ["name", this.quote("Footprint")], this.quote(comp.footprint || "")]);
-      fields.push(["field", ["name", this.quote("Datasheet")], '""']);
-      fields.push(["field", ["name", this.quote("Description")], this.quote(comp.description || "")]);
+      fields.push(["field", ["name", this.quote("Datasheet")]]);
+      if (comp.description) {
+        fields.push(["field", this.quote(comp.description), ["name", this.quote("Description")]]);
+      } else {
+        fields.push(["field", ["name", this.quote("Description")]]);
+      }
+      if (comp.footprint) {
+        fields.push(["field", this.quote(comp.footprint), ["name", this.quote("Footprint")]]);
+      } else {
+        fields.push(["field", ["name", this.quote("Footprint")]]);
+      }
+      fields.push(["field", this.quote(`/${rootUuid}`), ["name", this.quote("hierarchy_path")]]);
+      fields.push(["field", ["name", this.quote("ki_keywords")]]);
+      if (comp.partNo) {
+        fields.push(["field", this.quote(comp.partNo), ["name", this.quote("LCSC_Part")]]);
+      } else {
+        fields.push(["field", ["name", this.quote("LCSC_Part")]]);
+      }
+      fields.push(["field", this.quote(rootUuid), ["name", this.quote("root_uuid")]]);
 
       const compDef: SExpr[] = [
         "comp",
@@ -95,9 +127,15 @@ export class NetlistGenerator {
         ["libsource", ["lib", this.quote(libName)], ["part", this.quote(partName)], ["description", this.quote(comp.description || "")]],
       ];
 
-      compDef.push(["property", ["name", this.quote("LCSC_Part")], ["value", this.quote(comp.partNo || "")]]);
-      compDef.push(["property", ["name", this.quote("ki_keywords")], ["value", '""']]);
       compDef.push(["property", ["name", this.quote("hierarchy_path")], ["value", this.quote(`/${rootUuid}`)]]);
+      if (kiFpFilters !== undefined) {
+        compDef.push(["property", ["name", this.quote("ki_fp_filters")], ["value", this.quote(kiFpFilters)]]);
+      }
+      compDef.push(["property", ["name", this.quote("ki_keywords")], ["value", '""']]);
+      if (kiKeywords !== undefined) {
+        compDef.push(["property", ["name", this.quote("ki_keywords")], ["value", this.quote(kiKeywords)]]);
+      }
+      compDef.push(["property", ["name", this.quote("LCSC_Part")], ["value", this.quote(comp.partNo || "")]]);
       compDef.push(["property", ["name", this.quote("root_uuid")], ["value", this.quote(rootUuid)]]);
       compDef.push(["property", ["name", this.quote("Sheetname")], ["value", this.quote("Stammblatt")]]);
       compDef.push(["property", ["name", this.quote("Sheetfile")], ["value", this.quote(`${this.snapshot.name}.kicad_sch`)]]);
@@ -136,7 +174,8 @@ export class NetlistGenerator {
 
           if (nameItem && numItem && numItem[1]) {
             const num = SExpressionParser.unquote(numItem[1] as string);
-            const name = nameItem[1] ? SExpressionParser.unquote(nameItem[1] as string) : num;
+            let name = nameItem[1] ? SExpressionParser.unquote(nameItem[1] as string) : num;
+            if (name === "~") name = "";
 
             if (!foundPins.has(num)) {
               foundPins.add(num);
@@ -144,7 +183,7 @@ export class NetlistGenerator {
                 "pin",
                 ["num", this.quote(num)],
                 ["name", this.quote(name)],
-                ["type", type]
+                ["type", this.quote(type)]
               ]);
             }
           }
@@ -157,50 +196,73 @@ export class NetlistGenerator {
       scan(dep);
     }
 
-    let referencePrefix = "U";
-
-    // Scan definition and dependencies to find the Reference property, needed for extended symbols
-    const checkExprForRef = (expr: SExpr) => {
+    const libpartProps = new Map<string, string>();
+    const extractLibProps = (expr: SExpr) => {
       if (!Array.isArray(expr)) return;
       for (const item of expr) {
-        if (Array.isArray(item) && item[0] === "property") {
-          const propName = SExpressionParser.unquote(item[1] as string);
-          if (propName === "Reference" && item[2]) {
-            referencePrefix = SExpressionParser.unquote(item[2] as string);
-            return;
-          }
+        if (Array.isArray(item) && item[0] === "property" && typeof item[1] === "string" && typeof item[2] === "string") {
+          const pName = SExpressionParser.unquote(item[1]);
+          const pVal = SExpressionParser.unquote(item[2]);
+          if (!libpartProps.has(pName)) libpartProps.set(pName, pVal);
         }
       }
     };
+    for (const dep of symDef.dependencies) extractLibProps(dep);
+    extractLibProps(symDef.definition);
 
-    checkExprForRef(symDef.definition);
-    if (referencePrefix === "U") {
-      for (const dep of symDef.dependencies) {
-        checkExprForRef(dep);
-        if (referencePrefix !== "U") break;
-      }
-    }
+    const description = libpartProps.get("Description") || "";
+    const docs = libpartProps.get("Datasheet") || "~";
+    const footprintFromProp = libpartProps.get("Footprint") || "";
+    let referencePrefix = libpartProps.get("Reference") || "U";
 
     const symNameParts = symDef.name.split(":");
     const libName = symNameParts.length > 1 ? symNameParts[0] : "Lib";
     const partName = symNameParts.length > 1 ? symNameParts.slice(1).join(":") : symDef.name;
 
-    return [
+    const footprints: SExpr[] = ["footprints"];
+    const fpFilters = libpartProps.get("ki_fp_filters");
+    if (fpFilters) {
+      const filters = fpFilters.split(/\s+/).filter(Boolean);
+      for (const f of filters) {
+        footprints.push(["fp", this.quote(f)]);
+      }
+    }
+
+    const libpartNode: SExpr[] = [
       "libpart",
       ["lib", this.quote(libName)],
       ["part", this.quote(partName)],
-      ["description", '""'],
-      ["docs", '"~"'],
-      [
-        "fields",
-        ["field", ["name", '"Reference"'], this.quote(referencePrefix)],
-        ["field", ["name", '"Value"'], this.quote(partName)],
-        ["field", ["name", '"Footprint"'], '""'],
-        ["field", ["name", '"Datasheet"'], '"~"'],
-        ["field", ["name", '"Description"'], '""']
-      ],
-      pins
+      ["description", this.quote(description)],
+      ["docs", this.quote(docs)]
     ];
+
+    if (footprints.length > 1) {
+      libpartNode.push(footprints);
+    }
+
+    const libpartFields: SExpr[] = ["fields"];
+    libpartFields.push(["field", ["name", '"Reference"'], this.quote(referencePrefix)]);
+    libpartFields.push(["field", ["name", '"Value"'], this.quote(partName)]);
+    if (footprintFromProp) {
+      libpartFields.push(["field", ["name", '"Footprint"'], this.quote(footprintFromProp)]);
+    } else {
+      libpartFields.push(["field", ["name", '"Footprint"']]);
+    }
+    if (docs !== "~" && docs !== "") {
+      libpartFields.push(["field", ["name", '"Datasheet"'], this.quote(docs)]);
+    } else {
+      libpartFields.push(["field", ["name", '"Datasheet"'], '"~"']);
+    }
+    if (description) {
+      libpartFields.push(["field", ["name", '"Description"'], this.quote(description)]);
+    } else {
+      libpartFields.push(["field", ["name", '"Description"']]);
+    }
+    libpartNode.push(libpartFields);
+
+    libpartNode.push(pins);
+
+    return libpartNode;
   }
 
   private generateLibraries(): SExpr {
@@ -215,7 +277,8 @@ export class NetlistGenerator {
       // Best effort absolute URI depending on Standard Library or Project Symbols
       let uri = "";
       if (lib === "Project_Symbols") {
-        uri = `\${KIPRJMOD}/../../../.kicad/Project_Symbols.kicad_sym`;
+        const outputDir = path.dirname(this.schematicPath);
+        uri = path.resolve(outputDir, "../../../.kicad/Project_Symbols.kicad_sym");
       } else {
         uri = `/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols//${lib}.kicad_sym`;
       }
@@ -245,23 +308,7 @@ export class NetlistGenerator {
       }
     }
 
-    // Sort nets: GND first, then power nets (+5V, +3V3, etc.) inverted, then rest
-    const sortedNets = Array.from(allNets).sort((a, b) => {
-      const isGndA = a.name.toLowerCase().includes("gnd");
-      const isGndB = b.name.toLowerCase().includes("gnd");
-      if (isGndA && !isGndB) return -1;
-      if (!isGndA && isGndB) return 1;
-
-      const isPwrA = a.name.startsWith("+");
-      const isPwrB = b.name.startsWith("+");
-      if (isPwrA && !isPwrB) return -1;
-      if (!isPwrA && isPwrB) return 1;
-      if (isPwrA && isPwrB) return b.name.localeCompare(a.name); // +5V before +3V3
-
-      return a.name.localeCompare(b.name);
-    });
-
-    for (const net of sortedNets) {
+    for (const net of allNets) {
       if (processedNets.has(net)) continue;
       processedNets.add(net);
 
