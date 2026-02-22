@@ -1,3 +1,5 @@
+![@tobisk/pcbs](/docs/header.png)
+
 # @tobisk/pcbs
 
 **The Code-First PCB Design Framework for Hobbyist Engineers.**
