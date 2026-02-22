@@ -42,6 +42,21 @@ export function convertPosToCpl(
 
         // KiCad ASCII pos format is whitespace-separated:
         // Ref  Val  Package  PosX  PosY  Rot  Side
+        // But Val and Package may contain spaces... KiCad uses fixed-width columns.
+        // Actually, looking at KiCad output, it uses a specific format.
+        // Let's parse it properly.
+
+        // KiCad ASCII pos output looks like:
+        // ### Module positions - created on ...
+        // ### Printed by KiCad version ...
+        // ## Unit = mm, Angle = deg.
+        // ## Side : All
+        // # Ref     Val        Package                PosX       PosY       Rot  Side
+        //   C1      100nF      C_0603_1608Metric     152.4000   -98.0000    0.0000  top
+        //
+
+        // Parse with regex for fixed-width-ish format
+        // Fields are separated by whitespace, but the last field is "top" or "bottom"
         const match = trimmed.match(
             /^(\S+)\s+(\S+)\s+(\S+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+(\S+)$/
         );
