@@ -118,8 +118,10 @@ export class Component<PinNames extends string | number = number> {
     this.partNo = options.partNo;
     this.value = options.value;
 
-    if (options.pos) {
-      this.schematicPosition = { x: options.pos.x, y: options.pos.y, rotation: options.pos.r || 0 };
+    if (options.pos?.r !== undefined) {
+      this.schematicPosition = { x: options.pos.x, y: options.pos.y, rotation: options.pos.r };
+    } else if (options.pos) {
+      this.schematicPosition = { x: options.pos.x, y: options.pos.y };
     } else {
       this.schematicPosition = options.schematicPosition;
     }

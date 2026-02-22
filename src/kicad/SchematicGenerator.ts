@@ -8,7 +8,7 @@ import { Router, Point, Box } from "./Router";
 import { HierarchicalPlacer } from "./HierarchicalPlacer";
 import { KicadGeneratorOptions } from "./KicadGenerator";
 
-interface PinInfo { x: number; y: number; rotation: number; }
+interface PinInfo { x: number; y: number; rotation: number; number?: string; }
 interface PinPos { x: number; y: number; rotation: number; }
 
 export class SchematicGenerator {
@@ -34,6 +34,9 @@ export class SchematicGenerator {
   generate(): string {
     // Auto-layout components if needed
     HierarchicalPlacer.place(this.snapshot, (comp) => this.getComponentDimensions(comp));
+
+    // Auto-rotate 2-pin passives connected to power/GND
+    this.autoRotateComponents();
 
     // Validate Placement
     this.checkOverlaps();
@@ -68,6 +71,10 @@ export class SchematicGenerator {
 
       // Verify all routing constraints
       this.verifyRouting();
+    }
+
+    if (this.errors.length > 0) {
+      throw new Error("Schematic Generator Errors:\n" + this.errors.join("\n"));
     }
 
     return SExpressionParser.serialize(schematic);
@@ -158,8 +165,9 @@ export class SchematicGenerator {
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
 
     for (const pin of pins) {
-      const rx = pin.x * cos - (-pin.y) * sin;
-      const ry = pin.x * sin + (-pin.y) * cos;
+      // Apply CCW rotation, then invert Y to map to KiCad board space
+      const rx = pin.x * cos - pin.y * sin;
+      const ry = -(pin.x * sin + pin.y * cos);
       const ax = cx + rx;
       const ay = cy + ry;
 
@@ -198,7 +206,8 @@ export class SchematicGenerator {
           pins.push({
             x: parseFloat(at[1] as string),
             y: parseFloat(at[2] as string),
-            rotation: parseFloat(at[3] as string)
+            rotation: parseFloat(at[3] as string),
+            number: item[1] as string
           });
         }
       }
@@ -268,6 +277,25 @@ export class SchematicGenerator {
       const rot = comp.absoluteSchematicPosition?.rotation || 0;
 
       const symName = comp.symbol;
+      const box = this.getComponentBox(comp, 0);
+      let textRot = 0;
+      let valY = y + 2.54;
+      let refY = y - 2.54;
+      let valX = x;
+      let refX = x;
+
+      if (box) {
+        if (box.height > box.width) {
+          textRot = 90;
+          refX = box.x + box.width + 1.27;
+          refY = y - 1.27;
+          valX = box.x + box.width + 1.27;
+          valY = y + 1.27;
+        } else {
+          refY = box.y - 1.27;
+          valY = box.y + box.height + 1.27;
+        }
+      }
 
       const instance: SExpr[] = [
         "symbol",
@@ -278,8 +306,8 @@ export class SchematicGenerator {
         ["on_board", "yes"],
         ["dnp", "no"],
         ["uuid", this.quote(uuid)],
-        ["property", '"Reference"', this.quote(comp.ref), ["at", `${x.toFixed(2)}`, `${(y - 2.54).toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
-        ["property", '"Value"', this.quote(comp.value || symName), ["at", `${x.toFixed(2)}`, `${(y + 2.54).toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
+        ["property", '"Reference"', this.quote(comp.ref), ["at", `${refX.toFixed(2)}`, `${refY.toFixed(2)}`, `${textRot}`], ["effects", ["font", ["size", "1.27", "1.27"]]]],
+        ["property", '"Value"', this.quote(comp.value || symName), ["at", `${valX.toFixed(2)}`, `${valY.toFixed(2)}`, `${textRot}`], ["effects", ["font", ["size", "1.27", "1.27"]]]],
         ["property", '"Footprint"', this.quote(comp.footprint || ""), ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
         ["property", '"Datasheet"', '""', ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
         ["property", '"Description"', '""', ["at", `${x.toFixed(2)}`, `${y.toFixed(2)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
@@ -656,6 +684,80 @@ export class SchematicGenerator {
     }
   }
 
+  private autoRotateComponents() {
+    for (const comp of this.snapshot.components) {
+      if (comp.symbol === "Device:DNC") continue;
+
+      // Skip components that have an explicit rotation set (even if it's 0)
+      if (comp.schematicPosition?.rotation !== undefined) continue;
+
+      const symDef = this.library.getSymbol(comp.symbol);
+      if (!symDef) continue;
+
+      const pins = this.findAllPinsInSymbol(symDef);
+      if (pins.length <= 2) {
+        // Find which pins connect to GND or Power
+        let gndPin: PinInfo | undefined;
+        let pwrPin: PinInfo | undefined;
+
+        for (const pinInfo of pins) {
+          if (!pinInfo.number) continue;
+          // The comp.allPins map keys are usually the pin "name" or "number" strings.
+          const pin = comp.allPins.get(pinInfo.number.replace(/"/g, ''));
+          if (!pin || !pin.net) continue;
+
+          const netName = pin.net.name.toLowerCase();
+          if (pin.net.class === "Power") {
+            if (netName.includes("gnd") || netName.includes("vss")) {
+              gndPin = pinInfo;
+            } else {
+              pwrPin = pinInfo;
+            }
+          }
+        }
+
+        // Only auto-rotate if it's connected to at least one power/gnd net
+        if (gndPin || pwrPin) {
+          // If 2 pins, verify they are physically opposed before auto-rotating
+          let areOpposed = true;
+          if (pins.length === 2) {
+            const p1 = pins[0];
+            const p2 = pins[1];
+            // Compute relative angles
+            const angleDiff = Math.abs((p1.rotation - p2.rotation + 360) % 360);
+            if (angleDiff !== 180) {
+              areOpposed = false;
+            }
+          }
+
+          if (areOpposed) {
+            let targetRotation = 0;
+            if (gndPin) {
+              // We want the GND pin's output vector to point DOWN (dy > 0 => angle 270)
+              // The pin natively points into the component at `gndPin.rotation`.
+              // Output from pin to net is `gndPin.rotation + 180`.
+              // So we want: (gndPin.rotation + 180 + comp.rotation) % 360 === 270 
+              targetRotation = (270 - (gndPin.rotation + 180) + 360) % 360;
+              if (!comp.schematicPosition) {
+                (comp as any).schematicPosition = { x: 0, y: 0, rotation: targetRotation };
+              } else {
+                comp.schematicPosition.rotation = targetRotation;
+              }
+            } else if (pwrPin) {
+              // We want the Power pin's output vector to point UP (dy < 0 => angle 90)
+              targetRotation = (90 - (pwrPin.rotation + 180) + 360) % 360;
+              if (!comp.schematicPosition) {
+                (comp as any).schematicPosition = { x: 0, y: 0, rotation: targetRotation };
+              } else {
+                comp.schematicPosition.rotation = targetRotation;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   private createWire(p1: Point, p2: Point, netName: string): SExpr {
     this.wireCounter++;
     return [
@@ -721,8 +823,8 @@ export class SchematicGenerator {
 
     // Determine text orientation. If body points left/right, text can be vertical.
     const textRot = (outDir.dx !== 0) ? 90 : 0;
-    const textX = x + outDir.dx * 2.54;
-    const textY = y + outDir.dy * 2.54;
+    const textX = x + outDir.dx * 3.81;
+    const textY = y + outDir.dy * 3.81;
 
     return [
       "symbol",
@@ -769,8 +871,9 @@ export class SchematicGenerator {
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);
 
-    const rx = pinInfo.x * cos - (-pinInfo.y) * sin;
-    const ry = pinInfo.x * sin + (-pinInfo.y) * cos;
+    // Apply CCW rotation to Library (Y-up) coords, then invert Y for KiCad board space (Y-down)
+    const rx = pinInfo.x * cos - pinInfo.y * sin;
+    const ry = -(pinInfo.x * sin + pinInfo.y * cos);
 
     return {
       x: cx + rx,

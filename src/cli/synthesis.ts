@@ -52,7 +52,8 @@ export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string, optio
   } catch (e: any) {
     return {
       success: false,
-      output: `Generation failed: ${e.message}\n${e.stack}`,
+      output: `Generation failed: ${e.message}`,
+      errors: [e.stack || e.message]
     };
   }
 }
