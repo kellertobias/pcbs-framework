@@ -1,5 +1,6 @@
 import * as path from "path";
 import { resolveSchematic, die } from "@tobisk/pcbs/cli/utils";
+import { CircuitSnapshot } from "@tobisk/pcbs";
 
 /**
  * synth: Compile TypeScript schematic → Generate KiCad files directly
@@ -28,7 +29,7 @@ export async function cmdSynth(args: string[]): Promise<void> {
     console.log(`  → Generating KiCad files...`);
     const { runSynthesis } = require("@tobisk/pcbs/cli/synthesis");
 
-    const snapshot = schematic._generateWithCapture();
+    const snapshot = schematic._generateWithCapture() as CircuitSnapshot;
     const result = runSynthesis(snapshot, schematicDir);
 
     if (result.success) {

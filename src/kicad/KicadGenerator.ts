@@ -22,9 +22,9 @@ export class KicadGenerator {
 
     // Standard system paths for KiCad symbols
     const systemPaths = [
-        "/usr/share/kicad/symbols",
-        "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols",
-        "C:\\Program Files\\KiCad\\share\\kicad\\symbols"
+      "/usr/share/kicad/symbols",
+      "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols",
+      "C:\\Program Files\\KiCad\\share\\kicad\\symbols"
     ].filter(p => fs.existsSync(p));
 
     const paths = [...(libraryPaths || []), ...envPaths, ...systemPaths];
@@ -40,6 +40,14 @@ export class KicadGenerator {
     const schPath = path.join(outputDir, `${name}.kicad_sch`);
     const netPath = path.join(outputDir, `${name}.net`);
     const uuidPath = path.join(outputDir, "uuids.json");
+
+    // Validate component references end in a number
+    for (const comp of snapshot.components) {
+      if (comp.symbol === "Device:DNC" || comp.ref === "#PWR") continue;
+      if (!/\d+$/.test(comp.ref)) {
+        throw new Error(`Invalid Reference: Component '${comp.ref}' (${comp.symbol}) must end in a number to be compatible with KiCad annotation.`);
+      }
+    }
 
     // Load existing UUIDs
     this.uuids.load(uuidPath);
@@ -62,20 +70,20 @@ export class KicadGenerator {
     // Generate minimal project file if missing
     const proPath = path.join(outputDir, `${name}.kicad_pro`);
     if (!fs.existsSync(proPath)) {
-        const proContent = JSON.stringify({
-            meta: { filename: `${name}.kicad_pro`, version: 1 },
-            board: {
-                design_settings: {
-                    rules: {
-                        solder_mask_clearance: 0.0,
-                        solder_mask_min_width: 0.0,
-                        solder_paste_clearance: 0.0,
-                        solder_paste_margin: 0.0
-                    }
-                }
+      const proContent = JSON.stringify({
+        meta: { filename: `${name}.kicad_pro`, version: 1 },
+        board: {
+          design_settings: {
+            rules: {
+              solder_mask_clearance: 0.0,
+              solder_mask_min_width: 0.0,
+              solder_paste_clearance: 0.0,
+              solder_paste_margin: 0.0
             }
-        }, null, 2);
-        fs.writeFileSync(proPath, proContent, "utf-8");
+          }
+        }
+      }, null, 2);
+      fs.writeFileSync(proPath, proContent, "utf-8");
     }
 
     return { success: true };

@@ -1,5 +1,7 @@
 export type SExpr = string | SExpr[];
 
+const indentation = "\t";
+
 /**
  * Simple S-expression parser for KiCad files.
  * Handles:
@@ -19,9 +21,11 @@ export class SExpressionParser {
 
   /**
    * Serialize an S-expression structure into a string.
-   * Uses simple pretty-printing rules:
-   * - Lists starting with keywords like 'at', 'size', 'stroke', 'fill', 'uuid', 'id', 'offset' are kept inline.
-   * - Other lists are expanded with newlines and indentation.
+   * Formatting rules:
+   * - Simple expressions (only atoms/strings, no nested lists) are kept on a single line.
+   * - Expressions with sub-expressions (nested arrays) are expanded:
+   *   - Every sub-expression starts on a new line with indentation.
+   *   - The closing parenthesis is on its own line (matching the opening indentation).
    */
   static serialize(expr: SExpr, indentLevel: number = 0): string {
     if (typeof expr === "string") {
@@ -32,34 +36,21 @@ export class SExpressionParser {
       return "()";
     }
 
-    const first = expr[0];
-    const isInline =
-      typeof first === "string" &&
-      [
-        "at", "size", "stroke", "fill", "uuid", "id", "offset", "effects", "font",
-        "hide", "justify", "mirror", "pin_names", "pin_numbers", "exclude_from_sim",
-        "in_bom", "on_board", "tstamps", "sheetpath", "version", "generator", "paper",
-        "date", "rev", "company", "comment", "pts", "xy", "start", "end",
-        "rect", "circle", "arc", "polyline", "text", "no_connect"
-      ].includes(first);
+    const indent = indentation.repeat(indentLevel);
+    const childIndent = indentation.repeat(indentLevel + 1);
 
-    // Also check if all children are atoms/strings (no nested lists)
+    // Deepest level (inline): No sub-expressions (nested arrays)
     const isSimple = expr.every(e => typeof e === "string");
 
-    if (isInline || isSimple) {
-      return "(" + expr.map(e => this.serialize(e, 0)).join(" ") + ")";
+    if (isSimple) {
+      return "(" + expr.join(" ") + ")";
     }
 
-    const indent = "  ".repeat(indentLevel);
-    const childIndent = "  ".repeat(indentLevel + 1);
-
-    // First element (keyword) on same line
+    // Not simple: has nested lists. Expand it.
     let result = "(" + this.serialize(expr[0], 0);
 
     for (let i = 1; i < expr.length; i++) {
       const child = expr[i];
-      // Check if child should be inline (e.g. property value) or new line
-
       if (typeof child === "string") {
         result += " " + child;
       } else {
@@ -67,7 +58,7 @@ export class SExpressionParser {
       }
     }
 
-    result += ")";
+    result += "\n" + indent + ")";
     return result;
   }
 

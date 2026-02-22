@@ -184,6 +184,8 @@ export interface SchematicOptions {
   revision?: string;
   /** Description of the schematic */
   description?: string;
+  /** Company of the schematic */
+  company?: string;
 }
 
 /**
@@ -214,6 +216,10 @@ export type PinProxy<T extends string | number> = {
 /** A snapshot of the circuit state needed for codegen/synthesis. */
 export interface CircuitSnapshot {
   name: string;
+  author?: string;
+  revision?: string;
+  description?: string;
+  company?: string;
   components: Component<any>[];
   nets: Net[];
   placementAlgorithm?: PlacementAlgorithm;
