@@ -55,6 +55,12 @@ export function createPinProxy<T extends string | number>(
   });
 }
 
+export interface CplOptions {
+  x?: number;
+  y?: number;
+  r?: number;
+}
+
 /**
  * Represents an electronic component in a circuit.
  *
@@ -101,6 +107,7 @@ export class Component<PinNames extends string | number = number> {
   readonly parent?: Composable<any>;
   readonly group?: string;
   readonly subschematic?: string;
+  readonly cpl?: CplOptions;
 
   /** Pin storage */
   private _pinStore = new Map<string, Pin>();
@@ -110,6 +117,7 @@ export class Component<PinNames extends string | number = number> {
 
   constructor(options: ComponentOptions & {
     pins?: PinMapFn<PinNames & string>;
+    cpl?: CplOptions;
   }) {
     this.symbol = options.symbol;
     this.ref = options.ref;
@@ -130,6 +138,7 @@ export class Component<PinNames extends string | number = number> {
     this.parent = options.parent ?? Composable.activeComposable;
     this.group = options.group || Component.activeGroup;
     this.subschematic = options.subschematic || Component.activeSubschematic;
+    this.cpl = options.cpl;
 
     // If a pin mapping function is provided, call it to create named aliases
     if (options.pins) {

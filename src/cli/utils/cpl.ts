@@ -1,5 +1,8 @@
+
 import * as fs from "fs";
 import * as path from "path";
+import { Component } from "../../synth/Component";
+import { loadOverrides, resolveOverride } from "./overrides";
 
 /**
  * Convert KiCad's Pick & Place (pos) ASCII output to JLCPCB CPL format.
@@ -9,21 +12,23 @@ import * as path from "path";
  *
  * JLCPCB CPL expects:
  *   Designator  Val  Package  Mid X  Mid Y  Rotation  Layer
- *
- * Based on the XSL conversion logic from:
- *   https://gist.github.com/arturo182/a8c4a4b96907cfccf616a1edb59d0389
- *
- * Differences:
- * - Column headers are renamed to match JLCPCB expectations
- * - "Side" values "top"/"bottom" are mapped to "Top"/"Bottom"
- * - Position values are expressed in mm with "mm" suffix
  */
 export function convertPosToCpl(
     posFilePath: string,
-    cplOutputPath: string
+    cplOutputPath: string,
+    components: Component<any>[],
+    projectRoot: string
 ): string {
     const content = fs.readFileSync(posFilePath, "utf-8");
     const lines = content.split("\n");
+
+    const overrides = loadOverrides(projectRoot);
+    const componentMap = new Map<string, Component<any>>();
+
+    // Index components by Reference for fast lookup
+    for (const comp of components) {
+        componentMap.set(comp.ref, comp);
+    }
 
     const csvLines: string[] = [];
     // JLCPCB CPL header
@@ -58,7 +63,26 @@ export function convertPosToCpl(
 
         if (!match) continue;
 
-        const [, ref, val, pkg, posX, posY, rot, side] = match;
+        const [, ref, val, pkg, posXStr, posYStr, rotStr, side] = match;
+
+        // Parse numbers
+        let posX = parseFloat(posXStr);
+        let posY = parseFloat(posYStr);
+        let rot = parseFloat(rotStr);
+
+        // Apply overrides if component exists
+        const comp = componentMap.get(ref);
+        if (comp) {
+            const override = resolveOverride(comp, overrides);
+            if (override) {
+                if (override.x !== undefined) posX += override.x;
+                if (override.y !== undefined) posY += override.y;
+                if (override.r !== undefined) rot += override.r;
+
+                // Normalize rotation to 0-360 range
+                rot = ((rot % 360) + 360) % 360;
+            }
+        }
 
         // Map side: KiCad uses "top"/"bottom", JLCPCB uses "Top"/"Bottom"
         const layer =
@@ -69,15 +93,16 @@ export function convertPosToCpl(
                     : side;
 
         // Format position with mm suffix (JLCPCB expects this)
-        const midX = `${posX}mm`;
-        const midY = `${posY}mm`;
+        const midX = `${posX.toFixed(4)}mm`;
+        const midY = `${posY.toFixed(4)}mm`;
+        const rotation = rot.toFixed(4);
 
         // CSV escape helper
         const esc = (s: string) =>
             s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
 
         csvLines.push(
-            `${esc(ref)},${esc(val)},${esc(pkg)},${midX},${midY},${rot},${layer}`
+            `${esc(ref)},${esc(val)},${esc(pkg)},${midX},${midY},${rotation},${layer}`
         );
     }
 

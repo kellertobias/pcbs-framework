@@ -1,3 +1,33 @@
+# [1.8.0](https://github.com/kellertobias/pcbs-framework/compare/v1.7.0...v1.8.0) (2026-02-22)
+
+
+### Bug Fixes
+
+* **export:** use rotation from .kicad_pcb for JLC CPL ([6dc1d87](https://github.com/kellertobias/pcbs-framework/commit/6dc1d879f574df47755ec7a5253bc2dd5f516b76))
+
+
+### Features
+
+* **cpl:** add support for placement overrides ([abd9af2](https://github.com/kellertobias/pcbs-framework/commit/abd9af265a09a9ea694218503d4ae23d26f6cced))
+* **cpl:** add support for placement overrides ([34b1a46](https://github.com/kellertobias/pcbs-framework/commit/34b1a46caabdb8648d5462c3aefcd647f5810c87))
+
+# [1.7.0](https://github.com/kellertobias/pcbs-framework/compare/v1.6.0...v1.7.0) (2026-02-21)
+
+
+### Features
+
+* document the new `parts` command for searching JLC components. ([4e86517](https://github.com/kellertobias/pcbs-framework/commit/4e86517763c453dc94e8a7fa1c0ddd7ebb04bf4c))
+
+# [1.6.0](https://github.com/kellertobias/pcbs-framework/compare/v1.5.0...v1.6.0) (2026-02-21)
+
+
+### Features
+
+* add lcsc parts search command ([4268b9b](https://github.com/kellertobias/pcbs-framework/commit/4268b9bdd957cc5b58582043d638a303cf35416c))
+* add LCSC parts search command ([031f128](https://github.com/kellertobias/pcbs-framework/commit/031f128b4f28f0e2e5c752915fef131d723cab08))
+* add LCSC parts search command ([9784039](https://github.com/kellertobias/pcbs-framework/commit/97840395cf74bdfa045097ba5c1140da9b7c63dd))
+* add LCSC parts search command ([8f401f5](https://github.com/kellertobias/pcbs-framework/commit/8f401f5719eafafbb477c54fac635d95bf14fa61))
+
 # [1.5.0](https://github.com/kellertobias/pcbs-framework/compare/v1.4.1...v1.5.0) (2026-02-21)
 
 
