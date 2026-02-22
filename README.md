@@ -1,228 +1,50 @@
 # @tobisk/pcbs
 
-A strict, type-safe TypeScript framework for designing PCBs.
+**The Code-First PCB Design Framework for Hobbyist Engineers.**
 
-This is a framework built to better suit a code-first workflow for PCB design.
+> **Note:** We no longer use `circuit-synth`, but this project is still deeply inspired by it.
 
-The problem to solve here is that while existing tools are awesome, they often lack type safety or easy integration with modern development practices.
+`@tobisk/pcbs` is a TypeScript framework that brings the power of modern software development to electronics engineering. It allows you to design circuits using code, ensuring type safety, modularity, and easy version control.
 
-I needed a way to also manage custom footprints and ideally generate them by uploading a picture or describing them to the AI.
-
-On top of standard features, we have added:
-- Directly export zip files to upload to JLCPCB including the Pick'n'Place csv files
-- add a simple command to let an ai agent search for JLC parts (WIP)
-- Manage Footprints, Symbols
-- Manage 3d visualisations of the footprints
-- Type Safety
+This application was developed and tested with the help of AI, and it is specifically designed to support **AI-assisted electronics development**. By defining circuits in code, you can leverage AI tools (like GitHub Copilot or Cursor) to generate schematics, suggest components, and even write library definitions for you.
 
 ## Features
 
-- **Type-Safe Design**: leveraging TypeScript to ensure correct connectivity and component logic.
-- **Native Generation**: Generates KiCad schematic (`.kicad_sch`) and netlist (`.net`) files directly.
-- **Programmatic Layout**: Define schematic and PCB positions in code.
-- **Modular Components**: Reusable `Composable` blocks (e.g., Buck Converters, LED Indicators).
+### 🔌 Schematic Generation
+Define your connections in TypeScript and generate native **KiCad Schematics (`.kicad_sch`)** and Netlists (`.net`). The framework handles the boring parts of netlist generation so you can focus on the logic.
 
-## Usage
+### 🔍 Parts Search
+Includes a simple command-line tool to search the **JLCPCB Parts Library**.
+*   Find available parts directly from your terminal.
+*   Designed to be easily used by AI agents and tools like Cursor to find the right component for your design.
+
+### 📚 Library Management
+Manage your component library with code.
+*   **Composable Subschematics**: Create reusable circuit blocks (e.g., a "5V Regulator" or "Microcontroller Minimal Setup") that can be instantiated multiple times.
+*   **Modules**: Define physical components including **Symbols**, **Footprints**, and **3D Models** programmatically. No more drawing boxes in a GUI!
+
+### 🏭 Export for Fabrication
+One command to rule them all. The `export` tool generates everything you need for manufacturing at **JLCPCB**:
+*   Gerber & Drill Files
+*   BOM (Bill of Materials) with LCSC Part Numbers
+*   CPL (Component Placement List) for PCBA
+*   3D Renders of your board
+*   Zips it all up ready for upload.
+
+## Documentation
+
+Full documentation is available in the **[Wiki](docs/)**:
+
+*   **[Quick Start Guide](docs/QuickStart.md)**: Build your first "Blinky" circuit in minutes.
+*   **[API Documentation](docs/API.md)**: Learn about `Schematic`, `Component`, `Net`, and `Composable`.
+*   **[CLI Reference](docs/CLI.md)**: detailed usage of `synth`, `parts`, `lib`, and `export`.
+
+## Installation
 
 ```bash
 npm install @tobisk/pcbs
 ```
 
-### CLI
+## License
 
-```bash
-npx @tobisk/pcbs synth <schematic-name>
-npx @tobisk/pcbs export <schematic-name>
-npx @tobisk/pcbs lib <lib-name (optional)>
-npx @tobisk/pcbs print <schematic-name> # Work in Progress
-```
-
-- **synth**: Generates the KiCad schematic and netlist.
-- **export**: Generates production files (Gerbers, BOM, Pick'n'Place).
-- **lib**: Generates local KiCad library files from your code-defined Symbols and Footprints.
-- **print**: Generates a PDF schematic of the project. (Work in Progress)
-
-Once you have `synth`-ethized your schematic, you can open the kicad schematic file and generate a PCB from it. Every time we synth, we update the schematic and the netlist.
-
-It could be that the internal IDs of the kicad symbols drift, so when loading a new netlist in the PCB editor and the positions change, undo the loading and select the "Match by Reference" and re-import the net.
-
-## Project Structure
-
-A typical project using `@tobisk/pcbs` is structured into three main directories:
-
-- `src/lib/`: Reusable, technology-independent building blocks (`Composable`).
-- `src/module/`: Physical components or sub-assemblies with specific footprints (`Module`).
-- `src/schematics/`: The top-level design that wires everything together (`Schematic`).
-
-```text
-my-pcb-project/
-├── src/
-│   ├── lib/            # Reusable Composable blocks
-│   │   └── LedIndicator.ts
-│   ├── module/         # Physical Modules (Symbols + Footprints)
-│   │   └── UsbPowerModule.ts
-│   └── schematics/      # Project Schematics
-│       └── MyProject.ts
-├── package.json
-└── tsconfig.json
-```
-
-## Examples
-
-### 1. Composable (Logic Block)
-`Composable` blocks are reusable circuits that define logic and connectivity without being tied to a single physical package.
-
-```typescript
-import { Composable, Net, Component, PinAssignable } from "@tobisk/pcbs";
-
-export class LedIndicator extends Composable<"SIGNAL" | "GND"> {
-  constructor(options: { ref: string; color?: string }) {
-    super({ ref: options.ref });
-    
-    const resistor = new Component({
-      symbol: "Device:R",
-      footprint: "Resistor_SMD:R_0603_1608Metric",
-      value: "330",
-    });
-  
-    const led = new Component({
-      symbol: "Device:LED",
-      footprint: "LED_SMD:LED_0603_1608Metric",
-      value: options.color ?? "Green",
-    });
-  
-    const internal = new Net();
-    internal.tie(resistor.pins[2], led.pins[1]);
-
-    this.resistor = resistor;
-    this.led = led;
-  }
-
-  protected defineInterface(): Record<string, PinAssignable> {
-    return {
-      SIGNAL: this.resistor.pins[1],
-      GND: this.led.pins[2],
-    };
-  }
-}
-```
-
-### 2. Module (Physical Component)
-`Module` represents a physical component with a specific KiCad symbol and footprint. It can also define a parametric 3D model.
-
-```typescript
-import { KicadFootprint, KicadSymbol, Module, Kicad3DModel } from "@tobisk/pcbs";
-
-export class UsbPowerModule extends Module<"VBUS" | "GND"> {
-  constructor(options: { ref?: string }) {
-    super({
-      symbol: "Project_Symbols:USB_Power_Module",
-      footprint: "Project_Footprints:USB_Power_Module",
-      ref: options.ref ?? "J_PWR",
-      pins: (pin) => ({
-        GND: pin(1),
-        VBUS: pin(2),
-      }),
-    });
-  }
-
-  public static makeFootprint(): KicadFootprint {
-     const fp = new KicadFootprint({ name: "USB_Power_Module", attr: "smd" });
-     
-     // Define pads
-     fp.addPad({ number: "1", type: "smd", shape: "roundrect", x: -1.5, y: 0, width: 1.2, height: 1.5 });
-     fp.addPad({ number: "2", type: "smd", shape: "roundrect", x: 1.5, y: 0, width: 1.2, height: 1.5 });
-
-     // Define graphics (silkscreen)
-     fp.addLine({ x1: -2, y1: -1, x2: 2, y2: -1 });
-     fp.addLine({ x1: -2, y1: 1, x2: 2, y2: 1 });
-     
-     return fp;
-  }
-
-  public static makeSymbol(): KicadSymbol {
-     const sym = new KicadSymbol({ 
-       name: "USB_Power_Module", 
-       reference: "J", 
-       footprint: "Project_Footprints:USB_Power_Module" 
-     });
-     
-     // Define pins
-     sym.addPin({ name: "GND", number: "1", x: -5.08, y: 0, side: "left", type: "power_in" });
-     sym.addPin({ name: "VBUS", number: "2", x: 5.08, y: 0, side: "right", type: "power_out" });
-
-     // Define graphics
-     sym.addRect({ x1: -2.54, y1: 2.54, x2: 2.54, y2: -2.54 });
-     
-     return sym;
-  }
-
-  public static async make3DModel(): Promise<Kicad3DModel> {
-    const model = new Kicad3DModel({ unit: "mm" });
-    await model.init();
-
-    // Box for the connector body
-    model.box({ x: 10, y: 15, z: 5, center: true })
-      .color("#c0c0c0") // Silver
-      .name("body");
-
-    // Cylindrical pins
-    model.cylinder({ r: 0.5, h: 4 })
-      .translate({ x: -3, y: 0, z: -2 })
-      .color("#ffd700") // Gold
-      .name("pin1");
-
-    return model;
-  }
-}
-```
-
-### 3. Schematic (Top-level Project)
-`Schematic` is where you instantiate modules and composables and wire them together.
-
-```typescript
-import { Schematic, Net } from "@tobisk/pcbs";
-import { LedIndicator } from "../lib/LedIndicator";
-import { UsbPowerModule } from "../module/UsbPowerModule";
-
-export class MyProject extends Schematic {
-  constructor() {
-    super({ name: "My_Cool_PCB" });
-  }
-
-  generate() {
-    const gnd = new Net({ name: "GND", class: "Power" });
-    const vcc = new Net({ name: "+5V", class: "Power" });
-
-    const pwr = new UsbPowerModule();
-    const statusLed = new LedIndicator({ ref: "STATUS" });
-
-    // Wiring via .tie() and .power()
-    pwr.pins.VBUS.tie(vcc);
-    pwr.pins.GND.tie(gnd);
-
-    statusLed.pins.SIGNAL.tie(vcc);
-    statusLed.pins.GND.tie(gnd);
-  }
-}
-
-export default new MyProject();
-```
-
-### 4. Grouping & Subschematics
-
-Organize large designs using decorators to group components for layout or separate them into subschematic PDF pages.
-
-```typescript
-import { Schematic, group, subschematic } from "@tobisk/pcbs";
-
-export class ComplexProject extends Schematic {
-  @group({ name: "Power System" })
-  @subschematic({ name: "Buck_Converter" })
-  private makePower() {
-    // Every Component instantiated here inherits the group and subschematic tags
-    const buck = new BuckConverter({ ref: "U1" });
-    // ...
-  }
-}
-```
+This project is licensed under the **MIT License**.
