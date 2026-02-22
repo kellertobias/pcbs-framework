@@ -146,6 +146,7 @@ export interface ComponentOptions {
   description?: string;
   partNo?: string;
   value?: string;
+  pos?: { x: number; y: number; r?: number };
   schematicPosition?: SchematicPosition | null;
   pcbPosition?: PcbPosition;
   /** Group assignment for layout clustering */
@@ -160,6 +161,7 @@ export interface ComponentOptions {
 export interface ComposableOptions {
   ref: string;
   description?: string;
+  pos?: { x: number; y: number; r?: number };
   schematicPosition?: SchematicPosition | null;
   pcbPosition?: PcbPosition;
   /** Optional layout to apply to internal components */

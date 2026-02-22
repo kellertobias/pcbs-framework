@@ -7,9 +7,15 @@ import { SchematicGenerator } from "./SchematicGenerator";
 import { NetlistGenerator } from "./NetlistGenerator";
 import { KicadLibrary } from "../synth/KicadLibrary";
 
+export interface KicadGeneratorOptions {
+  noWires?: boolean;
+  noSymbols?: boolean;
+}
+
 export class KicadGenerator {
   private library: SymbolLibrary;
   private uuids: UuidManager;
+  public errors: string[] = [];
 
   constructor(libraryPaths?: string[]) {
     this.library = new SymbolLibrary();
@@ -31,7 +37,7 @@ export class KicadGenerator {
     this.library.setLibraryPaths(paths);
   }
 
-  generate(snapshot: CircuitSnapshot, outputDir: string) {
+  generate(snapshot: CircuitSnapshot, outputDir: string, options: KicadGeneratorOptions = {}) {
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
@@ -54,8 +60,11 @@ export class KicadGenerator {
 
     // Generate Schematic
     console.log(`  → Generating Schematic: ${schPath}...`);
-    const schematicGen = new SchematicGenerator(snapshot, this.library, this.uuids);
+    const schematicGen = new SchematicGenerator(snapshot, this.library, this.uuids, options);
     const schematicContent = schematicGen.generate();
+    if (schematicGen.errors.length > 0) {
+      this.errors.push(...schematicGen.errors);
+    }
     fs.writeFileSync(schPath, schematicContent, "utf-8");
 
     // Generate Netlist
@@ -136,6 +145,6 @@ export class KicadGenerator {
       fs.writeFileSync(pcbPath, pcbContent, "utf-8");
     }
 
-    return { success: true };
+    return { success: this.errors.length === 0, errors: this.errors };
   }
 }

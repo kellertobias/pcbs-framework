@@ -25,7 +25,7 @@ export class Router {
         if (s.x === e.x && s.y === e.y) return [s, e];
 
         // A* Algorithm
-        const openSet = new PriorityQueue<Node>();
+        const openSet = new PriorityQueue<Node>((node) => node.f);
         openSet.enqueue(new Node(s.x, s.y, 0, this.heuristic(s, e)), 0);
 
         const gScore = new Map<string, number>();
@@ -37,14 +37,19 @@ export class Router {
         nodeMap.set(this.key(s), openSet.peek()!);
 
         let finalNode: Node | null = null;
+        let iter = 0;
+        const maxIter = 200000;
 
         while (!openSet.isEmpty()) {
+            iter++;
+            if (iter > maxIter) break;
+
             const current = openSet.dequeue();
             const currentKey = this.key(current);
 
             if (closedSet.has(currentKey)) continue;
 
-            if (current.x === e.x && current.y === e.y) {
+            if (Math.abs(current.x - e.x) < 0.01 && Math.abs(current.y - e.y) < 0.01) {
                 finalNode = current;
                 break;
             }
@@ -70,7 +75,7 @@ export class Router {
                     const newDx = neighbor.x - current.x;
                     const newDy = neighbor.y - current.y;
                     if (prevDx !== newDx || prevDy !== newDy) {
-                        turnCost = 5; // Penalty for turning
+                        turnCost = 0.1; // Small penalty for turning to prefer straight lines without destroying A* performance
                     }
                 }
 
@@ -93,8 +98,7 @@ export class Router {
             return this.simplifyPath(this.reconstructPath(finalNode));
         }
 
-        // Fallback: direct line
-        return [start, end];
+        throw new Error(`ROUTER_DEAD_END: Failed to find path from ${start.x.toFixed(2)},${start.y.toFixed(2)} to ${end.x.toFixed(2)},${end.y.toFixed(2)}. Iterations: ${iter}. OpenSetEmpty: ${openSet.isEmpty()}`);
     }
 
     private snap(p: Point): Point {
@@ -105,12 +109,14 @@ export class Router {
     }
 
     private key(p: Point): string {
-        return `${p.x},${p.y}`;
+        // Round to 3 decimal places to prevent IEEE 754 float drift breaking grid node uniqueness
+        return `${p.x.toFixed(3)},${p.y.toFixed(3)}`;
     }
 
     private heuristic(a: Point, b: Point): number {
-        // Manhattan distance
-        return (Math.abs(a.x - b.x) + Math.abs(a.y - b.y)) / this.gridSize;
+        // Manhattan distance with a tiny tie-breaker multiplier (1.001) 
+        // to prevent A* from flood-filling equal-cost diamond paths over long distances
+        return ((Math.abs(a.x - b.x) + Math.abs(a.y - b.y)) / this.gridSize) * 1.001;
     }
 
     private getNeighbors(node: Node): Node[] {
@@ -125,18 +131,18 @@ export class Router {
     }
 
     private isBlocked(p: Point, obstacles: Box[], start: Point, end: Point): boolean {
-        // Allow start and end points
-        if (Math.abs(p.x - start.x) < 1 && Math.abs(p.y - start.y) < 1) return false;
-        if (Math.abs(p.x - end.x) < 1 && Math.abs(p.y - end.y) < 1) return false;
+        // Allow start and end points and their immediate grid neighbors immunity from obstacles
+        if (Math.abs(p.x - start.x) <= this.gridSize * 1.5 && Math.abs(p.y - start.y) <= this.gridSize * 1.5) return false;
+        if (Math.abs(p.x - end.x) <= this.gridSize * 1.5 && Math.abs(p.y - end.y) <= this.gridSize * 1.5) return false;
 
         for (const obs of obstacles) {
-             // Obstacles are usually padded by caller or we pad here?
-             // Let's assume obstacles passed in are the "keep out" zones.
-             // We check strict containment.
-             if (p.x >= obs.x && p.x <= obs.x + obs.width &&
-                 p.y >= obs.y && p.y <= obs.y + obs.height) {
-                 return true;
-             }
+            // Obstacles are usually padded by caller or we pad here?
+            // Let's assume obstacles passed in are the "keep out" zones.
+            // We check strict containment.
+            if (p.x >= obs.x && p.x <= obs.x + obs.width &&
+                p.y >= obs.y && p.y <= obs.y + obs.height) {
+                return true;
+            }
         }
         return false;
     }
@@ -156,9 +162,9 @@ export class Router {
 
         const simplified: Point[] = [path[0]];
         for (let i = 1; i < path.length - 1; i++) {
-            const prev = path[i-1];
+            const prev = path[i - 1];
             const curr = path[i];
-            const next = path[i+1];
+            const next = path[i + 1];
 
             // If collinear, skip curr
             const dx1 = curr.x - prev.x;
@@ -191,22 +197,80 @@ class Node implements Point {
 }
 
 class PriorityQueue<T> {
-    private items: { item: T, priority: number }[] = [];
+    private elements: T[] = [];
+    private priority: (element: T) => number;
 
-    enqueue(item: T, priority: number) {
-        this.items.push({ item, priority });
-        this.items.sort((a, b) => a.priority - b.priority);
+    constructor(priority: (element: T) => number) {
+        this.priority = priority;
+    }
+
+    enqueue(element: T, priorityValue?: number) {
+        this.elements.push(element);
+        this.bubbleUp(this.elements.length - 1);
     }
 
     dequeue(): T {
-        return this.items.shift()!.item;
+        const top = this.elements[0];
+        const bottom = this.elements.pop()!;
+        if (this.elements.length > 0) {
+            this.elements[0] = bottom;
+            this.sinkDown(0);
+        }
+        return top;
     }
 
-    peek(): T | undefined {
-        return this.items[0]?.item;
+    private bubbleUp(n: number) {
+        const element = this.elements[n];
+        const elemPriority = this.priority(element);
+        while (n > 0) {
+            const parentN = Math.floor((n + 1) / 2) - 1;
+            const parent = this.elements[parentN];
+            if (elemPriority >= this.priority(parent)) break;
+            this.elements[parentN] = element;
+            this.elements[n] = parent;
+            n = parentN;
+        }
+    }
+
+    private sinkDown(n: number) {
+        const length = this.elements.length;
+        const element = this.elements[n];
+        const elemPriority = this.priority(element);
+
+        while (true) {
+            const child2N = (n + 1) * 2;
+            const child1N = child2N - 1;
+            let swap = null;
+            let child1Priority = 0;
+
+            if (child1N < length) {
+                const child1 = this.elements[child1N];
+                child1Priority = this.priority(child1);
+                if (child1Priority < elemPriority) {
+                    swap = child1N;
+                }
+            }
+
+            if (child2N < length) {
+                const child2 = this.elements[child2N];
+                const child2Priority = this.priority(child2);
+                if (child2Priority < (swap === null ? elemPriority : child1Priority)) {
+                    swap = child2N;
+                }
+            }
+
+            if (swap === null) break;
+            this.elements[n] = this.elements[swap];
+            this.elements[swap] = element;
+            n = swap;
+        }
     }
 
     isEmpty(): boolean {
-        return this.items.length === 0;
+        return this.elements.length === 0;
+    }
+
+    peek(): T | undefined {
+        return this.elements[0];
     }
 }

@@ -117,7 +117,13 @@ export class Component<PinNames extends string | number = number> {
     this.description = options.description;
     this.partNo = options.partNo;
     this.value = options.value;
-    this.schematicPosition = options.schematicPosition;
+
+    if (options.pos) {
+      this.schematicPosition = { x: options.pos.x, y: options.pos.y, rotation: options.pos.r || 0 };
+    } else {
+      this.schematicPosition = options.schematicPosition;
+    }
+
     this.pcbPosition = options.pcbPosition;
     this.parent = options.parent ?? Composable.activeComposable;
     this.group = options.group || Component.activeGroup;
@@ -172,9 +178,17 @@ export class Component<PinNames extends string | number = number> {
 
     const parentPos = this.parent.absoluteSchematicPosition;
     if (parentPos === null) return null;
+
+    const pRot = (parentPos.rotation || 0) * (Math.PI / 180);
+    const cos = Math.cos(pRot);
+    const sin = Math.sin(pRot);
+
+    const localX = local.x || 0;
+    const localY = local.y || 0;
+
     return {
-      x: parentPos.x + (local.x || 0),
-      y: parentPos.y + (local.y || 0),
+      x: parentPos.x + (localX * cos - localY * sin),
+      y: parentPos.y + (localX * sin + localY * cos),
       rotation: (parentPos.rotation || 0) + (local.rotation || 0),
     };
   }
