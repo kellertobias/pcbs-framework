@@ -1,3 +1,16 @@
+# [1.8.0](https://github.com/kellertobias/pcbs-framework/compare/v1.7.0...v1.8.0) (2026-02-22)
+
+
+### Bug Fixes
+
+* **export:** use rotation from .kicad_pcb for JLC CPL ([6dc1d87](https://github.com/kellertobias/pcbs-framework/commit/6dc1d879f574df47755ec7a5253bc2dd5f516b76))
+
+
+### Features
+
+* **cpl:** add support for placement overrides ([abd9af2](https://github.com/kellertobias/pcbs-framework/commit/abd9af265a09a9ea694218503d4ae23d26f6cced))
+* **cpl:** add support for placement overrides ([34b1a46](https://github.com/kellertobias/pcbs-framework/commit/34b1a46caabdb8648d5462c3aefcd647f5810c87))
+
 # [1.7.0](https://github.com/kellertobias/pcbs-framework/compare/v1.6.0...v1.7.0) (2026-02-21)
 
 
