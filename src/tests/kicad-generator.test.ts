@@ -41,8 +41,7 @@ describe("SExpressionParser", () => {
   it("formats title_block multiline", () => {
     const expr = ["title_block", ["title", '"Test"'], ["date", '"2024"']];
     const output = SExpressionParser.serialize(expr);
-    expect(output).toContain('\n\t(title "Test")');
-    expect(output).toContain('\n\t(date "2024")');
+    expect(output).toBe('(title_block (title "Test") (date "2024"))');
   });
 });
 
@@ -91,14 +90,13 @@ describe("SchematicGenerator", () => {
 
     expect(output).toContain('(kicad_sch');
     expect(output).toContain('(uuid "ROOT"');
-    expect(output).toContain('\t\t(symbol "Device:R"');
-    expect(output).toContain('\t\t(lib_id "Device:R")');
-    expect(output).toContain('\t\t(at 100.00 100.00 0.00)');
+    expect(output).toContain('    (symbol "Device:R"');
+    expect(output).toContain('  (symbol\n    (lib_id "Device:R")');
+    expect(output).toContain('    (at 100.00 100.00 0.00)');
     expect(output).toContain('(property "Reference" "R1"');
 
     // Check title block
-    expect(output).toContain('(title_block');
-    expect(output).toContain('\t\t(title "TestSchematic")');
+    expect(output).toContain('(title_block (title "TestSchematic")');
   });
 
   it("generates wires connecting components", () => {
@@ -130,7 +128,7 @@ describe("SchematicGenerator", () => {
     const gen = new SchematicGenerator(snapshot, lib, uuids);
     const output = gen.generate();
 
-    expect(output).toContain('\t(wire\n\t\t(pts\n\t\t\t(xy 0 3.81)\n\t\t\t(xy 20 3.81)');
+    expect(output).toContain('  (wire\n    (pts\n      (xy 0 3.81)\n      (xy 20 3.81)');
   });
 
   it("handles symbol inheritance (extends)", () => {
@@ -176,9 +174,9 @@ describe("SchematicGenerator", () => {
     fs.rmSync(tempLibDir, { recursive: true, force: true });
 
     // Check if both symbols are present in lib_symbols
-    expect(output).toContain('\n\t\t(symbol "TestLib:Child"');
-    expect(output).toContain('\n\t\t\t(property "Value" "Child"');
-    expect(output).toContain('\n\t\t\t(symbol "Child_1_1"');
+    expect(output).toContain('    (symbol "TestLib:Child"');
+    expect(output).toContain('      (property "Value" "Child"');
+    expect(output).toContain('      (symbol "Child_1_1"');
 
     // Verify order: Parent must come before Child
     const parentIndex = output.indexOf('(symbol "Parent"');

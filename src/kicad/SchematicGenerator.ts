@@ -25,8 +25,9 @@ export class SchematicGenerator {
 
     const schematic: SExpr[] = [
       "kicad_sch",
-      ["version", "20211123"],
-      ["generator", this.quote("Tobisk_PCBs")],
+      ["version", "20250114"],
+      ["generator", this.quote("eeschema")],
+      ["generator_version", this.quote("9.0")],
       ["uuid", this.quote(rootUuid)],
       ["paper", this.quote("A4")],
       ["title_block",
@@ -41,6 +42,15 @@ export class SchematicGenerator {
       ...this.generateComponents(),
       ...this.generateWiresAndPower(),
       ...this.generateNoConnects(),
+      // [
+      //   "sheet_instances",
+      //   [
+      //     "path",
+      //     this.quote("/"),
+      //     ["page", "1"]
+      //   ]
+      // ],
+      // ["embedded_fonts", "no"]
     ];
 
     return SExpressionParser.serialize(schematic);
@@ -124,6 +134,8 @@ export class SchematicGenerator {
         ["property", '"Reference"', this.quote(comp.ref), ["at", `${x}`, `${y - 2.54}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
         ["property", '"Value"', this.quote(comp.value || symName), ["at", `${x}`, `${y + 2.54}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
         ["property", '"Footprint"', this.quote(comp.footprint || ""), ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
+        ["property", '"Datasheet"', '""', ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
+        ["property", '"Description"', '""', ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
         ["property", '"LCSC_Part"', this.quote(comp.partNo || ""), ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
         ["property", '"ki_keywords"', '""', ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
         ["property", '"hierarchy_path"', this.quote(`/${rootUuid}`), ["at", `${x}`, `${y}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
@@ -213,6 +225,9 @@ export class SchematicGenerator {
               ["uuid", this.quote(symUuid)],
               ["property", '"Reference"', '"#PWR"', ["at", `${symX}`, `${symY}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
               ["property", '"Value"', this.quote(net.name), ["at", `${symX}`, `${symY + (isGnd ? 2.54 : -2.54)}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
+              ["property", '"Footprint"', '""', ["at", `${symX}`, `${symY}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
+              ["property", '"Datasheet"', '""', ["at", `${symX}`, `${symY}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
+              ["property", '"Description"', '""', ["at", `${symX}`, `${symY}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]]]],
               ["property", '"ki_keywords"', '""', ["at", `${symX}`, `${symY}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
               ["property", '"hierarchy_path"', this.quote(`/${rootUuid}`), ["at", `${symX}`, `${symY}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],
               ["property", '"root_uuid"', this.quote(rootUuid), ["at", `${symX}`, `${symY}`, "0"], ["effects", ["font", ["size", "1.27", "1.27"]], ["hide", "yes"]]],

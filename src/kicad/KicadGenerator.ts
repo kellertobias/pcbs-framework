@@ -60,7 +60,7 @@ export class KicadGenerator {
 
     // Generate Netlist
     console.log(`  → Generating Netlist: ${netPath}...`);
-    const netlistGen = new NetlistGenerator(snapshot, this.library, this.uuids);
+    const netlistGen = new NetlistGenerator(snapshot, this.library, this.uuids, schPath);
     const netlistContent = netlistGen.generate();
     fs.writeFileSync(netPath, netlistContent, "utf-8");
 

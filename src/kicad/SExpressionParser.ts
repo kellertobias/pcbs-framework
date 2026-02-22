@@ -36,18 +36,33 @@ export class SExpressionParser {
       return "()";
     }
 
-    const indent = indentation.repeat(indentLevel);
-    const childIndent = indentation.repeat(indentLevel + 1);
-
     // Deepest level (inline): No sub-expressions (nested arrays)
     const isSimple = expr.every(e => typeof e === "string");
-
     if (isSimple) {
       return "(" + expr.join(" ") + ")";
     }
 
-    // Not simple: has nested lists. Expand it.
-    let result = "(" + this.serialize(expr[0], 0);
+    const childIndent = "  ".repeat(indentLevel + 1);
+
+    // Exception for specific node types that KiCad formats entirely inline
+    // e.g., (libsource (lib "Device") (part "C") (description ""))
+    const inlineKeywords = ["libsource", "sheetpath", "property", "title_block", "field"];
+    const keyword = typeof expr[0] === "string" ? expr[0] : "";
+
+    if (inlineKeywords.includes(keyword)) {
+      let inlineStr = "(" + (typeof expr[0] === "string" ? expr[0] : this.serialize(expr[0], 0));
+      for (let i = 1; i < expr.length; i++) {
+        inlineStr += " " + this.serialize(expr[i], 0);
+      }
+      inlineStr += ")";
+      // If it isn't ridiculously long, keep it inline (KiCad does this for properties and libsources)
+      if (inlineStr.length < 120) {
+        return inlineStr;
+      }
+    }
+
+    // Standard multiline expansion
+    let result = "(" + (typeof expr[0] === "string" ? expr[0] : this.serialize(expr[0], 0));
 
     for (let i = 1; i < expr.length; i++) {
       const child = expr[i];
@@ -58,7 +73,7 @@ export class SExpressionParser {
       }
     }
 
-    result += "\n" + indent + ")";
+    result += ")";
     return result;
   }
 
