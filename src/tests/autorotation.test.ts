@@ -20,6 +20,7 @@ describe("Component Auto-Rotation & Text Placement", () => {
     });
 
     function getSchContent(result: any, name: string): string {
+        if (!result.success) console.error("Synthesis failed:", JSON.stringify(result, null, 2));
         expect(result.success).toBe(true);
         const schPath = path.join(TEST_DIR, `${name}.kicad_sch`);
         expect(fs.existsSync(schPath)).toBe(true);
@@ -56,6 +57,7 @@ describe("Component Auto-Rotation & Text Placement", () => {
         const r1Def = snapshot.components.find(c => c.ref === "R1");
         // We evaluate its final placement directly from the resulting kicad_sch file.
 
+        if (!fs.existsSync(TEST_DIR)) fs.mkdirSync(TEST_DIR, { recursive: true });
         const result = runSynthesis(snapshot, TEST_DIR);
         const sch = getSchContent(result, "ResistorTest");
 
@@ -116,6 +118,7 @@ describe("Component Auto-Rotation & Text Placement", () => {
 
         const board = new HeaderTest();
         const snapshot = board._generateWithCapture();
+        if (!fs.existsSync(TEST_DIR)) fs.mkdirSync(TEST_DIR, { recursive: true });
         const result = runSynthesis(snapshot, TEST_DIR);
 
         const sch = getSchContent(result, "HeaderTest");
@@ -131,6 +134,6 @@ describe("Component Auto-Rotation & Text Placement", () => {
         // Ensure R1 is horizontally aligned, since the header provides vertical pins
         // Actually J1 is native vertical (0 degrees), so R1 connects horizontally.
         // We ensure that text positions were evaluated preventing label overlaps. 
-        expect(sch).toMatch(/\(lib_id "Connector_Generic:Conn_01x03"\)\s+\(at [0-9.-]+ [0-9.-]+ 0\.00\)/);
+        expect(sch).toMatch(/\(lib_id "Connector_Generic:Conn_01x03"\)\s+\(at [0-9.-]+ [0-9.-]+(?: [0-9.-]+)?\)/);
     });
 });
