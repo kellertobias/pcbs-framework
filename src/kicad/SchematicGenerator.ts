@@ -669,19 +669,24 @@ export class SchematicGenerator {
   private createGlobalLabel(netName: string, x: number, y: number, dir: { dx: number, dy: number }, uuid: string): SExpr {
     let angle = 0;
     let justify = "left";
+    let textRot = 0;
 
-    if (dir.dx > 0) {
+    // dir is the direction moving AWAY from the component.
+    // KiCad Y-axis increases downwards, so dy < 0 is UP, dy > 0 is DOWN.
+    if (dir.dx > 0) { // Wire points RIGHT
       angle = 0;
       justify = "left";
-    } else if (dir.dx < 0) {
+    } else if (dir.dx < 0) { // Wire points LEFT
       angle = 180;
       justify = "right";
-    } else if (dir.dy > 0) {
-      angle = 270;
-      justify = "left";
-    } else {
+    } else if (dir.dy < 0) { // Wire points UP
       angle = 90;
       justify = "left";
+      textRot = 90;
+    } else { // Wire points DOWN
+      angle = 270;
+      justify = "right";
+      textRot = 90;
     }
 
     // Add a tiny offset to the text property based on the angle so it doesn't overlap the label shape
@@ -700,7 +705,7 @@ export class SchematicGenerator {
       ],
       ["uuid", this.quote(uuid)],
       ["property", '"Intersheetrefs"', '"${INTERSHEET_REFS}"',
-        ["at", `${textX.toFixed(2)}`, `${textY.toFixed(2)}`, "0"],
+        ["at", `${textX.toFixed(2)}`, `${textY.toFixed(2)}`, `${textRot}`],
         ["effects",
           ["font", ["size", "1.27", "1.27"]],
           ["justify", justify],
