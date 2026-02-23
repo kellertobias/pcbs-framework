@@ -21,8 +21,11 @@ interface PlacedNode {
 export class HierarchicalPlacer {
     static place(snapshot: CircuitSnapshot, getDimensions?: (comp: Component) => { width: number, height: number }) {
         // Find components that need placement
-        const toPlace = snapshot.components.filter(c => c.symbol !== "Device:DNC");
-        if (toPlace.length === 0) return;
+        const allToPlace = snapshot.components.filter(c => c.symbol !== "Device:DNC");
+        if (allToPlace.length === 0) return;
+
+        const toPlace = allToPlace.filter(c => c.allPins.size > 0);
+        const mechanical = allToPlace.filter(c => c.allPins.size === 0);
 
         // Calculate wire counts for each component to determine padding
         const wireCounts = new Map<string, number>();
@@ -300,8 +303,11 @@ export class HierarchicalPlacer {
                             const dx = Math.abs(c2.x - c1.x);
                             const dy = Math.abs(c2.y - c1.y);
 
-                            const reqDx = (c1.width / 2 + c1.padding) + (c2.width / 2 + c2.padding);
-                            const reqDy = (c1.height / 2 + c1.padding) + (c2.height / 2 + c2.padding);
+                            // For user-fixed components, we only require physical separation with a small padding
+                            // instead of the massive routing padding, to prevent blowing up manual placements.
+                            const fixedPadding = 1;
+                            const reqDx = (c1.width / 2 + fixedPadding) + (c2.width / 2 + fixedPadding);
+                            const reqDy = (c1.height / 2 + fixedPadding) + (c2.height / 2 + fixedPadding);
 
                             // If they are strictly overlapping on both axes:
                             if (dx < reqDx && dy < reqDy) {
@@ -391,5 +397,96 @@ export class HierarchicalPlacer {
         }
 
         applyPositions(root, 0, 0);
+
+        // Place mechanical components (without pins) at the bottom-left of the schematic
+        if (mechanical.length > 0) {
+            let minX = Infinity;
+            let maxX = -Infinity;
+            let minY = Infinity;
+            let maxY = -Infinity;
+
+            // Find global bounding box of all placed electrical components
+            for (const comp of toPlace) {
+                let absX = 0;
+                let absY = 0;
+                let current: any = comp;
+                while (current) {
+                    if (current.schematicPosition) {
+                        absX += current.schematicPosition.x;
+                        absY += current.schematicPosition.y;
+                    }
+                    current = current.parent;
+                }
+                const dims = getDimensions ? getDimensions(comp) : { width: 15, height: 15 };
+                const hw = dims.width / 2;
+                const hh = dims.height / 2;
+
+                if (absX - hw < minX) minX = absX - hw;
+                if (absX + hw > maxX) maxX = absX + hw;
+                if (absY - hh < minY) minY = absY - hh;
+                if (absY + hh > maxY) maxY = absY + hh;
+            }
+
+            // If there were no electrical components, just start at 0,0
+            if (minX === Infinity) {
+                minX = 0;
+                maxX = 0;
+                minY = 0;
+                maxY = 0;
+            }
+
+            // KiCad Y increases downwards. Bottom-left is minX, maxY
+            const paddingX = 5;
+            let currentX = minX;
+            let currentY = maxY + 15; // 15 units below the lowest component
+            let rowMaxHeight = 0;
+            const maxWidth = Math.max(200, maxX - minX); // Max width before wrapping to next row
+
+            for (const comp of mechanical) {
+                if (comp.schematicPosition && comp.schematicPosition.rotation !== undefined) {
+                    // if it has a fixed position already, we might just respect it, but the prompt says 
+                    // "they must be placed on the bottom left side". We overrides x,y but keep rotation.
+                }
+
+                const dims = getDimensions ? getDimensions(comp) : { width: 15, height: 15 };
+
+                // If we exceed the arbitrary layout width, wrap to a new row downwards
+                if (currentX > minX && (currentX + dims.width - minX) > maxWidth) {
+                    currentX = minX;
+                    currentY += rowMaxHeight + 5;
+                    rowMaxHeight = 0;
+                }
+
+                // Place component
+                // We need to set its local relative position such that its absolute position is currentX, currentY.
+                let parentAbsX = 0;
+                let parentAbsY = 0;
+                let current: any = comp.parent;
+                while (current) {
+                    if (current.schematicPosition) {
+                        parentAbsX += current.schematicPosition.x;
+                        parentAbsY += current.schematicPosition.y;
+                    }
+                    current = current.parent;
+                }
+
+                // comp center should be at currentX + hw, currentY + hh
+                const hw = dims.width / 2;
+                const hh = dims.height / 2;
+                const targetAbsX = currentX + hw;
+                const targetAbsY = currentY + hh;
+
+                const localX = targetAbsX - parentAbsX;
+                const localY = targetAbsY - parentAbsY;
+                const rot = comp.schematicPosition ? comp.schematicPosition.rotation : 0;
+
+                (comp as any).schematicPosition = { x: localX, y: localY, rotation: rot };
+
+                currentX += dims.width + paddingX;
+                if (dims.height > rowMaxHeight) {
+                    rowMaxHeight = dims.height;
+                }
+            }
+        }
     }
 }
