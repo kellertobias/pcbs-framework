@@ -1,3 +1,15 @@
+# [2.0.0](https://github.com/kellertobias/pcbs-framework/compare/v1.9.0...v2.0.0) (2026-02-23)
+
+
+### chore
+
+* **release:** bump to v2 ([9173fe8](https://github.com/kellertobias/pcbs-framework/commit/9173fe85735f9a12c3ccfb90da0a8acb4f268030))
+
+
+### BREAKING CHANGES
+
+* **release:** migration to native kicad file generation done
+
 # [1.9.0](https://github.com/kellertobias/pcbs-framework/compare/v1.8.1...v1.9.0) (2026-02-23)
 
 
