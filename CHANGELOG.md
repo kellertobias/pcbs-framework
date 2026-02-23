@@ -1,3 +1,29 @@
+# [1.9.0](https://github.com/kellertobias/pcbs-framework/compare/v1.8.1...v1.9.0) (2026-02-23)
+
+
+### Bug Fixes
+
+* add test asset ([f525c6c](https://github.com/kellertobias/pcbs-framework/commit/f525c6ce440f24382ba7dd2abb179dbcd7014df1))
+* correctly auto-rotate components ([f6d068a](https://github.com/kellertobias/pcbs-framework/commit/f6d068adda3bb8f8603729367821a8ee3a9c4d05))
+* correctly render nets ([d5312f8](https://github.com/kellertobias/pcbs-framework/commit/d5312f847182b51daebb5c7729f8cc4de831d80f))
+* correctly rotate global label text for vertical wires in KiCad schematic generation. ([ac35e3c](https://github.com/kellertobias/pcbs-framework/commit/ac35e3ca1c2cec4b3308585c8d173582d459a6a8))
+* fix schematic generation formatting and quotation ([2b08f2a](https://github.com/kellertobias/pcbs-framework/commit/2b08f2a22f8513ece7beedb9e133409a423a9673))
+* generate kicad 9 files ([10e0ecf](https://github.com/kellertobias/pcbs-framework/commit/10e0ecf40e5058d6e79489c235a4050c2fb474c6))
+* global label layouts and inverted Y coords ([61161df](https://github.com/kellertobias/pcbs-framework/commit/61161dfa1b44385eb93be2e5621631aa3e92dfc6))
+* handle symbol inheritance and improve debugging ([0606ff3](https://github.com/kellertobias/pcbs-framework/commit/0606ff319dc25630abb4b6f5c44f865438a80836))
+* handle symbol inheritance order and debugging ([492e939](https://github.com/kellertobias/pcbs-framework/commit/492e939b065cd880002f61045ab5a1c4655b0840))
+* improve error handling ([ee86367](https://github.com/kellertobias/pcbs-framework/commit/ee863676d35c2380da0d382d31a814cc95c31f6d))
+* **kicad:** correct global label orientations and text justification ([3863a54](https://github.com/kellertobias/pcbs-framework/commit/3863a54b2dbefec232935fcd808f523c6bcc513c))
+* netlist generation works now ([1ebed10](https://github.com/kellertobias/pcbs-framework/commit/1ebed1053513db8cb6b3aa169d6cd0a46c55a83d))
+* show warning if components overlap ([a0a2ab4](https://github.com/kellertobias/pcbs-framework/commit/a0a2ab4c3aba8423d065fc12d8d425da5e4665fb))
+
+
+### Features
+
+* generate empty PCB file if doesn't exist yet ([8b6ee56](https://github.com/kellertobias/pcbs-framework/commit/8b6ee561615d5551a51ad3ad365c97b0c8cddd82))
+* native KiCad generation improvements ([ca8f2d5](https://github.com/kellertobias/pcbs-framework/commit/ca8f2d58ec3e6d68150bb8d045b2b3954d4422bb))
+* replace circuit-synth with native KiCad generation ([66be1df](https://github.com/kellertobias/pcbs-framework/commit/66be1df4b135fc5647c08e47d446eb5f4c5ff379))
+
 ## [1.8.1](https://github.com/kellertobias/pcbs-framework/compare/v1.8.0...v1.8.1) (2026-02-22)
 
 
