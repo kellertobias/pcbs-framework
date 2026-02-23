@@ -1,6 +1,6 @@
 {
   "name": "@tobisk/pcbs",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "TypeScript-based PCB Design Framework",
   "publishConfig": {
     "access": "public",

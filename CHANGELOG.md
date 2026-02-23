@@ -1,3 +1,11 @@
+## [2.0.1](https://github.com/kellertobias/pcbs-framework/compare/v2.0.0...v2.0.1) (2026-02-23)
+
+
+### Bug Fixes
+
+* improve hierarchical placer ([a4b54a1](https://github.com/kellertobias/pcbs-framework/commit/a4b54a1c0929a6980c88455b4e85782c31c4fbea))
+* improve local component placement ([cb4857a](https://github.com/kellertobias/pcbs-framework/commit/cb4857aeef54434b5d48552f3e73b812521a23ad))
+
 # [2.0.0](https://github.com/kellertobias/pcbs-framework/compare/v1.9.0...v2.0.0) (2026-02-23)
 
 
