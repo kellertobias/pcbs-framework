@@ -105,8 +105,8 @@ export class HierarchicalPlacer {
         for (const comp of toPlace) {
             const cluster = getCluster(comp);
             const wires = wireCounts.get(comp.ref) || 0;
-            // More wires -> more space to next component. Base padding 15 to guarantee routing corridor.
-            const padding = wires * 2 + 15;
+            // More wires -> more space to next component. Base padding to guarantee routing corridor.
+            const padding = wires * 2 + 2;
             const dims = getDimensions ? getDimensions(comp) : { width: 15, height: 15 };
             const width = dims.width;
             const height = dims.height;
@@ -179,7 +179,7 @@ export class HierarchicalPlacer {
                 child.y = Math.sin(angle) * radius;
             }
 
-            const iterations = 500;
+            const iterations = 5000;
             const kSpring = 0.2; // attraction
             const kRepulsion = 1000;
             const damping = 0.6;
@@ -215,7 +215,7 @@ export class HierarchicalPlacer {
                         const ny = dy / dist;
 
                         // Repulsion with AABB corner safety margin (circle vs square padding)
-                        const idealDist = (c1.width / 2 + c1.padding) + (c2.width / 2 + c2.padding) + 15;
+                        const idealDist = (c1.width / 2 + c1.padding) + (c2.width / 2 + c2.padding) + 3;
 
                         // Repulsion (prevent overlaps)
                         let repForce = kRepulsion * Math.pow(idealDist / dist, 2);

@@ -75,8 +75,8 @@ export class GravityLayout extends Layout {
         const numItems = items.length;
         if (numItems === 0) return;
 
-        const iterations = this.options.iterations ?? 300; // Increased iterations for stability
-        const spacing = this.options.spacing ?? 500; // Optimal distance
+        const iterations = this.options.iterations ?? 1000; // Increased iterations for stability
+        const spacing = this.options.spacing ?? 100; // Optimal distance
 
         // Find center of pinned items to use as gravity well
         let pinSumX = 0, pinSumY = 0, pinCount = 0;
@@ -164,7 +164,7 @@ export class GravityLayout extends Layout {
         const repulse = (d: number) => {
             // Enhanced repulsion to avoid overlap
             // If d is very small (potential overlap), force should be massive
-            const minSpace = 200; // Minimum safe distance between centers (approx component size + padding)
+            const minSpace = 100; // Minimum safe distance between centers (approx component size + padding)
             if (d < minSpace) {
                 return k2 * 10 / Math.max(d, 0.1); // Stronger repulsion at close range
             }
