@@ -33,7 +33,7 @@ export class SchematicGenerator {
 
   generate(): string {
     // Auto-layout components if needed
-    HierarchicalPlacer.place(this.snapshot, (comp) => this.getComponentDimensions(comp));
+    HierarchicalPlacer.place(this.snapshot, (comp) => this.getComponentDimensions(comp), { experimental: this.options.experimentalLayout });
 
     // Auto-rotate 2-pin passives connected to power/GND
     this.autoRotateComponents();

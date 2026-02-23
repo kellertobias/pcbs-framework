@@ -4,6 +4,8 @@ import { KicadSymbol } from "@tobisk/pcbs/KicadSymbol";
 import { KicadFootprint } from "@tobisk/pcbs/KicadFootprint";
 import type { Kicad3DModel } from "@tobisk/pcbs/3d";
 
+export type ExtendedModuleOptions<T extends Record<string, any>, PinNames extends string | number = number> = Omit<ModuleOptions<PinNames>, "symbol" | "footprint" | "pins"> & T
+
 /**
  * A Module is a Component that represents a finished PCB module
  * (e.g., an ESP32 dev board, a sensor breakout) that can be soldered
@@ -35,7 +37,7 @@ import type { Kicad3DModel } from "@tobisk/pcbs/3d";
  * ```
  */
 export class Module<PinNames extends string | number = number> extends Component<PinNames> {
-  constructor(options: ModuleOptions & { pins?: PinMapFn<PinNames & string> }) {
+  constructor(options: ModuleOptions<PinNames>) {
     super(options);
   }
 

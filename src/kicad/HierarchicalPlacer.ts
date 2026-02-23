@@ -19,7 +19,7 @@ interface PlacedNode {
 }
 
 export class HierarchicalPlacer {
-    static place(snapshot: CircuitSnapshot, getDimensions?: (comp: Component) => { width: number, height: number }) {
+    static place(snapshot: CircuitSnapshot, getDimensions?: (comp: Component) => { width: number, height: number }, options: { experimental?: boolean } = {}) {
         // Find components that need placement
         const allToPlace = snapshot.components.filter(c => c.symbol !== "Device:DNC");
         if (allToPlace.length === 0) return;
@@ -145,6 +145,147 @@ export class HierarchicalPlacer {
                 node.isFixed = child.isFixed;
                 return;
             }
+
+            if (!options.experimental) {
+                // Determine Grid layout
+                const gridChildren = node.children.filter(c => !c.isFixed);
+                const n = gridChildren.length;
+                let cols = n > 0 ? Math.ceil(Math.sqrt(n)) : 0;
+                let rows = cols > 0 ? Math.ceil(n / cols) : 0;
+
+                // The user requested that we favor expanding columns first: "If we have 4 components, place them in 2x2, for 9 its 3x3. 10 would be 4x3 (increase the columns first)."
+                // Standard Math.ceil(Math.sqrt(10)) => 4 cols, 10/4 => 3 rows = 4x3. 
+                // Let's verify standard square properties match.
+                // sqrt(2) = 1.41.. -> cols 2, rows 1 (2x1)
+                // sqrt(4) = 2 -> cols 2, rows 2 (2x2)
+                // sqrt(5) = 2.23.. -> cols 3, rows 2 (3x2)
+                // sqrt(9) = 3 -> cols 3, rows 3 (3x3)
+                // sqrt(10) = 3.16.. -> cols 4, rows 3 (4x3)
+                // The existing logic already perfectly matches the user's example constraints.
+
+
+                // Calculate maximum width for each column and maximum height for each row
+                const colWidths = new Array(cols).fill(0);
+                const rowHeights = new Array(rows).fill(0);
+
+                for (let i = 0; i < n; i++) {
+                    const child = gridChildren[i];
+                    const r = Math.floor(i / cols);
+                    const c = i % cols;
+
+                    // Don't add padding to clusters themselves when computing their grid cell size. 
+                    // Clusters already contain their own padding inherently in width/height.
+                    // For leaf components, add the minimum routing clearance.
+                    const extraPadding = child.isCluster ? 0 : 2 * child.padding;
+                    const totalW = child.width + extraPadding;
+                    const totalH = child.height + extraPadding;
+
+                    if (totalW > colWidths[c]) colWidths[c] = totalW;
+                    if (totalH > rowHeights[r]) rowHeights[r] = totalH;
+                }
+
+                // Spacing within the grid
+                const gridSpacingX = 15;
+                const gridSpacingY = 15;
+
+                // Position children
+                let currentY = 0;
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+                for (let r = 0; r < rows; r++) {
+                    let currentX = 0;
+                    for (let c = 0; c < cols; c++) {
+                        const i = r * cols + c;
+                        if (i >= n) break; // Reached end of children
+
+                        const child = gridChildren[i];
+                        // Center component within its cell
+                        child.x = currentX + (colWidths[c] / 2);
+                        child.y = currentY + (rowHeights[r] / 2);
+
+                        currentX += colWidths[c] + gridSpacingX;
+                    }
+                    currentY += rowHeights[r] + gridSpacingY;
+                }
+
+                for (let i = 0; i < node.children.length; i++) {
+                    const child = node.children[i];
+                    // Calculate actual resulting bounding box from wherever it ended up
+                    // Only expand the bounding box by padding for base components, not clusters.
+                    const extraPadding = child.isCluster ? 0 : child.padding;
+                    const rw = child.width / 2 + extraPadding;
+                    const rh = child.height / 2 + extraPadding;
+                    if (child.x - rw < minX) minX = child.x - rw;
+                    if (child.x + rw > maxX) maxX = child.x + rw;
+                    if (child.y - rh < minY) minY = child.y - rh;
+                    if (child.y + rh > maxY) maxY = child.y + rh;
+                }
+
+                // If any fixed children caused us to shift center of mass, handle it similarly.
+                const hasFixedChildren = node.children.some(c => c.isFixed);
+                if (!hasFixedChildren) {
+                    const cx = (minX + maxX) / 2;
+                    const cy = (minY + maxY) / 2;
+                    for (const child of node.children) {
+                        child.x -= cx;
+                        child.y -= cy;
+                    }
+                } else if (node.children.filter(c => c.isFixed).length > 1) {
+                    // Check overlaps strictly for fixed components
+                    const fixedChildren = node.children.filter(c => c.isFixed);
+                    let maxRequiredScale = 1.0;
+                    for (let i = 0; i < fixedChildren.length; i++) {
+                        for (let j = i + 1; j < fixedChildren.length; j++) {
+                            const c1 = fixedChildren[i];
+                            const c2 = fixedChildren[j];
+
+                            const dx = Math.abs(c2.x - c1.x);
+                            const dy = Math.abs(c2.y - c1.y);
+
+                            const fixedPadding = 1;
+                            const reqDx = (c1.width / 2 + fixedPadding) + (c2.width / 2 + fixedPadding);
+                            const reqDy = (c1.height / 2 + fixedPadding) + (c2.height / 2 + fixedPadding);
+
+                            if (dx < reqDx && dy < reqDy) {
+                                const safeDx = dx < 0.1 ? 0.1 : dx;
+                                const safeDy = dy < 0.1 ? 0.1 : dy;
+                                const scaleX = reqDx / safeDx;
+                                const scaleY = reqDy / safeDy;
+                                const neededScale = Math.min(scaleX, scaleY);
+                                if (neededScale > maxRequiredScale) {
+                                    maxRequiredScale = neededScale;
+                                }
+                            }
+                        }
+                    }
+
+                    if (maxRequiredScale > 1.0) {
+                        for (const child of fixedChildren) {
+                            child.x *= maxRequiredScale;
+                            child.y *= maxRequiredScale;
+                        }
+                    }
+
+                    // Recompute bounds
+                    minX = Infinity; maxX = -Infinity; minY = Infinity; maxY = -Infinity;
+                    for (const child of node.children) {
+                        const extraPadding = child.isCluster ? 0 : child.padding;
+                        const rw = child.width / 2 + extraPadding;
+                        const rh = child.height / 2 + extraPadding;
+                        if (child.x - rw < minX) minX = child.x - rw;
+                        if (child.x + rw > maxX) maxX = child.x + rw;
+                        if (child.y - rh < minY) minY = child.y - rh;
+                        if (child.y + rh > maxY) maxY = child.y + rh;
+                    }
+                }
+
+                node.width = isFinite(maxX) && isFinite(minX) ? maxX - minX : 0;
+                node.height = isFinite(maxY) && isFinite(minY) ? maxY - minY : 0;
+                node.padding = node.ref === "ROOT" ? 0 : 10;
+                return;
+            }
+
+            // --- Experimental Force-Directed Graph Layout ---
 
             // Map logical edges between children
             const childComponents = node.children.map(c => getComponentsInNode(c));

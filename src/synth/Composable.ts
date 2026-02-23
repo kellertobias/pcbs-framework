@@ -3,6 +3,8 @@ import { Net } from "@tobisk/pcbs/Net";
 import { Component, createPinProxy } from "@tobisk/pcbs/Component";
 import { registry } from "@tobisk/pcbs/Registry";
 
+export type ExtendedComposableOptions<T extends Record<string, any>> = ComposableOptions & T
+
 /**
  * Represents a reusable building block — a sub-circuit composed of
  * multiple components and nets that exposes a defined interface.

@@ -169,7 +169,9 @@ export interface ComposableOptions {
 }
 
 /** Options for Module constructor (extends Component) */
-export interface ModuleOptions extends ComponentOptions { }
+export interface ModuleOptions<PinNames> extends ComponentOptions {
+  pins?: PinMapFn<PinNames & string>;
+}
 
 /** Options for Schematic constructor */
 export interface SchematicOptions {

@@ -11,6 +11,7 @@ export interface KicadGeneratorOptions {
   noWires?: boolean;
   noSymbols?: boolean;
   experimentalRouting?: boolean;
+  experimentalLayout?: boolean;
 }
 
 export class KicadGenerator {
