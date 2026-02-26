@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/kellertobias/pcbs-framework/compare/v2.0.1...v2.0.2) (2026-02-23)
+
+
+### Bug Fixes
+
+* unify api ([16bcfbe](https://github.com/kellertobias/pcbs-framework/commit/16bcfbe097bd5ce5473f143f0ce1315a9eade78f))
+
 ## [2.0.1](https://github.com/kellertobias/pcbs-framework/compare/v2.0.0...v2.0.1) (2026-02-23)
 
 
