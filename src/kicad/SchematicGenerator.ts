@@ -18,6 +18,7 @@ export class SchematicGenerator {
   private usedSymbols = new Map<string, SymbolDefinition>();
   private router = new Router(1.27);
   public errors: string[] = [];
+  public warnings: string[] = [];
   private _cachedBoxes: Box[] | undefined;
   private _generatedWires: { p1: Point, p2: Point, netName: string }[] = [];
   private wireCounter = 0;
@@ -40,6 +41,7 @@ export class SchematicGenerator {
 
     // Validate Placement
     this.checkOverlaps();
+    this.checkUnconnectedPins();
 
     const rootUuid = this.uuids.getOrGenerate("ROOT");
 
@@ -100,6 +102,34 @@ export class SchematicGenerator {
           b1.y < b2.y + b2.height &&
           b1.y + b1.height > b2.y) {
           console.warn(`Placement overlap detected between ${boxes[i].comp.ref} and ${boxes[j].comp.ref}`);
+        }
+      }
+    }
+  }
+
+  private checkUnconnectedPins() {
+    for (const comp of this.snapshot.components) {
+      if (comp.symbol === "Device:DNC") continue;
+
+      const symDef = this.library.getSymbol(comp.symbol);
+      if (!symDef) continue; // Missing symbol is handled elsewhere
+
+      const pins = this.findAllPinsInSymbol(symDef);
+
+      for (const pinInfo of pins) {
+        if (!pinInfo.number) continue;
+
+        let pinName = pinInfo.number;
+        // The parser keeps quotes around names e.g. '"1"'
+        if (pinName.startsWith('"') && pinName.endsWith('"')) {
+          pinName = pinName.substring(1, pinName.length - 1);
+        }
+
+        const pin = comp.allPins.get(pinName);
+
+        // If the pin wasn't accessed at all, or if it has no net and isn't marked DNC
+        if (!pin || (!pin.net && !pin.isDNC)) {
+          this.warnings.push(`Unconnected Pin: ${comp.ref} (${comp.symbol}) pin ${pinName} is not connected to any net and not marked as Do Not Connect (DNC).`);
         }
       }
     }

@@ -18,6 +18,7 @@ export class KicadGenerator {
   private library: SymbolLibrary;
   private uuids: UuidManager;
   public errors: string[] = [];
+  public warnings: string[] = [];
 
   constructor(libraryPaths?: string[]) {
     this.library = new SymbolLibrary();
@@ -66,6 +67,9 @@ export class KicadGenerator {
     const schematicContent = schematicGen.generate();
     if (schematicGen.errors.length > 0) {
       this.errors.push(...schematicGen.errors);
+    }
+    if (schematicGen.warnings.length > 0) {
+      this.warnings.push(...schematicGen.warnings);
     }
     fs.writeFileSync(schPath, schematicContent, "utf-8");
 
@@ -147,6 +151,6 @@ export class KicadGenerator {
       fs.writeFileSync(pcbPath, pcbContent, "utf-8");
     }
 
-    return { success: this.errors.length === 0, errors: this.errors };
+    return { success: this.errors.length === 0, errors: this.errors, warnings: this.warnings };
   }
 }

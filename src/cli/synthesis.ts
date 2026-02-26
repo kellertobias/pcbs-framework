@@ -8,7 +8,7 @@ import { getConfig } from "./config";
 /**
  * Execute the circuit generation using native TypeScript generator.
  */
-export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string, options: KicadGeneratorOptions = {}): { success: boolean; output: string, errors?: string[] } {
+export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string, options: KicadGeneratorOptions = {}): { success: boolean; output: string, errors?: string[], warnings?: string[] } {
   const { projectRoot } = getConfig();
 
   // Define library search paths
@@ -44,10 +44,17 @@ export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string, optio
       }
     }
 
+    if (result.warnings && result.warnings.length > 0) {
+      for (const warn of result.warnings) {
+        console.warn(`  ⚠️  ${warn}`);
+      }
+    }
+
     return {
       success: result.success,
       output: result.success ? "Successfully generated KiCad schematic and netlist." : "Generated with warnings/errors.",
-      errors: result.errors
+      errors: result.errors,
+      warnings: result.warnings
     };
   } catch (e: any) {
     return {
