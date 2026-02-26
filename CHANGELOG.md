@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/kellertobias/pcbs-framework/compare/v2.0.2...v2.1.0) (2026-02-26)
+
+
+### Features
+
+* warn on unconnected and non-dnc pins during synthesis ([853f668](https://github.com/kellertobias/pcbs-framework/commit/853f668510eb93db81e5a4ec0e557250389bf9a4))
+
 ## [2.0.2](https://github.com/kellertobias/pcbs-framework/compare/v2.0.1...v2.0.2) (2026-02-23)
 
 
