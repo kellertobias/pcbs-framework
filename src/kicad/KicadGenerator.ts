@@ -7,6 +7,7 @@ import { UuidManager } from "./UuidManager";
 import { SchematicGenerator } from "./SchematicGenerator";
 import { NetlistGenerator } from "./NetlistGenerator";
 import { KicadLibrary } from "../synth/KicadLibrary";
+import { PcbGenerator } from "./PcbGenerator";
 
 export interface KicadGeneratorOptions {
   noWires?: boolean;
@@ -159,9 +160,16 @@ export class KicadGenerator {
       this.writeAtomic(proPath, proContent);
     }
 
-    // Generate minimalistic PCB file if missing
+    // Generate an initial PCB with the declared outline and explicit placements.
+    // Existing boards are never overwritten: after the initial import, KiCad owns
+    // routing and placement of all remaining components.
     const pcbPath = path.join(outputDir, `${name}.kicad_pcb`);
-    if (!fs.existsSync(pcbPath)) {
+    if (snapshot.pcb && !fs.existsSync(pcbPath)) {
+      const pcbResult = new PcbGenerator(snapshot, this.uuids, outputDir).generate();
+      console.log(`  → Generating PCB: ${pcbPath} (${pcbResult.placed} explicitly placed footprints)...`);
+      this.warnings.push(...pcbResult.warnings);
+      this.writeAtomic(pcbPath, pcbResult.content);
+    } else if (!fs.existsSync(pcbPath)) {
       const pcbContent = `(kicad_pcb
 	(version 20241229)
 	(generator "pcbnew")

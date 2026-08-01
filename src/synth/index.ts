@@ -5,7 +5,7 @@
  */
 
 // Core types
-export { Pin, NetClass, NetOptions, ComponentOptions, ComposableOptions, ModuleOptions, SchematicOptions, PinProxy, PinAssignable, PinMapFn, SymbolName, FootprintName, SchematicPosition, PcbPosition, CircuitSnapshot } from "@tobisk/pcbs/types";
+export { Pin, NetClass, NetOptions, ComponentOptions, ComposableOptions, ModuleOptions, SchematicOptions, PinProxy, PinAssignable, PinMapFn, SymbolName, FootprintName, SchematicPosition, PcbPosition, PcbPoint, PcbOptions, CircuitSnapshot } from "@tobisk/pcbs/types";
 export { Registry } from "@tobisk/pcbs/Registry";
 
 // Classes

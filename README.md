@@ -15,6 +15,26 @@ This application was developed and tested with the help of AI, and it is specifi
 ### 🔌 Schematic Generation
 Define your connections in TypeScript and generate native **KiCad Schematics (`.kicad_sch`)** and Netlists (`.net`). The framework handles the boring parts of netlist generation so you can focus on the logic.
 
+### 📐 Initial PCB Placement
+Define an `Edge.Cuts` polygon and selected footprint positions in the same TypeScript source. The initial `.kicad_pcb` contains only the explicitly placed references; use KiCad's **Update PCB from Schematic** to import the remaining circuitry. Existing PCB files are never overwritten.
+
+```typescript
+super({
+  name: "ControlPanel",
+  pcb: {
+    outline: [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 200, y: 100 }, { x: 0, y: 100 }],
+    place: ["SW*", "ENC*"],
+  },
+});
+
+new Component({
+  symbol: "Switch:SW_Push",
+  footprint: "Button_Switch_THT:SW_PUSH_6mm",
+  ref: "SW1",
+  pcbPosition: { x: 20, y: 30, rotation: 90 },
+});
+```
+
 ### 🔍 Parts Search
 Includes a simple command-line tool to search the **JLCPCB Parts Library**.
 *   Find available parts directly from your terminal.

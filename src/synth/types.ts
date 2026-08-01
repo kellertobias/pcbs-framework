@@ -118,6 +118,24 @@ export interface PcbPosition {
   side?: "front" | "back";
 }
 
+/** A point on the PCB outline, in millimetres. */
+export interface PcbPoint {
+  x: number;
+  y: number;
+}
+
+/** PCB generation options. Only explicitly positioned footprints are emitted. */
+export interface PcbOptions {
+  /** Closed polygon described by its vertices. The closing edge is generated automatically. */
+  outline: PcbPoint[];
+  /** Finished board thickness in millimetres. Defaults to 1.6. */
+  thickness?: number;
+  /** Edge.Cuts line width in millimetres. Defaults to 0.05. */
+  outlineLineWidth?: number;
+  /** Optional reference globs limiting which positioned components are emitted (for example, ["SW*", "J1"]). */
+  place?: string[];
+}
+
 /** Common interface for items that can be positioned in a layout */
 export interface LayoutItem {
   schematicPosition?: SchematicPosition | null;
@@ -203,6 +221,8 @@ export interface SchematicOptions {
   description?: string;
   /** Company of the schematic */
   company?: string;
+  /** Optional PCB outline and partial footprint-placement definition. */
+  pcb?: PcbOptions;
 }
 
 /**
@@ -243,4 +263,5 @@ export interface CircuitSnapshot {
   components: Component<any>[];
   nets: Net[];
   placementAlgorithm?: PlacementAlgorithm;
+  pcb?: PcbOptions;
 }
