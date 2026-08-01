@@ -1,3 +1,15 @@
+# [2.2.0](https://github.com/kellertobias/pcbs-framework/compare/v2.1.0...v2.2.0) (2026-08-01)
+
+
+### Bug Fixes
+
+* generate valid KiCad schematics ([aa09c83](https://github.com/kellertobias/pcbs-framework/commit/aa09c83dfb86ab6d19be3430b9bdf99ec32db6be))
+
+
+### Features
+
+* generate initial PCB placements ([298b490](https://github.com/kellertobias/pcbs-framework/commit/298b490494106035274dfdb8c2a09390df8a65a7))
+
 # [2.1.0](https://github.com/kellertobias/pcbs-framework/compare/v2.0.2...v2.1.0) (2026-02-26)
 
 
