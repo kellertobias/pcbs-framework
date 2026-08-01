@@ -54,6 +54,19 @@ export class UuidManager {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(this.filePath, JSON.stringify(this.uuids, null, 2), "utf-8");
+    const temporaryPath = `${this.filePath}.tmp-${process.pid}-${Math.random().toString(16).slice(2)}`;
+    let fd: number | undefined;
+    try {
+      fd = fs.openSync(temporaryPath, "w");
+      fs.writeFileSync(fd, JSON.stringify(this.uuids, null, 2), "utf-8");
+      fs.fsyncSync(fd);
+      fs.closeSync(fd);
+      fd = undefined;
+      fs.renameSync(temporaryPath, this.filePath);
+    } catch (error) {
+      if (fd !== undefined) fs.closeSync(fd);
+      if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
+      throw error;
+    }
   }
 }

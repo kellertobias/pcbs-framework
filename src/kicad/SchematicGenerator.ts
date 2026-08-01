@@ -39,6 +39,10 @@ export class SchematicGenerator {
     // Auto-rotate 2-pin passives connected to power/GND
     this.autoRotateComponents();
 
+    if (this.snapshot.autoPack) {
+      this.packComponentsOnSheet();
+    }
+
     // Validate Placement
     this.checkOverlaps();
     this.checkUnconnectedPins();
@@ -47,18 +51,18 @@ export class SchematicGenerator {
 
     const schematic: SExpr[] = [
       "kicad_sch",
-      ["version", "20250114"],
-      ["generator", this.quote("eeschema")],
-      ["generator_version", this.quote("9.0")],
+      ["version", "20250610"],
+      ["generator", this.quote("@tobisk/pcbs")],
+      ["generator_version", this.quote("10.0")],
       ["uuid", this.quote(rootUuid)],
-      ["paper", this.quote("A4")],
+      ["paper", this.quote(this.snapshot.size ?? "A4")],
       ["title_block",
         ["title", this.quote(this.snapshot.name)],
         ["date", this.quote(new Date().toISOString().split('T')[0])],
-        this.snapshot.author ? ["author", this.quote(this.snapshot.author)] : [],
         this.snapshot.revision ? ["rev", this.quote(this.snapshot.revision)] : [],
-        this.snapshot.description ? ["desc", this.quote(this.snapshot.description)] : [],
         this.snapshot.company ? ["company", this.quote(this.snapshot.company)] : [],
+        this.snapshot.author ? ["comment", "1", this.quote(`Author: ${this.snapshot.author}`)] : [],
+        this.snapshot.description ? ["comment", "2", this.quote(this.snapshot.description)] : [],
       ].filter(x => x.length > 0)
     ];
 
@@ -68,11 +72,12 @@ export class SchematicGenerator {
     }
 
     if (!this.options.noWires) {
-      schematic.push(...this.generateWiresAndPower());
+      const directLabels = this.snapshot.connectionStyle === "direct-labels";
+      schematic.push(...(directLabels ? this.generateDirectLabels() : this.generateWiresAndPower()));
       schematic.push(...this.generateNoConnects());
 
       // Verify all routing constraints
-      this.verifyRouting();
+      if (!directLabels) this.verifyRouting();
     }
 
     if (this.errors.length > 0) {
@@ -105,6 +110,69 @@ export class SchematicGenerator {
         }
       }
     }
+  }
+
+  /**
+   * Deterministic shelf packing for large, flat generated schematics. Components
+   * are detached from layout-only parent offsets because KiCad receives them as
+   * root-sheet symbols in the current generator.
+   */
+  private packComponentsOnSheet(): void {
+    const sheetDimensions: Record<string, { width: number; height: number }> = {
+      A0: { width: 1189, height: 841 },
+      A1: { width: 841, height: 594 },
+      A2: { width: 594, height: 420 },
+      A3: { width: 420, height: 297 },
+      A4: { width: 297, height: 210 },
+      A5: { width: 210, height: 148 },
+      A: { width: 279.4, height: 215.9 },
+      B: { width: 431.8, height: 279.4 },
+      C: { width: 558.8, height: 431.8 },
+      D: { width: 863.6, height: 558.8 },
+      E: { width: 1117.6, height: 863.6 },
+    };
+    const sheet = sheetDimensions[this.snapshot.size ?? "A4"];
+    const grid = 1.27;
+    const snap = (value: number) => Math.round(value / grid) * grid;
+    const margin = 16 * grid;
+    const spacing = 8 * grid;
+    const maxX = sheet.width - margin;
+    const maxY = sheet.height - margin;
+    let cursorX = margin;
+    let cursorY = margin;
+    let rowHeight = 0;
+
+    for (const comp of this.snapshot.components) {
+      if (comp.symbol === "Device:DNC") continue;
+
+      const rotation = comp.absoluteSchematicPosition?.rotation ?? 0;
+      // Parent/subschematic objects currently influence placement only; emitted
+      // symbols all live on this root sheet and therefore need root coordinates.
+      (comp as any).parent = undefined;
+      (comp as any).schematicPosition = { x: 0, y: 0, rotation };
+
+      const initialBox = this.getComponentBox(comp, 0);
+      if (!initialBox) continue;
+      if (cursorX + initialBox.width > maxX) {
+        cursorX = margin;
+        cursorY = snap(cursorY + rowHeight + spacing);
+        rowHeight = 0;
+      }
+      if (cursorY + initialBox.height > maxY) {
+        this.errors.push(`Auto-pack overflow: components do not fit on ${this.snapshot.size ?? "A4"}. Select a larger sheet or disable autoPack.`);
+        return;
+      }
+
+      (comp as any).schematicPosition = {
+        x: snap(cursorX - initialBox.x),
+        y: snap(cursorY - initialBox.y),
+        rotation,
+      };
+      cursorX = snap(cursorX + initialBox.width + spacing);
+      rowHeight = Math.max(rowHeight, initialBox.height);
+    }
+
+    this._cachedBoxes = undefined;
   }
 
   private checkUnconnectedPins() {
@@ -233,11 +301,13 @@ export class SchematicGenerator {
       } else if (Array.isArray(item) && item[0] === "pin") {
         const at = item.find(i => Array.isArray(i) && i[0] === "at") as SExpr[];
         if (at) {
+          const numItem = item.find((i: any) => Array.isArray(i) && i[0] === "number") as SExpr[];
+          const numberStr = (numItem && numItem[1] as string) || (item[1] as string);
           pins.push({
             x: parseFloat(at[1] as string),
             y: parseFloat(at[2] as string),
             rotation: parseFloat(at[3] as string),
-            number: item[1] as string
+            number: numberStr
           });
         }
       }
@@ -558,6 +628,38 @@ export class SchematicGenerator {
     }
 
     return [...powerSymbols, ...nets, ...Array.from(uniqueWires.values())];
+  }
+
+  /**
+   * Attach one global label directly to every connected pin. This avoids wire
+   * crossings and routing failures in large generated schematics while keeping
+   * KiCad's electrical connectivity explicit and netlistable.
+   */
+  private generateDirectLabels(): SExpr[] {
+    const labels: SExpr[] = [];
+
+    for (const comp of this.snapshot.components) {
+      if (comp.symbol === "Device:DNC") continue;
+
+      // allPins can contain both a named and numbered alias for the same Pin.
+      const uniquePins = new Set<Pin>(comp.allPins.values());
+      for (const pin of uniquePins) {
+        if (!pin.net || pin.isDNC) continue;
+
+        const pos = this.getPinAbsolutePosition(pin);
+        if (!pos) {
+          this.errors.push(`Cannot place net label for '${comp.ref}.${pin.name}': pin position is unavailable.`);
+          continue;
+        }
+
+        const pinDirection = this.getDirectionVector(pos.rotation);
+        const outDirection = { dx: -pinDirection.dx, dy: -pinDirection.dy };
+        const uuid = this.uuids.getOrGenerate(`direct_label_${comp.ref}_${pin.name}_${pin.net.name}`);
+        labels.push(this.createGlobalLabel(pin.net.name, pos.x, pos.y, outDirection, uuid));
+      }
+    }
+
+    return labels;
   }
 
   private generateNoConnects(): SExpr[] {
@@ -967,6 +1069,10 @@ export class SchematicGenerator {
   }
 
   private quote(s: string): string {
-    return `"${s.replace(/"/g, '\\"')}"`;
+    return `"${s
+      .replace(/\\/g, "\\\\")
+      .replace(/\r/g, "\\r")
+      .replace(/\n/g, "\\n")
+      .replace(/"/g, '\\"')}"`;
   }
 }

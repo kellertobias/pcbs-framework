@@ -132,6 +132,12 @@ export interface ILayout {
 /** Placement algorithms supported by circuit-synth */
 export type PlacementAlgorithm = "hierarchical" | "force_directed" | "linear" | "none";
 
+/** How assigned pins are represented in the generated KiCad schematic. */
+export type SchematicConnectionStyle = "stub-labels" | "direct-labels";
+
+/** Paper sizes supported by KiCad's schematic file format. */
+export type SchematicPaperSize = "A0" | "A1" | "A2" | "A3" | "A4" | "A5" | "A" | "B" | "C" | "D" | "E";
+
 /** Options for Net constructor */
 export interface NetOptions {
   name: string;
@@ -181,7 +187,14 @@ export interface SchematicOptions {
   /** The algorithm used by circuit-synth for automatic placement. Defaults to "hierarchical". */
   placementAlgorithm?: PlacementAlgorithm;
   /** Size of the schematic (default: "A4") */
-  size?: string;
+  size?: SchematicPaperSize;
+  /**
+   * Render short wire stubs with labels, or attach global labels directly to
+   * pins. Direct labels are robust for very large, densely connected designs.
+   */
+  connectionStyle?: SchematicConnectionStyle;
+  /** Deterministically pack all symbols onto the selected sheet after layout. */
+  autoPack?: boolean;
   /** Author of the schematic */
   author?: string;
   /** Revision of the schematic (default: "v1.0") */
@@ -220,6 +233,9 @@ export type PinProxy<T extends string | number> = {
 /** A snapshot of the circuit state needed for codegen/synthesis. */
 export interface CircuitSnapshot {
   name: string;
+  size?: SchematicPaperSize;
+  connectionStyle?: SchematicConnectionStyle;
+  autoPack?: boolean;
   author?: string;
   revision?: string;
   description?: string;

@@ -5,6 +5,23 @@ import { KicadGenerator, KicadGeneratorOptions } from "../kicad/KicadGenerator";
 import { KicadLibrary } from "../synth/KicadLibrary";
 import { getConfig } from "./config";
 
+function writeFileAtomic(filePath: string, content: string): void {
+  const temporaryPath = `${filePath}.tmp-${process.pid}-${Math.random().toString(16).slice(2)}`;
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(temporaryPath, "w");
+    fs.writeFileSync(fd, content, "utf-8");
+    fs.fsyncSync(fd);
+    fs.closeSync(fd);
+    fd = undefined;
+    fs.renameSync(temporaryPath, filePath);
+  } catch (error) {
+    if (fd !== undefined) fs.closeSync(fd);
+    if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
+    throw error;
+  }
+}
+
 /**
  * Execute the circuit generation using native TypeScript generator.
  */
@@ -35,8 +52,8 @@ export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string, optio
         const fpTable = KicadLibrary.generateFpLibTable(kicadLib);
         const symTable = KicadLibrary.generateSymLibTable(kicadLib);
 
-        fs.writeFileSync(path.join(outputDir, "fp-lib-table"), fpTable);
-        fs.writeFileSync(path.join(outputDir, "sym-lib-table"), symTable);
+        writeFileAtomic(path.join(outputDir, "fp-lib-table"), fpTable);
+        writeFileAtomic(path.join(outputDir, "sym-lib-table"), symTable);
 
         console.log(`  ✅ Generated KiCad library tables in project directory.`);
       } catch (err: any) {

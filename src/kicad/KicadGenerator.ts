@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { spawnSync } from "child_process";
 import { CircuitSnapshot } from "../synth/types";
 import { SymbolLibrary } from "./SymbolLibrary";
 import { UuidManager } from "./UuidManager";
@@ -12,6 +13,8 @@ export interface KicadGeneratorOptions {
   noSymbols?: boolean;
   experimentalRouting?: boolean;
   experimentalLayout?: boolean;
+  /** Validate the temporary schematic with kicad-cli before replacing output. Defaults to true when available. */
+  validateWithKicad?: boolean;
 }
 
 export class KicadGenerator {
@@ -38,6 +41,61 @@ export class KicadGenerator {
 
     const paths = [...(libraryPaths || []), ...envPaths, ...systemPaths];
     this.library.setLibraryPaths(paths);
+  }
+
+  private writeAtomic(filePath: string, content: string): void {
+    const temporaryPath = `${filePath}.tmp-${process.pid}-${Math.random().toString(16).slice(2)}`;
+    let fd: number | undefined;
+    try {
+      fd = fs.openSync(temporaryPath, "w");
+      fs.writeFileSync(fd, content, "utf-8");
+      fs.fsyncSync(fd);
+      fs.closeSync(fd);
+      fd = undefined;
+      fs.renameSync(temporaryPath, filePath);
+    } catch (error) {
+      if (fd !== undefined) fs.closeSync(fd);
+      if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
+      throw error;
+    }
+  }
+
+  private writeValidatedSchematic(filePath: string, content: string, validateWithKicad: boolean): void {
+    const temporaryPath = `${filePath}.tmp-${process.pid}-${Math.random().toString(16).slice(2)}.kicad_sch`;
+    const validationNetlist = `${temporaryPath}.net`;
+    let fd: number | undefined;
+
+    try {
+      fd = fs.openSync(temporaryPath, "w");
+      fs.writeFileSync(fd, content, "utf-8");
+      fs.fsyncSync(fd);
+      fs.closeSync(fd);
+      fd = undefined;
+
+      if (validateWithKicad) {
+        const validation = spawnSync("kicad-cli", [
+          "sch", "export", "netlist", "--output", validationNetlist, temporaryPath,
+        ], { encoding: "utf-8" });
+
+        if (validation.error && (validation.error as NodeJS.ErrnoException).code === "ENOENT") {
+          this.warnings.push("kicad-cli was not found; generated schematic syntax was not externally validated.");
+        } else if (validation.error || validation.status !== 0) {
+          const details = [validation.stderr, validation.stdout, validation.error?.message]
+            .filter(Boolean)
+            .join("\n")
+            .trim();
+          throw new Error(`KiCad rejected generated schematic '${path.basename(filePath)}'${details ? `:\n${details}` : "."}`);
+        }
+      }
+
+      fs.renameSync(temporaryPath, filePath);
+    } catch (error) {
+      if (fd !== undefined) fs.closeSync(fd);
+      throw error;
+    } finally {
+      if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
+      if (fs.existsSync(validationNetlist)) fs.unlinkSync(validationNetlist);
+    }
   }
 
   generate(snapshot: CircuitSnapshot, outputDir: string, options: KicadGeneratorOptions = {}) {
@@ -71,13 +129,13 @@ export class KicadGenerator {
     if (schematicGen.warnings.length > 0) {
       this.warnings.push(...schematicGen.warnings);
     }
-    fs.writeFileSync(schPath, schematicContent, "utf-8");
+    this.writeValidatedSchematic(schPath, schematicContent, options.validateWithKicad !== false);
 
     // Generate Netlist
     console.log(`  → Generating Netlist: ${netPath}...`);
     const netlistGen = new NetlistGenerator(snapshot, this.library, this.uuids, schPath);
     const netlistContent = netlistGen.generate();
-    fs.writeFileSync(netPath, netlistContent, "utf-8");
+    this.writeAtomic(netPath, netlistContent);
 
     // Save UUIDs
     this.uuids.save();
@@ -98,7 +156,7 @@ export class KicadGenerator {
           }
         }
       }, null, 2);
-      fs.writeFileSync(proPath, proContent, "utf-8");
+      this.writeAtomic(proPath, proContent);
     }
 
     // Generate minimalistic PCB file if missing
@@ -107,7 +165,7 @@ export class KicadGenerator {
       const pcbContent = `(kicad_pcb
 	(version 20241229)
 	(generator "pcbnew")
-	(generator_version "9.0")
+	(generator_version "10.0")
 	(general
 		(thickness 1.6)
 		(legacy_teardrops no)
@@ -148,7 +206,7 @@ export class KicadGenerator {
 	(embedded_fonts no)
 )
 `;
-      fs.writeFileSync(pcbPath, pcbContent, "utf-8");
+      this.writeAtomic(pcbPath, pcbContent);
     }
 
     return { success: this.errors.length === 0, errors: this.errors, warnings: this.warnings };

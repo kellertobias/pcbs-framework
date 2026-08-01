@@ -103,6 +103,80 @@ describe("SchematicGenerator", () => {
     expect(output).toContain('(title "TestSchematic")');
   });
 
+  it("emits only supported KiCad title metadata and propagates paper size", () => {
+    const snapshot: CircuitSnapshot = {
+      name: "MetadataTest",
+      size: "A0",
+      author: 'Tobias "Tobi" Keller',
+      revision: "v2",
+      company: "ToskLight",
+      description: "Line one\nLine two",
+      components: [],
+      nets: [],
+    };
+
+    const output = new SchematicGenerator(snapshot, lib, new UuidManager()).generate();
+
+    expect(output).toContain('(paper "A0")');
+    expect(output).toContain('(comment 1 "Author: Tobias \\"Tobi\\" Keller")');
+    expect(output).toContain('(comment 2 "Line one\\nLine two")');
+    expect(output).not.toMatch(/\((author|desc)\s/);
+  });
+
+  it("can connect every assigned pin with a direct global label", () => {
+    const comp = {
+      symbol: "Device:R",
+      ref: "R1",
+      allPins: new Map(),
+      absoluteSchematicPosition: { x: 100, y: 100, rotation: 0 },
+    } as any;
+    const net = { name: "SAFE_NET", class: "Signal" } as any;
+    const pin = { component: comp, name: "1", net } as any;
+    comp.allPins.set("1", pin);
+
+    const snapshot: CircuitSnapshot = {
+      name: "DirectLabels",
+      connectionStyle: "direct-labels",
+      components: [comp],
+      nets: [net],
+    };
+
+    const output = new SchematicGenerator(snapshot, lib, new UuidManager()).generate();
+    expect(output).toContain('(global_label "SAFE_NET"');
+    expect(output).not.toContain("\n\t(wire");
+  });
+
+  it("can deterministically pack overlapping components onto the sheet", () => {
+    const makeResistor = (ref: string) => ({
+      symbol: "Device:R",
+      ref,
+      allPins: new Map(),
+      schematicPosition: { x: 0, y: 0, rotation: 0 },
+      get absoluteSchematicPosition() { return this.schematicPosition; },
+    } as any);
+    const first = makeResistor("R1");
+    const second = makeResistor("R2");
+    const snapshot: CircuitSnapshot = {
+      name: "Packed",
+      size: "A4",
+      autoPack: true,
+      components: [first, second],
+      nets: [],
+    };
+
+    const warnings: string[] = [];
+    const originalWarn = console.warn;
+    console.warn = (message: string) => warnings.push(message);
+    try {
+      new SchematicGenerator(snapshot, lib, new UuidManager()).generate();
+    } finally {
+      console.warn = originalWarn;
+    }
+
+    expect(first.absoluteSchematicPosition).not.toEqual(second.absoluteSchematicPosition);
+    expect(warnings.filter(message => /overlap/i.test(message))).toHaveLength(0);
+  });
+
   it("generates wires connecting components", () => {
     const c1 = {
       symbol: "Device:R", ref: "R1",
@@ -178,7 +252,8 @@ describe("SchematicGenerator", () => {
     // Clean up
     fs.rmSync(tempLibDir, { recursive: true, force: true });
 
-    // Check if both symbols are present in lib_symbols
+    // Check that inherited graphics and pins are flattened into a standalone
+    // embedded symbol that KiCad can resolve without the external parent.
     expect(output).toContain('\t\t(symbol "TestLib:Child"');
     expect(output).toContain('\t\t\t(property "Value" "Child"');
     expect(output).toContain('\t\t\t(symbol "Child_1_1"');
