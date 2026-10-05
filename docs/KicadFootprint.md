@@ -106,6 +106,39 @@ Links a 3D model file (VRML/STEP) to the footprint.
 *   `scale`: `{x, y, z}` scale.
 *   `rotate`: `{x, y, z}` rotation (degrees).
 
+### `addFrontPanelCutout(cutout)`
+
+Adds a front-panel opening in footprint-local millimetre coordinates. Supported
+types are circles, rounded rectangles, and arbitrary polygons.
+
+```typescript
+fp.addFrontPanelCutout({
+  type: "roundedRect",
+  x: 0,
+  y: 0,
+  width: 14,
+  height: 14,
+  radius: 0.5,
+});
+```
+
+### `setFrontPanelLabelAnchor(anchor)`
+
+Defines where optional component text is placed relative to the footprint.
+
+```typescript
+fp.setFrontPanelLabelAnchor({ x: 0, y: 10, fontSize: 3 });
+
+new Component({
+  symbol: "Switch:SW_Push",
+  footprint: "Project_Footprints:My_Button",
+  ref: "SW1",
+  frontPanelLabel: "GO",
+});
+```
+
+Run `npx pcbs frontpanel <schematic>` after synthesis to generate the panel.
+
 ### `addExternal3DModel(baseDir, relativePath, options?)`
 
 Helper to link a 3D model using an absolute path resolved from `baseDir` (e.g., `__dirname`). This is useful when your 3D models are source files and you want the footprint to reference them correctly during local development.

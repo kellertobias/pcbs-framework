@@ -1,8 +1,9 @@
-
-import * as fs from "fs";
-import * as path from "path";
-import { Component } from "../../synth/Component";
-import { loadOverrides, resolveOverride } from "./overrides";
+import { positionRows } from './position-rows';
+import { panelRotation } from './export-components';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Component } from '../../synth/Component';
+import { loadOverrides, resolveOverride } from './overrides';
 
 /**
  * Convert KiCad's Pick & Place (pos) ASCII output to JLCPCB CPL format.
@@ -17,12 +18,14 @@ export function convertPosToCpl(
     posFilePath: string,
     cplOutputPath: string,
     components: Component<any>[],
-    projectRoot: string
+    projectRoot: string,
+    projectDirectory?: string,
 ): string {
-    const content = fs.readFileSync(posFilePath, "utf-8");
-    const lines = content.split("\n");
+    const content = fs.readFileSync(posFilePath, 'utf-8');
 
-    const overrides = loadOverrides(projectRoot);
+    const common = loadOverrides(projectRoot);
+    const local = projectDirectory ? loadOverrides(projectDirectory) : {};
+    const overrides = { placement: { ...common.placement, ...local.placement } };
     const componentMap = new Map<string, Component<any>>();
 
     // Index components by Reference for fast lookup
@@ -32,51 +35,28 @@ export function convertPosToCpl(
 
     const csvLines: string[] = [];
     // JLCPCB CPL header
-    csvLines.push("Designator,Val,Package,Mid X,Mid Y,Rotation,Layer");
+    csvLines.push('Designator,Val,Package,Mid X,Mid Y,Rotation,Layer');
 
-    for (const line of lines) {
-        const trimmed = line.trim();
-
-        // Skip empty lines, comment lines (starting with #), header lines
-        if (!trimmed || trimmed.startsWith("#")) continue;
-
-        // KiCad ASCII pos format is whitespace-separated:
-        // Ref  Val  Package  PosX  PosY  Rot  Side
-        // But Val and Package may contain spaces... KiCad uses fixed-width columns.
-        // Actually, looking at KiCad output, it uses a specific format.
-        // Let's parse it properly.
-
-        // KiCad ASCII pos output looks like:
-        // ### Module positions - created on ...
-        // ### Printed by KiCad version ...
-        // ## Unit = mm, Angle = deg.
-        // ## Side : All
-        // # Ref     Val        Package                PosX       PosY       Rot  Side
-        //   C1      100nF      C_0603_1608Metric     152.4000   -98.0000    0.0000  top
-        //
-
-        // Parse with regex for fixed-width-ish format
-        // Fields are separated by whitespace, but the last field is "top" or "bottom"
-        const match = trimmed.match(
-            /^(\S+)\s+(\S+)\s+(\S+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+(\S+)$/
-        );
-
-        if (!match) continue;
-
-        const [, ref, val, pkg, posXStr, posYStr, rotStr, side] = match;
-
+    for (const [ref, val, pkg, posXStr, posYStr, rotStr, side] of positionRows(content)) {
         // Parse numbers
         let posX = parseFloat(posXStr);
         let posY = parseFloat(posYStr);
         let rot = parseFloat(rotStr);
+        if (
+            ![posX, posY, rot].every(Number.isFinite) ||
+            !['top', 'bottom'].includes(side.toLowerCase())
+        )
+            throw new Error(`Invalid placement coordinates or side: ${ref}`);
 
         // Apply overrides if component exists
         const comp = componentMap.get(ref);
         if (comp) {
             const override = resolveOverride(comp, overrides);
             if (override) {
-                if (override.x !== undefined) posX += override.x;
-                if (override.y !== undefined) posY += override.y;
+                // Native position Y is up. Rotate source-frame correction offsets into panel space.
+                const angle = (panelRotation(comp) * Math.PI) / 180;
+                posX += (override.x ?? 0) * Math.cos(angle) - (override.y ?? 0) * Math.sin(angle);
+                posY += (override.x ?? 0) * Math.sin(angle) + (override.y ?? 0) * Math.cos(angle);
                 if (override.r !== undefined) rot += override.r;
 
                 // Normalize rotation to 0-360 range
@@ -86,11 +66,11 @@ export function convertPosToCpl(
 
         // Map side: KiCad uses "top"/"bottom", JLCPCB uses "Top"/"Bottom"
         const layer =
-            side.toLowerCase() === "top"
-                ? "Top"
-                : side.toLowerCase() === "bottom"
-                    ? "Bottom"
-                    : side;
+            side.toLowerCase() === 'top'
+                ? 'Top'
+                : side.toLowerCase() === 'bottom'
+                  ? 'Bottom'
+                  : side;
 
         // Format position with mm suffix (JLCPCB expects this)
         const midX = `${posX.toFixed(4)}mm`;
@@ -99,13 +79,11 @@ export function convertPosToCpl(
 
         // CSV escape helper
         const esc = (s: string) =>
-            s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+            s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
 
-        csvLines.push(
-            `${esc(ref)},${esc(val)},${esc(pkg)},${midX},${midY},${rotation},${layer}`
-        );
+        csvLines.push(`${esc(ref)},${esc(val)},${esc(pkg)},${midX},${midY},${rotation},${layer}`);
     }
 
-    fs.writeFileSync(cplOutputPath, csvLines.join("\n"), "utf-8");
+    fs.writeFileSync(cplOutputPath, csvLines.join('\n'), 'utf-8');
     return cplOutputPath;
 }

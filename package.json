@@ -20,7 +20,7 @@
     "scripts"
   ],
   "scripts": {
-    "build": "tsc && tsc-alias",
+    "build": "tsc && tsc-alias && node scripts/build-assembly-viewer.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
@@ -43,6 +43,7 @@
     "@semantic-release/release-notes-generator": "^14.1.0",
     "@types/node": "^25.2.3",
     "@types/pdfkit": "^0.17.5",
+    "@types/three": "^0.186.0",
     "biome": "^0.3.3",
     "semantic-release": "^24.2.9",
     "ts-node": "^10.9.2",
@@ -52,10 +53,20 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@tscircuit/capacity-autorouter": "0.0.951",
     "@types/js-yaml": "^4.0.9",
+    "esbuild": "^0.28.2",
+    "fflate": "^0.8.3",
     "js-yaml": "^4.1.1",
+    "libavoid-js": "0.5.0-beta.5",
     "opencascade.js": "^2.0.0-beta.b5ff984",
     "pdfkit": "^0.17.2",
+    "polygon-clipping": "^0.15.7",
+    "puppeteer-core": "^25.12.0",
+    "svg-path-commander": "^2.3.3",
+    "svgson": "^5.3.1",
+    "three": "^0.186.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "vite-tsconfig-paths": "^6.1.1"

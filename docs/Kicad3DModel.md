@@ -108,7 +108,7 @@ Exports the model to disk. Usually handled automatically by the CLI.
 **Options:**
 *   `outDir`: Output directory path.
 *   `baseName`: Base filename (without extension).
-*   `formats`: Array of formats (`"wrl"`, `"step"`).
+*   `formats`: Array of formats (`"wrl"`, `"step"`, `"stl"`, `"3mf"`). STL uses millimetres directly and returns `stlPath`; it supports solid and supplied triangle geometry. Collapsed seam triangles are omitted from binary STL output.
 
 ## SolidBuilder API
 
@@ -139,3 +139,37 @@ Applies a fillet (rounded edge) to the solid.
 ### `.name(string)`
 
 Sets a name for the solid (useful for debugging or VRML structure).
+
+### `loft({sections, ruled?})`
+
+Create a solid from two or more closed XYZ polygon contours. Omit the repeated
+closing point; all contours must have the same vertex count and ordering.
+Use sampled rounded rectangles for tapered keycap shells, then subtract an
+inner loft for wall thickness and a horizontal cylinder for a finger dish.
+The method validates topology and supports the standard transforms, per-solid
+RGBA colors and VRML transparency. `ruled` defaults to true.
+
+### Preserve measured triangle geometry
+
+For an imported enclosure or mechanical reference, `mesh()` retains supplied
+indexed triangles in millimetres without re-tessellation:
+
+```ts
+const model = new Kicad3DModel({ unit: 'mm' });
+model.mesh({
+    name: 'measured_part',
+    vertices: [{ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { x: 0, y: 10, z: 0 }],
+    triangles: [[0, 1, 2]],
+    color: { r: 0.5, g: 0.5, b: 0.5 },
+});
+await model.export({ outDir: './3d', baseName: 'MeasuredPart', formats: ['wrl'] });
+```
+
+Mesh-only WRL export does not require `init()`. Meshes may coexist with solids
+and follow whole-model rotation. Input geometry is copied and validated.
+Meshes are visualization geometry: solid Boolean operations do not apply,
+and STEP export rejects mesh-containing models rather than omitting their geometry.
+
+3MF export returns `threeMfPath` and stores millimetre coordinates, object names
+and per-object colors. Both OpenCascade solids and supplied triangle meshes are
+exported through `Kicad3DModel.export()`; supplied vertices/faces are preserved.

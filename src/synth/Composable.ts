@@ -1,9 +1,17 @@
-import { Pin, ComposableOptions, PinProxy, PinAssignable, SchematicPosition, PcbPosition } from "@tobisk/pcbs/types";
-import { Net } from "@tobisk/pcbs/Net";
-import { Component, createPinProxy } from "@tobisk/pcbs/Component";
-import { registry } from "@tobisk/pcbs/Registry";
+import {
+    Pin,
+    ComposableOptions,
+    PinProxy,
+    PinAssignable,
+    SchematicPosition,
+    PcbPosition,
+} from '@tobisk/pcbs/types';
+import { Net } from '@tobisk/pcbs/Net';
+import { Component, createPinProxy } from '@tobisk/pcbs/Component';
+import { registry } from '@tobisk/pcbs/Registry';
+import { assertPcbPosition } from './PcbPosition';
 
-export type ExtendedComposableOptions<T extends Record<string, any>> = ComposableOptions & T
+export type ExtendedComposableOptions<T extends Record<string, any>> = ComposableOptions & T;
 
 /**
  * Represents a reusable building block — a sub-circuit composed of
@@ -39,167 +47,201 @@ export type ExtendedComposableOptions<T extends Record<string, any>> = Composabl
  * ```
  */
 export abstract class Composable<InterfaceNets extends string = string> {
-  readonly ref: string;
-  readonly description?: string;
-  readonly schematicPosition?: SchematicPosition | null;
-  readonly pcbPosition?: PcbPosition;
-  readonly parent?: Composable<any>;
-  readonly group?: string;
-  readonly subschematic?: string;
+    readonly pcbLocalCoordinates: boolean = false;
+    readonly schematicLayoutFixed: boolean;
+    readonly pcbHideReferences: boolean;
+    readonly schematicConnectionStyle?: 'routed-interface';
+    readonly ref: string;
+    readonly description?: string;
+    readonly schematicPosition?: SchematicPosition | null;
+    readonly pcbPosition?: PcbPosition;
+    readonly parent?: Composable<any>;
+    readonly group?: string;
+    readonly subschematic?: string;
 
-  /** @internal Name for the subschematic if this composable is to be rendered separately */
-  _subschematicName?: string;
+    /** @internal Name for the subschematic if this composable is to be rendered separately */
+    _subschematicName?: string;
 
-  /** @internal The current composable being initialized — used for parent assignment */
-  static activeComposable: Composable<any> | undefined = undefined;
+    /** @internal The current composable being initialized — used for parent assignment */
+    static activeComposable: Composable<any> | undefined = undefined;
 
-  /** Pin storage — populated by defineInterface() on first access */
-  private _pinStore = new Map<string, Pin>();
-  private _interfaceInitialized = false;
-  private _pinProxy: PinProxy<InterfaceNets>;
-  private _layout?: import("./types").ILayout;
+    /** Pin storage — populated by defineInterface() on first access */
+    private _pinStore = new Map<string, Pin>();
+    private _interfaceInitialized = false;
+    private _pinProxy: PinProxy<InterfaceNets>;
+    private _layout?: import('./types').ILayout;
 
-  constructor(options: ComposableOptions) {
-    this.ref = options.ref;
-    this.description = options.description;
-    if (options.pos) {
-      this.schematicPosition = { x: options.pos.x, y: options.pos.y, rotation: options.pos.r || 0 };
-    } else {
-      this.schematicPosition = options.schematicPosition;
-    }
-    this.pcbPosition = options.pcbPosition;
-    this.parent = Composable.activeComposable;
-    this._layout = options.layout;
+    constructor(options: ComposableOptions) {
+        assertPcbPosition(options.pcbPosition, `Composable '${options.ref}'`);
+        this.ref = options.ref;
+        this.schematicLayoutFixed = options.schematicLayoutFixed ?? false;
+        this.pcbHideReferences = options.pcbHideReferences ?? false;
+        this.schematicConnectionStyle = options.schematicConnectionStyle;
+        this.description = options.description;
+        if (options.pos) {
+            this.schematicPosition = {
+                x: options.pos.x,
+                y: options.pos.y,
+                rotation: options.pos.r || 0,
+            };
+        } else {
+            this.schematicPosition = options.schematicPosition;
+        }
+        this.pcbPosition = options.pcbPosition;
+        this.parent = Composable.activeComposable;
+        this._layout = options.layout;
 
-    this.group = Component.activeGroup;
-    this.subschematic = Component.activeSubschematic;
+        this.group = Component.activeGroup;
+        this.subschematic = Component.activeSubschematic;
 
-    this._pinProxy = createPinProxy<InterfaceNets>(
-      { ref: this.ref, symbol: `Composable:${this.ref}` },
-      this._pinStore
-    );
-
-    registry.registerComposable(this);
-  }
-
-  /**
-   * Mark this composable to be rendered as a subschematic on a separate page.
-   * @param options Options for the subschematic.
-   */
-  makeSubschematic(options: { name?: string } = {}): void {
-    this._subschematicName = options.name ?? this.constructor.name;
-  }
-
-  /**
-   * Define the composable's interface by mapping each interface pin name
-   * to an internal component Pin or Net.
-   *
-   * - **Pin**: The composable's interface pin becomes a direct alias for
-   *   this component pin. External nets connected to the composable will
-   *   tie to this pin.
-   *
-   * - **Net**: A new interface Pin is created and tied to this internal net.
-   *   External nets will connect via this bridge pin.
-   *
-   * Called once, lazily, on first access of `.pins`.
-   */
-  protected abstract defineInterface(): Record<InterfaceNets, PinAssignable>;
-
-  /** @internal Initialize the interface from defineInterface() */
-  private _ensureInterface(): void {
-    if (this._interfaceInitialized) return;
-    this._interfaceInitialized = true;
-
-    const prevActive = Composable.activeComposable;
-    Composable.activeComposable = this;
-
-    let iface: Record<InterfaceNets, PinAssignable>;
-    try {
-      iface = this.defineInterface();
-    } finally {
-      // Get all items from registry and filter for direct children to maintain order
-      const children = registry.getItems().filter((c: any) => c.parent === this);
-
-      Composable.activeComposable = prevActive;
-
-      // Apply layout if defined
-      if (this._layout) {
-        this._layout.apply(children);
-      }
-    }
-
-    for (const [name, value] of Object.entries(iface)) {
-      if (value instanceof Pin) {
-        // Direct alias — the composable's pin IS this component pin
-        this._pinStore.set(name, value);
-      } else if (value instanceof Net) {
-        // Bridge — create an interface pin tied to the internal net
-        const ifacePin = new Pin(
-          { ref: this.ref, symbol: `Composable:${this.ref}` },
-          name
+        this._pinProxy = createPinProxy<InterfaceNets>(
+            { ref: this.ref, symbol: `Composable:${this.ref}` },
+            this._pinStore,
         );
-        (value as Net).tie(ifacePin);
-        this._pinStore.set(name, ifacePin);
-      }
+
+        registry.registerComposable(this);
     }
-  }
 
-  /** Proxy-based pin access — triggers defineInterface() on first access */
-  get pins(): PinProxy<InterfaceNets> {
-    this._ensureInterface();
-    return this._pinProxy;
-  }
-
-  /** Get all defined pins */
-  get allPins(): ReadonlyMap<string, Pin> {
-    this._ensureInterface();
-    return this._pinStore;
-  }
-
-  /** Helper to quickly assign power pins from a record */
-  power(mapping: Partial<Record<InterfaceNets, PinAssignable>>): this {
-    for (const [key, val] of Object.entries(mapping)) {
-      (this.pins as any)[key].tie(val);
+    /**
+     * Mark this composable to be rendered as a subschematic on a separate page.
+     * @param options Options for the subschematic.
+     */
+    makeSubschematic(options: { name?: string } = {}): void {
+        this._subschematicName = options.name ?? this.constructor.name;
     }
-    return this;
-  }
 
-  /** Get absolute schematic position (recursive) */
-  get absoluteSchematicPosition(): SchematicPosition | null {
-    if (this.schematicPosition === null) return null;
-    const local = this.schematicPosition || { x: 0, y: 0, rotation: 0 };
-    if (!this.parent) return local;
+    /**
+     * Define the composable's interface by mapping each interface pin name
+     * to an internal component Pin or Net.
+     *
+     * - **Pin**: The composable's interface pin becomes a direct alias for
+     *   this component pin. External nets connected to the composable will
+     *   tie to this pin.
+     *
+     * - **Net**: A new interface Pin is created and tied to this internal net.
+     *   External nets will connect via this bridge pin.
+     *
+     * Called once, lazily, on first access of `.pins`.
+     */
+    protected abstract defineInterface(): Record<InterfaceNets, PinAssignable>;
 
-    const parentPos = this.parent.absoluteSchematicPosition;
-    if (parentPos === null) return null;
+    /** @internal Initialize the interface from defineInterface() */
+    private _ensureInterface(): void {
+        if (this._interfaceInitialized) return;
+        this._interfaceInitialized = true;
 
-    const pRot = (parentPos.rotation || 0) * (Math.PI / 180);
-    const cos = Math.cos(pRot);
-    const sin = Math.sin(pRot);
+        const prevActive = Composable.activeComposable;
+        Composable.activeComposable = this;
 
-    const localX = local.x || 0;
-    const localY = local.y || 0;
+        let iface: Record<InterfaceNets, PinAssignable>;
+        try {
+            iface = this.defineInterface();
+        } finally {
+            // Get all items from registry and filter for direct children to maintain order
+            const children = registry.getItems().filter((c: any) => c.parent === this);
 
-    return {
-      x: parentPos.x + (localX * cos - localY * sin),
-      y: parentPos.y + (localX * sin + localY * cos),
-      rotation: (parentPos.rotation || 0) + (local.rotation || 0),
-    };
-  }
+            Composable.activeComposable = prevActive;
 
-  /** Get absolute PCB position (recursive) */
-  get absolutePcbPosition(): PcbPosition {
-    const local = this.pcbPosition || { x: 0, y: 0, rotation: 0 };
-    const side = local.side || this.parent?.absolutePcbPosition.side || "front";
+            // Apply layout if defined
+            if (this._layout) {
+                this._layout.apply(children);
+            }
+        }
 
-    if (!this.parent) return { ...local, side };
+        for (const [name, value] of Object.entries(iface)) {
+            if (value instanceof Pin) {
+                // Direct alias — the composable's pin IS this component pin
+                this._pinStore.set(name, value);
+            } else if (value instanceof Net) {
+                // Bridge — create an interface pin tied to the internal net
+                const ifacePin = new Pin({ ref: this.ref, symbol: `Composable:${this.ref}` }, name);
+                (value as Net).tie(ifacePin);
+                this._pinStore.set(name, ifacePin);
+            }
+        }
+    }
 
-    const parentPos = this.parent.absolutePcbPosition;
-    return {
-      x: parentPos.x + (local.x || 0),
-      y: parentPos.y + (local.y || 0),
-      rotation: (parentPos.rotation || 0) + (local.rotation || 0),
-      side,
-    };
-  }
+    /** Proxy-based pin access — triggers defineInterface() on first access */
+    get pins(): PinProxy<InterfaceNets> {
+        this._ensureInterface();
+        return this._pinProxy;
+    }
+
+    /** Get all defined pins */
+    get allPins(): ReadonlyMap<string, Pin> {
+        this._ensureInterface();
+        return this._pinStore;
+    }
+
+    /** Helper to quickly assign power pins from a record */
+    power(mapping: Partial<Record<InterfaceNets, PinAssignable>>): this {
+        for (const [key, val] of Object.entries(mapping)) {
+            (this.pins as any)[key].tie(val);
+        }
+        return this;
+    }
+
+    /**
+     * Place a child part at an offset from this composable's PCB origin.
+     *
+     * Rotation and board side inherit from the composable unless explicitly
+     * overridden. An unplaced composable returns `undefined`, allowing reusable
+     * circuits to remain valid in schematic-only contexts.
+     */
+    protected at(
+        x: number,
+        y: number,
+        overrides: Partial<Pick<PcbPosition, 'rotation' | 'side'>> & {
+            relativeTo?: PcbPosition;
+        } = {},
+    ): PcbPosition | undefined {
+        const origin = overrides.relativeTo ?? this.pcbPosition;
+        if (!origin) return undefined;
+
+        return {
+            x: origin.x + x,
+            y: origin.y + y,
+            rotation: overrides.rotation ?? origin.rotation,
+            side: overrides.side ?? origin.side,
+        };
+    }
+
+    /** Get absolute schematic position (recursive) */
+    get absoluteSchematicPosition(): SchematicPosition | null {
+        if (this.schematicPosition === null) return null;
+        const local = this.schematicPosition || { x: 0, y: 0, rotation: 0 };
+        if (!this.parent) return local;
+
+        const parentPos = this.parent.absoluteSchematicPosition;
+        if (parentPos === null) return null;
+
+        const pRot = (parentPos.rotation || 0) * (Math.PI / 180);
+        const cos = Math.cos(pRot);
+        const sin = Math.sin(pRot);
+
+        const localX = local.x || 0;
+        const localY = local.y || 0;
+
+        return {
+            x: parentPos.x + (localX * cos - localY * sin),
+            y: parentPos.y + (localX * sin + localY * cos),
+            rotation: (parentPos.rotation || 0) + (local.rotation || 0),
+        };
+    }
+
+    /** Get absolute PCB position (recursive) */
+    get absolutePcbPosition(): PcbPosition {
+        const local = this.pcbPosition || { x: 0, y: 0, rotation: 0 };
+        const side = local.side || this.parent?.absolutePcbPosition.side || 'front';
+
+        if (!this.parent) return { ...local, side };
+
+        const parentPos = this.parent.absolutePcbPosition;
+        return {
+            x: parentPos.x + (local.x || 0),
+            y: parentPos.y + (local.y || 0),
+            rotation: (parentPos.rotation || 0) + (local.rotation || 0),
+            side,
+        };
+    }
 }

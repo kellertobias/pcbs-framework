@@ -4,8 +4,8 @@
  * Tracks all components and nets created during schematic generation.
  */
 
-import type { Component } from "@tobisk/pcbs/Component";
-import type { Net } from "@tobisk/pcbs/Net";
+import type { Component } from '@tobisk/pcbs/Component';
+import type { Net } from '@tobisk/pcbs/Net';
 
 export class Registry {
     private components: Component<any>[] = [];
@@ -13,6 +13,22 @@ export class Registry {
     private nets: Net[] = [];
     private items: any[] = [];
     private active = false;
+
+    /** Run a nested capture without losing the surrounding circuit. */
+    isolated<T>(capture: () => T): T {
+        const state = [
+            this.components,
+            this.composables,
+            this.nets,
+            this.items,
+            this.active,
+        ] as const;
+        try {
+            return capture();
+        } finally {
+            [this.components, this.composables, this.nets, this.items, this.active] = state;
+        }
+    }
 
     /** Start tracking. Clear any previous state. */
     start() {
@@ -54,7 +70,7 @@ export class Registry {
     /** Unregister a net (e.g. during merging). */
     unregisterNet(net: Net) {
         if (this.active) {
-            this.nets = this.nets.filter(n => n !== net);
+            this.nets = this.nets.filter((n) => n !== net);
         }
     }
 

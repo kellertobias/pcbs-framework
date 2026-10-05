@@ -1,12 +1,29 @@
-import { describe, it, expect } from "vitest";
-import { Component, Composable } from "../synth";
+import { describe, it, expect } from 'vitest';
+import { Component, Composable } from '../synth';
 
-describe("Component and Composable Placement", () => {
-    it("calculates absolute schematic position for a single component", () => {
+describe('Component and Composable Placement', () => {
+    it('rejects misspelled and invalid PCB placement values at runtime', () => {
+        const create = (pcbPosition: unknown) =>
+            new Component({
+                ref: 'C_BAD',
+                symbol: 'Device:C',
+                footprint: 'Capacitor_SMD:C_0603_1608Metric',
+                pcbPosition: pcbPosition as any,
+            });
+
+        expect(() => create({ x: 10, y: 20, rotate: 90 })).toThrow(/rotate.*rotation/);
+        expect(() => create({ x: Number.NaN, y: 20 })).toThrow(/pcbPosition\.x.*finite/);
+        expect(() => create({ x: 10, y: 20, rotation: Number.POSITIVE_INFINITY })).toThrow(
+            /rotation.*finite/,
+        );
+        expect(() => create({ x: 10, y: 20, side: 'bottom' })).toThrow(/side.*front.*back/);
+    });
+
+    it('calculates absolute schematic position for a single component', () => {
         const c1 = new Component({
-            ref: "C1",
-            symbol: "Device:C",
-            footprint: "Capacitor_SMD:C_0603_1608Metric",
+            ref: 'C1',
+            symbol: 'Device:C',
+            footprint: 'Capacitor_SMD:C_0603_1608Metric',
             schematicPosition: { x: 10, y: 20, rotation: 90 },
         });
 
@@ -19,37 +36,37 @@ describe("Component and Composable Placement", () => {
         }
     });
 
-    it("calculates absolute pcb position for a single component", () => {
+    it('calculates absolute pcb position for a single component', () => {
         const c1 = new Component({
-            ref: "C1",
-            symbol: "Device:C",
-            footprint: "Capacitor_SMD:C_0603_1608Metric",
-            pcbPosition: { x: 50, y: 60, rotation: 180, side: "back" },
+            ref: 'C1',
+            symbol: 'Device:C',
+            footprint: 'Capacitor_SMD:C_0603_1608Metric',
+            pcbPosition: { x: 50, y: 60, rotation: 180, side: 'back' },
         });
 
         const pos = c1.absolutePcbPosition;
         expect(pos.x).toBe(50);
         expect(pos.y).toBe(60);
         expect(pos.rotation).toBe(180);
-        expect(pos.side).toBe("back");
+        expect(pos.side).toBe('back');
     });
 
-    it("offsets component position within a Composable", () => {
+    it('offsets component position within a Composable', () => {
         class MyComposable extends Composable {
             comp!: Component;
             constructor() {
                 super({
-                    ref: "MY",
+                    ref: 'MY',
                     schematicPosition: { x: 100, y: 100 },
-                    pcbPosition: { x: 200, y: 200, side: "back" },
+                    pcbPosition: { x: 200, y: 200, side: 'back' },
                 });
             }
 
             defineInterface() {
                 this.comp = new Component({
-                    ref: "R1",
-                    symbol: "Device:R",
-                    footprint: "Resistor_SMD:R_0603_1608Metric",
+                    ref: 'R1',
+                    symbol: 'Device:R',
+                    footprint: 'Resistor_SMD:R_0603_1608Metric',
                     schematicPosition: { x: 10, y: 20, rotation: 45 },
                     pcbPosition: { x: 5, y: 5 },
                 });
@@ -72,24 +89,24 @@ describe("Component and Composable Placement", () => {
         const pPos = my.comp.absolutePcbPosition;
         expect(pPos.x).toBe(205);
         expect(pPos.y).toBe(205);
-        expect(pPos.side).toBe("back"); // Inherited from parent
+        expect(pPos.side).toBe('back'); // Inherited from parent
     });
 
-    it("handles nested Composables with recursive offsetting", () => {
+    it('handles nested Composables with recursive offsetting', () => {
         class Inner extends Composable {
             comp!: Component;
             constructor() {
                 super({
-                    ref: "INNER",
+                    ref: 'INNER',
                     schematicPosition: { x: 10, y: 10 },
                     pcbPosition: { x: 5, y: 5 },
                 });
             }
             defineInterface() {
                 this.comp = new Component({
-                    ref: "C1",
-                    symbol: "Device:C",
-                    footprint: "Capacitor_SMD:C_0603_1608Metric",
+                    ref: 'C1',
+                    symbol: 'Device:C',
+                    footprint: 'Capacitor_SMD:C_0603_1608Metric',
                     schematicPosition: { x: 1, y: 1 },
                     pcbPosition: { x: 2, y: 2 },
                 });
@@ -101,9 +118,9 @@ describe("Component and Composable Placement", () => {
             inner!: Inner;
             constructor() {
                 super({
-                    ref: "OUTER",
+                    ref: 'OUTER',
                     schematicPosition: { x: 100, y: 100 },
-                    pcbPosition: { x: 200, y: 200, side: "back" },
+                    pcbPosition: { x: 200, y: 200, side: 'back' },
                 });
             }
             defineInterface() {
@@ -126,24 +143,24 @@ describe("Component and Composable Placement", () => {
 
         const pPos = outer.inner.comp.absolutePcbPosition;
         expect(pPos.x).toBe(207); // 200 + 5 + 2
-        expect(pPos.side).toBe("back"); // Inherited from outer
+        expect(pPos.side).toBe('back'); // Inherited from outer
     });
 
-    it("allows overriding inherited PCB side", () => {
+    it('allows overriding inherited PCB side', () => {
         class MyComposable extends Composable {
             comp!: Component;
             constructor() {
                 super({
-                    ref: "MY",
-                    pcbPosition: { x: 0, y: 0, side: "back" },
+                    ref: 'MY',
+                    pcbPosition: { x: 0, y: 0, side: 'back' },
                 });
             }
             defineInterface() {
                 this.comp = new Component({
-                    ref: "R1",
-                    symbol: "Device:R",
-                    footprint: "Resistor_SMD:R_0603_1608Metric",
-                    pcbPosition: { x: 10, y: 10, side: "front" },
+                    ref: 'R1',
+                    symbol: 'Device:R',
+                    footprint: 'Resistor_SMD:R_0603_1608Metric',
+                    pcbPosition: { x: 10, y: 10, side: 'front' },
                 });
                 return {};
             }
@@ -152,6 +169,44 @@ describe("Component and Composable Placement", () => {
         const my = new MyComposable();
         my.pins;
 
-        expect(my.comp.absolutePcbPosition.side).toBe("front");
+        expect(my.comp.absolutePcbPosition.side).toBe('front');
+    });
+
+    it('places child parts relative to the composable PCB origin', () => {
+        class PositionedComposable extends Composable {
+            childPosition(
+                x: number,
+                y: number,
+                side?: 'front' | 'back',
+                relativeTo?: { x: number; y: number },
+            ) {
+                return this.at(x, y, { side, relativeTo });
+            }
+
+            defineInterface() {
+                return {};
+            }
+        }
+
+        const placed = new PositionedComposable({
+            ref: 'PLACED',
+            pcbPosition: { x: 100, y: 50, rotation: 90, side: 'back' },
+        });
+        expect(placed.childPosition(4, -3)).toEqual({
+            x: 104,
+            y: 47,
+            rotation: 90,
+            side: 'back',
+        });
+        expect(placed.childPosition(0, 0, 'front')?.side).toBe('front');
+        expect(placed.childPosition(2, 3, undefined, { x: 10, y: 20 })).toEqual({
+            x: 12,
+            y: 23,
+            rotation: undefined,
+            side: undefined,
+        });
+
+        const schematicOnly = new PositionedComposable({ ref: 'SCHEMATIC_ONLY' });
+        expect(schematicOnly.childPosition(4, -3)).toBeUndefined();
     });
 });

@@ -1,12 +1,19 @@
-import * as fs from "fs";
-import * as path from "path";
-import { FootprintName } from "./types";
+import * as fs from 'fs';
+import * as path from 'path';
+import { FootprintName } from './types';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
-export type SymbolPinType = "input" | "output" | "power_in" | "power_out" | "bidirectional" | "passive" | "unconnected";
-export type SymbolPinSide = "left" | "right" | "top" | "bottom";
-export type SymbolPinStyle = "line" | "inverted" | "clock" | "inverted_clock";
+export type SymbolPinType =
+    | 'input'
+    | 'output'
+    | 'power_in'
+    | 'power_out'
+    | 'bidirectional'
+    | 'passive'
+    | 'unconnected';
+export type SymbolPinSide = 'left' | 'right' | 'top' | 'bottom';
+export type SymbolPinStyle = 'line' | 'inverted' | 'clock' | 'inverted_clock';
 
 export interface SymbolPinOptions {
     name: string;
@@ -24,7 +31,7 @@ export interface SymbolRectOptions {
     y1: number;
     x2: number;
     y2: number;
-    fill?: "none" | "background";
+    fill?: 'none' | 'background';
     strokeWidth?: number;
 }
 
@@ -33,6 +40,22 @@ export interface SymbolTextOptions {
     x: number;
     y: number;
     fontSize?: number;
+}
+
+export interface SymbolCircleOptions {
+    x: number;
+    y: number;
+    radius: number;
+    fill?: 'none' | 'background';
+    strokeWidth?: number;
+}
+
+export interface SymbolLineOptions {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    strokeWidth?: number;
 }
 
 // ─── Internal element types ──────────────────────────────────────────
@@ -49,26 +72,49 @@ interface SymPin {
 }
 
 interface SymRect {
-    x1: number; y1: number;
-    x2: number; y2: number;
-    fill: "none" | "background";
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    fill: 'none' | 'background';
     strokeWidth: number;
 }
 
 interface SymText {
     text: string;
-    x: number; y: number;
+    x: number;
+    y: number;
     fontSize: number;
+}
+
+interface SymCircle {
+    x: number;
+    y: number;
+    radius: number;
+    fill: 'none' | 'background';
+    strokeWidth: number;
+}
+
+interface SymLine {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    strokeWidth: number;
 }
 
 // ─── Pin side → rotation angle ───────────────────────────────────────
 
 function sideToAngle(side: SymbolPinSide): number {
     switch (side) {
-        case "left": return 0;
-        case "right": return 180;
-        case "top": return 90;
-        case "bottom": return 270;
+        case 'left':
+            return 0;
+        case 'right':
+            return 180;
+        case 'top':
+            return 270;
+        case 'bottom':
+            return 90;
     }
 }
 
@@ -95,6 +141,8 @@ export class KicadSymbol {
     private _pins: SymPin[] = [];
     private _rects: SymRect[] = [];
     private _texts: SymText[] = [];
+    private _circles: SymCircle[] = [];
+    private _lines: SymLine[] = [];
 
     constructor(options: {
         name: string;
@@ -104,9 +152,9 @@ export class KicadSymbol {
         value?: string;
     }) {
         this.name = options.name;
-        this.reference = options.reference ?? "U";
-        this.footprint = options.footprint ?? "DNC";
-        this.description = options.description ?? "";
+        this.reference = options.reference ?? 'U';
+        this.footprint = options.footprint ?? 'DNC';
+        this.description = options.description ?? '';
         this.value = options.value ?? options.name;
     }
 
@@ -120,7 +168,7 @@ export class KicadSymbol {
             y: options.y,
             rotation: sideToAngle(options.side),
             type: options.type,
-            style: options.style ?? "line",
+            style: options.style ?? 'line',
             length: options.length ?? 2.54,
         });
         return this;
@@ -132,7 +180,7 @@ export class KicadSymbol {
             y1: options.y1,
             x2: options.x2,
             y2: options.y2,
-            fill: options.fill ?? "none",
+            fill: options.fill ?? 'none',
             strokeWidth: options.strokeWidth ?? 0,
         });
         return this;
@@ -144,6 +192,28 @@ export class KicadSymbol {
             x: options.x,
             y: options.y,
             fontSize: options.fontSize ?? 1.27,
+        });
+        return this;
+    }
+
+    public addCircle(options: SymbolCircleOptions): this {
+        this._circles.push({
+            x: options.x,
+            y: options.y,
+            radius: options.radius,
+            fill: options.fill ?? 'none',
+            strokeWidth: options.strokeWidth ?? 0,
+        });
+        return this;
+    }
+
+    public addLine(options: SymbolLineOptions): this {
+        this._lines.push({
+            x1: options.x1,
+            y1: options.y1,
+            x2: options.x2,
+            y2: options.y2,
+            strokeWidth: options.strokeWidth ?? 0,
         });
         return this;
     }
@@ -164,20 +234,33 @@ export class KicadSymbol {
         parts.push(`\t\t(on_board yes)`);
 
         // Properties
-        parts.push(this._serializeProperty("Reference", this.reference, 0, -this._estimateHeight() - 2));
-        parts.push(this._serializeProperty("Value", this.value, 0, -this._estimateHeight()));
+        parts.push(
+            this._serializeProperty('Reference', this.reference, 0, -this._estimateHeight() - 2),
+        );
+        parts.push(this._serializeProperty('Value', this.value, 0, -this._estimateHeight()));
 
         if (this.footprint) {
-            parts.push(this._serializePropertyHidden("Footprint", `Project_Footprints:${this.name}`));
+            parts.push(
+                this._serializePropertyHidden(
+                    'Footprint',
+                    this.footprint === 'DNC' ? `Project_Footprints:${this.name}` : this.footprint,
+                ),
+            );
         }
-        parts.push(this._serializePropertyHidden("Datasheet", ""));
-        parts.push(this._serializePropertyHidden("Description", this.description));
+        parts.push(this._serializePropertyHidden('Datasheet', ''));
+        parts.push(this._serializePropertyHidden('Description', this.description));
 
-        // Graphical sub-symbol: <Name>_0_1 — contains rectangles
-        if (this._rects.length > 0) {
+        // Graphical sub-symbol: <Name>_0_1 — contains rectangles, circles, lines
+        if (this._rects.length > 0 || this._circles.length > 0 || this._lines.length > 0) {
             parts.push(`\t\t(symbol "${this.name}_0_1"`);
             for (const rect of this._rects) {
                 parts.push(this._serializeRect(rect));
+            }
+            for (const circle of this._circles) {
+                parts.push(this._serializeCircle(circle));
+            }
+            for (const line of this._lines) {
+                parts.push(this._serializeLine(line));
             }
             parts.push(`\t\t)`);
         }
@@ -195,7 +278,7 @@ export class KicadSymbol {
         parts.push(`\t\t(embedded_fonts no)`);
         parts.push(`\t)`);
 
-        return parts.join("\n");
+        return parts.join('\n');
     }
 
     // ── Private helpers ────────────────────────────────────────────────
@@ -203,7 +286,7 @@ export class KicadSymbol {
     private _estimateHeight(): number {
         // Rough estimate for property positioning
         if (this._rects.length > 0) {
-            return Math.max(...this._rects.map(r => Math.abs(r.y2 - r.y1)));
+            return Math.max(...this._rects.map((r) => Math.abs(r.y2 - r.y1)));
         }
         return this._pins.length * 2.54;
     }
@@ -255,6 +338,38 @@ export class KicadSymbol {
         s += `\t\t\t\t\t(font\n`;
         s += `\t\t\t\t\t\t(size ${text.fontSize} ${text.fontSize})\n`;
         s += `\t\t\t\t\t)\n`;
+        s += `\t\t\t\t)\n`;
+        s += `\t\t\t)`;
+        return s;
+    }
+
+    private _serializeCircle(circle: SymCircle): string {
+        let s = `\t\t\t(circle\n`;
+        s += `\t\t\t\t(center ${circle.x} ${circle.y})\n`;
+        s += `\t\t\t\t(radius ${circle.radius})\n`;
+        s += `\t\t\t\t(stroke\n`;
+        s += `\t\t\t\t\t(width ${circle.strokeWidth})\n`;
+        s += `\t\t\t\t\t(type default)\n`;
+        s += `\t\t\t\t)\n`;
+        s += `\t\t\t\t(fill\n`;
+        s += `\t\t\t\t\t(type ${circle.fill})\n`;
+        s += `\t\t\t\t)\n`;
+        s += `\t\t\t)`;
+        return s;
+    }
+
+    private _serializeLine(line: SymLine): string {
+        let s = `\t\t\t(polyline\n`;
+        s += `\t\t\t\t(pts\n`;
+        s += `\t\t\t\t\t(xy ${line.x1} ${line.y1})\n`;
+        s += `\t\t\t\t\t(xy ${line.x2} ${line.y2})\n`;
+        s += `\t\t\t\t)\n`;
+        s += `\t\t\t\t(stroke\n`;
+        s += `\t\t\t\t\t(width ${line.strokeWidth})\n`;
+        s += `\t\t\t\t\t(type default)\n`;
+        s += `\t\t\t\t)\n`;
+        s += `\t\t\t\t(fill\n`;
+        s += `\t\t\t\t\t(type none)\n`;
         s += `\t\t\t\t)\n`;
         s += `\t\t\t)`;
         return s;

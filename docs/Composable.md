@@ -75,6 +75,45 @@ vd.pins.GND.tie(gnd);
 
 Helper to assign power pins quickly.
 
+### `at(x, y, overrides?)`
+
+Protected placement helper for components owned by a composable. It offsets
+from the composable's `pcbPosition` and inherits its rotation and board side.
+It returns `undefined` when the composable has no PCB placement, so the same
+block can be used in schematic-only contexts.
+
+```typescript
+const controller = new Component({
+  parent: this,
+  ref: `U_${this.ref}`,
+  symbol: "Example:Controller",
+  footprint: "Example:Controller",
+  pcbPosition: this.at(0, 0),
+});
+
+const decoupling = new Component({
+  parent: this,
+  ref: `C_${this.ref}`,
+  symbol: "Device:C",
+  footprint: "Capacitor_SMD:C_0603_1608Metric",
+  pcbPosition: this.at(4, 0),
+});
+```
+
+Pass `side` or `rotation` to override inherited placement properties. Pass
+`relativeTo` to offset from a specifically overridden child position:
+
+```typescript
+this.at(4, -2, { relativeTo: customControllerPosition, side: "back" });
+```
+
 ### `absoluteSchematicPosition` / `absolutePcbPosition` (Getters)
 
 Calculates the absolute position considering parent hierarchy.
+
+## Placed and routed circuits
+
+Use `RoutedComposable` for module-local component placement and internal copper
+that moves as a block, with a named handoff per electrical interface port.
+Implement `defineInterface()` for the circuit and `defineRouting()` for the
+local traces and handoffs. See the complete [PCB module example](PCB.md#modules-with-internal-placement-copper-and-handoffs).

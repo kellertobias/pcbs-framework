@@ -1,0 +1,40 @@
+{
+  "FrontpanelCutout": {
+    "layer": "Eco1.User",
+    "uiName": "FrontpanelCutout",
+    "aliases": [
+      "User.Eco1",
+      "frontpanel"
+    ]
+  },
+  "MountingLayerCutout": {
+    "layer": "Eco2.User",
+    "uiName": "MountingLayerCutout",
+    "aliases": [
+      "User.Eco2",
+      "mounting"
+    ]
+  },
+  "UserInteractionArea": {
+    "layer": "Dwgs.User",
+    "uiName": "UserInteractionArea",
+    "aliases": [
+      "User.Drawings",
+      "interaction"
+    ]
+  },
+  "FrontValue": {
+    "layer": "F.Fab",
+    "uiName": "F.Fab",
+    "aliases": [
+      "fab-front"
+    ]
+  },
+  "BackValue": {
+    "layer": "B.Fab",
+    "uiName": "B.Fab",
+    "aliases": [
+      "fab-back"
+    ]
+  }
+}

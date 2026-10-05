@@ -1,5 +1,5 @@
-import { CircuitSnapshot } from "../synth/types";
-import { Component } from "../synth/Component";
+import { CircuitSnapshot } from '../synth/types';
+import { Component } from '../synth/Component';
 
 interface PlacedNode {
     isCluster: boolean;
@@ -19,13 +19,25 @@ interface PlacedNode {
 }
 
 export class HierarchicalPlacer {
-    static place(snapshot: CircuitSnapshot, getDimensions?: (comp: Component) => { width: number, height: number }, options: { experimental?: boolean } = {}) {
+    static place(
+        snapshot: CircuitSnapshot,
+        getDimensions?: (comp: Component) => { width: number; height: number },
+        options: { experimental?: boolean } = {},
+    ) {
         // Find components that need placement
-        const allToPlace = snapshot.components.filter(c => c.symbol !== "Device:DNC");
+        const allToPlace = snapshot.components.filter((c) => {
+            if (c.symbol === 'Device:DNC') return false;
+            let owner = c.parent;
+            while (owner) {
+                if (owner.schematicLayoutFixed) return false;
+                owner = owner.parent;
+            }
+            return true;
+        });
         if (allToPlace.length === 0) return;
 
-        const toPlace = allToPlace.filter(c => c.allPins.size > 0);
-        const mechanical = allToPlace.filter(c => c.allPins.size === 0);
+        const toPlace = allToPlace.filter((c) => c.allPins.size > 0);
+        const mechanical = allToPlace.filter((c) => c.allPins.size === 0);
 
         // Calculate wire counts for each component to determine padding
         const wireCounts = new Map<string, number>();
@@ -40,7 +52,7 @@ export class HierarchicalPlacer {
         // Pre-calculate component connectivity via shared nets
         const netPins = new Map<string, string[]>(); // net name -> array of component refs
         for (const comp of snapshot.components) {
-            if (comp.symbol === "Device:DNC") continue;
+            if (comp.symbol === 'Device:DNC') continue;
             for (const pin of comp.allPins.values()) {
                 if (pin.net) {
                     if (!netPins.has(pin.net.name)) netPins.set(pin.net.name, []);
@@ -73,9 +85,19 @@ export class HierarchicalPlacer {
             return refs;
         }
 
-        const root: PlacedNode = { isCluster: true, ref: "ROOT", children: [], x: 0, y: 0, width: 0, height: 0, padding: 0, isFixed: false };
+        const root: PlacedNode = {
+            isCluster: true,
+            ref: 'ROOT',
+            children: [],
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            padding: 0,
+            isFixed: false,
+        };
         const clusters = new Map<string, PlacedNode>();
-        clusters.set("ROOT", root);
+        clusters.set('ROOT', root);
 
         function getCluster(comp: Component): PlacedNode {
             const path: string[] = [];
@@ -89,11 +111,21 @@ export class HierarchicalPlacer {
             }
 
             let parentNode = root;
-            let currentPath = "ROOT";
+            let currentPath = 'ROOT';
             for (const p of path) {
-                currentPath += "/" + p;
+                currentPath += '/' + p;
                 if (!clusters.has(currentPath)) {
-                    const newCluster: PlacedNode = { isCluster: true, ref: p, children: [], x: 0, y: 0, width: 0, height: 0, padding: 0, isFixed: false };
+                    const newCluster: PlacedNode = {
+                        isCluster: true,
+                        ref: p,
+                        children: [],
+                        x: 0,
+                        y: 0,
+                        width: 0,
+                        height: 0,
+                        padding: 0,
+                        isFixed: false,
+                    };
                     parentNode.children.push(newCluster);
                     clusters.set(currentPath, newCluster);
                 }
@@ -118,8 +150,10 @@ export class HierarchicalPlacer {
                 children: [],
                 x: comp.schematicPosition ? comp.schematicPosition.x : 0,
                 y: comp.schematicPosition ? comp.schematicPosition.y : 0,
-                width, height, padding,
-                isFixed: !!comp.schematicPosition
+                width,
+                height,
+                padding,
+                isFixed: !!comp.schematicPosition,
             });
         }
 
@@ -141,20 +175,20 @@ export class HierarchicalPlacer {
                 }
                 node.width = child.width + 2 * child.padding;
                 node.height = child.height + 2 * child.padding;
-                node.padding = node.ref === "ROOT" ? 0 : 10;
+                node.padding = node.ref === 'ROOT' ? 0 : 10;
                 node.isFixed = child.isFixed;
                 return;
             }
 
             if (!options.experimental) {
                 // Determine Grid layout
-                const gridChildren = node.children.filter(c => !c.isFixed);
+                const gridChildren = node.children.filter((c) => !c.isFixed);
                 const n = gridChildren.length;
                 let cols = n > 0 ? Math.ceil(Math.sqrt(n)) : 0;
                 let rows = cols > 0 ? Math.ceil(n / cols) : 0;
 
                 // The user requested that we favor expanding columns first: "If we have 4 components, place them in 2x2, for 9 its 3x3. 10 would be 4x3 (increase the columns first)."
-                // Standard Math.ceil(Math.sqrt(10)) => 4 cols, 10/4 => 3 rows = 4x3. 
+                // Standard Math.ceil(Math.sqrt(10)) => 4 cols, 10/4 => 3 rows = 4x3.
                 // Let's verify standard square properties match.
                 // sqrt(2) = 1.41.. -> cols 2, rows 1 (2x1)
                 // sqrt(4) = 2 -> cols 2, rows 2 (2x2)
@@ -162,7 +196,6 @@ export class HierarchicalPlacer {
                 // sqrt(9) = 3 -> cols 3, rows 3 (3x3)
                 // sqrt(10) = 3.16.. -> cols 4, rows 3 (4x3)
                 // The existing logic already perfectly matches the user's example constraints.
-
 
                 // Calculate maximum width for each column and maximum height for each row
                 const colWidths = new Array(cols).fill(0);
@@ -173,7 +206,7 @@ export class HierarchicalPlacer {
                     const r = Math.floor(i / cols);
                     const c = i % cols;
 
-                    // Don't add padding to clusters themselves when computing their grid cell size. 
+                    // Don't add padding to clusters themselves when computing their grid cell size.
                     // Clusters already contain their own padding inherently in width/height.
                     // For leaf components, add the minimum routing clearance.
                     const extraPadding = child.isCluster ? 0 : 2 * child.padding;
@@ -190,7 +223,10 @@ export class HierarchicalPlacer {
 
                 // Position children
                 let currentY = 0;
-                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                let minX = Infinity,
+                    maxX = -Infinity,
+                    minY = Infinity,
+                    maxY = -Infinity;
 
                 for (let r = 0; r < rows; r++) {
                     let currentX = 0;
@@ -200,8 +236,8 @@ export class HierarchicalPlacer {
 
                         const child = gridChildren[i];
                         // Center component within its cell
-                        child.x = currentX + (colWidths[c] / 2);
-                        child.y = currentY + (rowHeights[r] / 2);
+                        child.x = currentX + colWidths[c] / 2;
+                        child.y = currentY + rowHeights[r] / 2;
 
                         currentX += colWidths[c] + gridSpacingX;
                     }
@@ -222,7 +258,7 @@ export class HierarchicalPlacer {
                 }
 
                 // If any fixed children caused us to shift center of mass, handle it similarly.
-                const hasFixedChildren = node.children.some(c => c.isFixed);
+                const hasFixedChildren = node.children.some((c) => c.isFixed);
                 if (!hasFixedChildren) {
                     const cx = (minX + maxX) / 2;
                     const cy = (minY + maxY) / 2;
@@ -230,9 +266,9 @@ export class HierarchicalPlacer {
                         child.x -= cx;
                         child.y -= cy;
                     }
-                } else if (node.children.filter(c => c.isFixed).length > 1) {
+                } else if (node.children.filter((c) => c.isFixed).length > 1) {
                     // Check overlaps strictly for fixed components
-                    const fixedChildren = node.children.filter(c => c.isFixed);
+                    const fixedChildren = node.children.filter((c) => c.isFixed);
                     let maxRequiredScale = 1.0;
                     for (let i = 0; i < fixedChildren.length; i++) {
                         for (let j = i + 1; j < fixedChildren.length; j++) {
@@ -243,8 +279,10 @@ export class HierarchicalPlacer {
                             const dy = Math.abs(c2.y - c1.y);
 
                             const fixedPadding = 1;
-                            const reqDx = (c1.width / 2 + fixedPadding) + (c2.width / 2 + fixedPadding);
-                            const reqDy = (c1.height / 2 + fixedPadding) + (c2.height / 2 + fixedPadding);
+                            const reqDx =
+                                c1.width / 2 + fixedPadding + (c2.width / 2 + fixedPadding);
+                            const reqDy =
+                                c1.height / 2 + fixedPadding + (c2.height / 2 + fixedPadding);
 
                             if (dx < reqDx && dy < reqDy) {
                                 const safeDx = dx < 0.1 ? 0.1 : dx;
@@ -267,7 +305,10 @@ export class HierarchicalPlacer {
                     }
 
                     // Recompute bounds
-                    minX = Infinity; maxX = -Infinity; minY = Infinity; maxY = -Infinity;
+                    minX = Infinity;
+                    maxX = -Infinity;
+                    minY = Infinity;
+                    maxY = -Infinity;
                     for (const child of node.children) {
                         const extraPadding = child.isCluster ? 0 : child.padding;
                         const rw = child.width / 2 + extraPadding;
@@ -281,14 +322,14 @@ export class HierarchicalPlacer {
 
                 node.width = isFinite(maxX) && isFinite(minX) ? maxX - minX : 0;
                 node.height = isFinite(maxY) && isFinite(minY) ? maxY - minY : 0;
-                node.padding = node.ref === "ROOT" ? 0 : 10;
+                node.padding = node.ref === 'ROOT' ? 0 : 10;
                 return;
             }
 
             // --- Experimental Force-Directed Graph Layout ---
 
             // Map logical edges between children
-            const childComponents = node.children.map(c => getComponentsInNode(c));
+            const childComponents = node.children.map((c) => getComponentsInNode(c));
             const edgeWeights = new Map<PlacedNode, Map<PlacedNode, number>>();
 
             for (let i = 0; i < node.children.length; i++) {
@@ -328,11 +369,11 @@ export class HierarchicalPlacer {
 
             const clusterPadding = 40;
 
-            const velocities = new Map<PlacedNode, { vx: number, vy: number }>();
+            const velocities = new Map<PlacedNode, { vx: number; vy: number }>();
             for (const child of node.children) velocities.set(child, { vx: 0, vy: 0 });
 
             for (let iter = 0; iter < iterations; iter++) {
-                const forces = new Map<PlacedNode, { fx: number, fy: number }>();
+                const forces = new Map<PlacedNode, { fx: number; fy: number }>();
                 for (const child of node.children) forces.set(child, { fx: 0, fy: 0 });
 
                 for (let i = 0; i < node.children.length; i++) {
@@ -350,13 +391,16 @@ export class HierarchicalPlacer {
                         const dx = c2.x - c1.x;
                         const dy = c2.y - c1.y;
                         let dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist < 0.1) { dist = 0.1; }
+                        if (dist < 0.1) {
+                            dist = 0.1;
+                        }
 
                         const nx = dx / dist;
                         const ny = dy / dist;
 
                         // Repulsion with AABB corner safety margin (circle vs square padding)
-                        const idealDist = (c1.width / 2 + c1.padding) + (c2.width / 2 + c2.padding) + 3;
+                        const idealDist =
+                            c1.width / 2 + c1.padding + (c2.width / 2 + c2.padding) + 3;
 
                         // Repulsion (prevent overlaps)
                         let repForce = kRepulsion * Math.pow(idealDist / dist, 2);
@@ -373,7 +417,8 @@ export class HierarchicalPlacer {
                         const weight = edgeWeights.get(c1)?.get(c2) || 0;
                         if (weight > 0) {
                             const stretch = dist - idealDist;
-                            if (stretch > 0) { // only attract if further than ideal distance
+                            if (stretch > 0) {
+                                // only attract if further than ideal distance
                                 const attForce = stretch * kSpring * weight;
                                 f1.fx += nx * attForce;
                                 f1.fy += ny * attForce;
@@ -421,7 +466,7 @@ export class HierarchicalPlacer {
             }
 
             // Center cluster bounds locally on its internal coordinate system
-            const hasFixedChildren = node.children.some(c => c.isFixed);
+            const hasFixedChildren = node.children.some((c) => c.isFixed);
             if (!hasFixedChildren) {
                 const cx = (minX + maxX) / 2;
                 const cy = (minY + maxY) / 2;
@@ -432,7 +477,7 @@ export class HierarchicalPlacer {
             } else {
                 // Determine if fixed positions cause overlaps and scale them out if necessary.
                 // We only do this if there's more than one fixed child to compare.
-                const fixedChildren = node.children.filter(c => c.isFixed);
+                const fixedChildren = node.children.filter((c) => c.isFixed);
                 if (fixedChildren.length > 1) {
                     let maxRequiredScale = 1.0;
 
@@ -447,13 +492,15 @@ export class HierarchicalPlacer {
                             // For user-fixed components, we only require physical separation with a small padding
                             // instead of the massive routing padding, to prevent blowing up manual placements.
                             const fixedPadding = 1;
-                            const reqDx = (c1.width / 2 + fixedPadding) + (c2.width / 2 + fixedPadding);
-                            const reqDy = (c1.height / 2 + fixedPadding) + (c2.height / 2 + fixedPadding);
+                            const reqDx =
+                                c1.width / 2 + fixedPadding + (c2.width / 2 + fixedPadding);
+                            const reqDy =
+                                c1.height / 2 + fixedPadding + (c2.height / 2 + fixedPadding);
 
                             // If they are strictly overlapping on both axes:
                             if (dx < reqDx && dy < reqDy) {
                                 // Calculate how much we need to scale the distance to resolve the worst overlap axis.
-                                // We pick the axis that requires the *smallest* push to resolve the overlap, 
+                                // We pick the axis that requires the *smallest* push to resolve the overlap,
                                 // but since we scale uniformly from the origin, we check the scale factor for the primary separation axis.
 
                                 // To prevent zero-division bounding:
@@ -499,17 +546,23 @@ export class HierarchicalPlacer {
 
             node.width = maxX - minX;
             node.height = maxY - minY;
-            node.padding = node.ref === "ROOT" ? 0 : 10;
+            node.padding = node.ref === 'ROOT' ? 0 : 10;
         }
 
         computeLayout(root);
 
         // Apply global flat coordinates back to components
-        function applyPositions(node: PlacedNode, absoluteParentTopLeftX: number, absoluteParentTopLeftY: number) {
+        function applyPositions(
+            node: PlacedNode,
+            absoluteParentTopLeftX: number,
+            absoluteParentTopLeftY: number,
+        ) {
             for (const child of node.children) {
                 if (child.isCluster) {
-                    const absTopLeftX = absoluteParentTopLeftX + child.x - child.width / 2 - child.padding;
-                    const absTopLeftY = absoluteParentTopLeftY + child.y - child.height / 2 - child.padding;
+                    const absTopLeftX =
+                        absoluteParentTopLeftX + child.x - child.width / 2 - child.padding;
+                    const absTopLeftY =
+                        absoluteParentTopLeftY + child.y - child.height / 2 - child.padding;
                     applyPositions(child, absTopLeftX, absTopLeftY);
                 } else if (child.comp) {
                     const absoluteX = absoluteParentTopLeftX + child.x;
@@ -531,7 +584,9 @@ export class HierarchicalPlacer {
                     const localY = absoluteY - parentAbsY;
 
                     // Preserve original rotation
-                    const rot = child.comp.schematicPosition ? child.comp.schematicPosition.rotation : 0;
+                    const rot = child.comp.schematicPosition
+                        ? child.comp.schematicPosition.rotation
+                        : 0;
                     (child.comp as any).schematicPosition = { x: localX, y: localY, rotation: rot };
                 }
             }
@@ -585,14 +640,14 @@ export class HierarchicalPlacer {
 
             for (const comp of mechanical) {
                 if (comp.schematicPosition && comp.schematicPosition.rotation !== undefined) {
-                    // if it has a fixed position already, we might just respect it, but the prompt says 
+                    // if it has a fixed position already, we might just respect it, but the prompt says
                     // "they must be placed on the bottom left side". We overrides x,y but keep rotation.
                 }
 
                 const dims = getDimensions ? getDimensions(comp) : { width: 15, height: 15 };
 
                 // If we exceed the arbitrary layout width, wrap to a new row downwards
-                if (currentX > minX && (currentX + dims.width - minX) > maxWidth) {
+                if (currentX > minX && currentX + dims.width - minX > maxWidth) {
                     currentX = minX;
                     currentY += rowMaxHeight + 5;
                     rowMaxHeight = 0;

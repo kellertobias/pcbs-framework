@@ -63,3 +63,9 @@ Used by the CLI to execute the `generate()` method while capturing all registere
 *   `company`: Company name.
 *   `revision`: Revision string.
 *   `description`: Description string.
+
+## Automatic wire routing
+
+Set `connectionStyle: "routed"` to use local libavoid obstacle routing.
+`schematicRouting.routeHints` can require wires to pass through ordered
+`waypoints` in sheet millimetres. See [Autorouting](Autorouting.md).

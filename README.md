@@ -15,8 +15,8 @@ This application was developed and tested with the help of AI, and it is specifi
 ### 🔌 Schematic Generation
 Define your connections in TypeScript and generate native **KiCad Schematics (`.kicad_sch`)** and Netlists (`.net`). The framework handles the boring parts of netlist generation so you can focus on the logic.
 
-### 📐 Initial PCB Placement
-Define an `Edge.Cuts` polygon and selected footprint positions in the same TypeScript source. The initial `.kicad_pcb` contains only the explicitly placed references; use KiCad's **Update PCB from Schematic** to import the remaining circuitry. Existing PCB files are never overwritten.
+### 📐 PCB Placement and Routing
+Define an `Edge.Cuts` polygon and selected footprint positions in the same TypeScript source. The initial `.kicad_pcb` contains only the explicitly placed references; use KiCad's **Update PCB from Schematic** to import the remaining circuitry. Use `--pcb sync` to update placements and `--pcb rebuild` to regenerate with a recoverable backup. Capture actual copper with `pcb capture-routing`; `routing.json` preserves pad-anchored traces across regeneration. `RoutedComposable` defines reusable placed and routed blocks with named trace handoffs. See [PCB documentation](docs/PCB.md).
 
 ```typescript
 super({
@@ -35,6 +35,11 @@ new Component({
 });
 ```
 
+### 🧭 Automatic Routing
+Use the local tscircuit PCB engine with `pcb route`, or select
+`connectionStyle: "routed"` for libavoid schematic wires. Both support required
+waypoints. See [Autorouting](docs/Autorouting.md).
+
 ### 🔍 Parts Search
 Includes a simple command-line tool to search the **JLCPCB Parts Library**.
 *   Find available parts directly from your terminal.
@@ -52,6 +57,12 @@ One command to rule them all. The `export` tool generates everything you need fo
 *   CPL (Component Placement List) for PCBA
 *   3D Renders of your board
 *   Zips it all up ready for upload.
+
+### 🧰 Front-panel CAD export
+Footprints can define local panel openings and a label anchor. A component may
+optionally provide the actual operator-facing text. The `frontpanel` command
+reads the placed and rotated metadata from the generated KiCad PCB and writes
+DXF and SVG files with separate `OUTLINE`, `CUTOUT`, and `MARKING` layers.
 
 ## Quick Start
 
@@ -140,6 +151,11 @@ npx pcbs export src/schematics/MyBoard.ts
 ```
 Generates a ZIP file with Gerbers, BOM, and CPL ready for JLCPCB.
 
+**Export a Front Panel:**
+```bash
+npx pcbs frontpanel src/schematics/MyBoard.ts
+```
+
 ## Documentation
 
 Full documentation is available in the **[Wiki](docs/Home.md)**:
@@ -157,3 +173,30 @@ npm install @tobisk/pcbs
 ## License
 
 This project is licensed under the **MIT License**.
+
+### Named render series
+
+Declare copper plots, native KiCad 3D views and model exports with
+`defineRenderSeries`, then run `pcb renders path/to/renders.ts`. A series can
+include multiple boards and camera angles. See [Rendering](docs/Rendering.md).
+
+### Physical assemblies
+
+Use `Assembly` to place independent PCB exports, imported mechanical models and
+code-generated models in a local 3D viewer:
+
+```sh
+npx @tobisk/pcbs view assembly path/to/assembly.ts
+```
+
+The viewer includes per-part visibility, isolation, focus, orbit/pan/zoom,
+millimetre measurements and editable placements. See [Assembly](docs/Assembly.md).
+
+### Framework and project ownership
+
+See [Project boundary](docs/ProjectBoundary.md) for reusable routing, placement,
+geometry, circuit construction and fabrication APIs, and their project consumers.
+
+## PCB projects and panels
+
+See [Projects and manufacturing panels](docs/ProjectsAndPanels.md) for optional project-local modules, libraries, schematics and assemblies, and PCB-only panel exports.

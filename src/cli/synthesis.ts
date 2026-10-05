@@ -1,83 +1,93 @@
-import * as path from "path";
-import * as fs from "fs";
-import { CircuitSnapshot } from "../synth/types";
-import { KicadGenerator, KicadGeneratorOptions } from "../kicad/KicadGenerator";
-import { KicadLibrary } from "../synth/KicadLibrary";
-import { getConfig } from "./config";
+import { prepareProjectLibraries } from '../project/ProjectLibraries';
+import { findPcbProject } from '../project/PcbProject';
+import * as path from 'path';
+import * as fs from 'fs';
+import { CircuitSnapshot } from '../synth/types';
+import { KicadGenerator, KicadGeneratorOptions } from '../kicad/KicadGenerator';
+import { KicadLibrary } from '../synth/KicadLibrary';
+import { getConfig } from './config';
 
 function writeFileAtomic(filePath: string, content: string): void {
-  const temporaryPath = `${filePath}.tmp-${process.pid}-${Math.random().toString(16).slice(2)}`;
-  let fd: number | undefined;
-  try {
-    fd = fs.openSync(temporaryPath, "w");
-    fs.writeFileSync(fd, content, "utf-8");
-    fs.fsyncSync(fd);
-    fs.closeSync(fd);
-    fd = undefined;
-    fs.renameSync(temporaryPath, filePath);
-  } catch (error) {
-    if (fd !== undefined) fs.closeSync(fd);
-    if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
-    throw error;
-  }
+    const temporaryPath = `${filePath}.tmp-${process.pid}-${Math.random().toString(16).slice(2)}`;
+    let fd: number | undefined;
+    try {
+        fd = fs.openSync(temporaryPath, 'w');
+        fs.writeFileSync(fd, content, 'utf-8');
+        fs.fsyncSync(fd);
+        fs.closeSync(fd);
+        fd = undefined;
+        fs.renameSync(temporaryPath, filePath);
+    } catch (error) {
+        if (fd !== undefined) fs.closeSync(fd);
+        if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
+        throw error;
+    }
 }
 
 /**
  * Execute the circuit generation using native TypeScript generator.
  */
-export function runSynthesis(snapshot: CircuitSnapshot, outputDir: string, options: KicadGeneratorOptions = {}): { success: boolean; output: string, errors?: string[], warnings?: string[] } {
-  const { projectRoot } = getConfig();
+export function runSynthesis(
+    snapshot: CircuitSnapshot,
+    outputDir: string,
+    options: KicadGeneratorOptions = {},
+): { success: boolean; output: string; errors?: string[]; warnings?: string[] } {
+    const { projectRoot } = getConfig();
 
-  // Define library search paths
-  const libPaths = [
-    path.join(projectRoot, ".kicad"), // Local project symbols
-    path.join(projectRoot, "lib"),    // Legacy lib folder
-    path.join(projectRoot, "src", "tests", "assets", "symbols"), // Test assets
-    // Add system paths?
-    // KicadGenerator will add defaults from env or common locations if not found.
-    // But better to pass them explicitly if we know them.
-  ];
+    // Define library search paths
+    const libPaths = [
+        ...prepareProjectLibraries(outputDir, projectRoot),
+        path.join(projectRoot, '.kicad'), // Local project symbols
+        path.join(projectRoot, 'lib'), // Legacy lib folder
+        path.join(projectRoot, 'src', 'tests', 'assets', 'symbols'), // Test assets
+        // Add system paths?
+        // KicadGenerator will add defaults from env or common locations if not found.
+        // But better to pass them explicitly if we know them.
+    ];
 
-  const generator = new KicadGenerator(libPaths);
+    const generator = new KicadGenerator(libPaths);
 
-  try {
-    const result = generator.generate(snapshot, outputDir, options);
+    try {
+        const result = generator.generate(snapshot, outputDir, options);
 
-    if (result.success) {
-      // Generate library tables in the project directory
-      // This logic is preserved from original implementation
-      try {
-        const kicadLib = path.join(projectRoot, ".kicad");
+        if (result.success) {
+            // Generate library tables in the project directory
+            // This logic is preserved from original implementation
+            try {
+                const kicadLib = path.join(projectRoot, '.kicad');
 
-        const fpTable = KicadLibrary.generateFpLibTable(kicadLib);
-        const symTable = KicadLibrary.generateSymLibTable(kicadLib);
+                if (!findPcbProject(outputDir)) {
+                    const fpTable = KicadLibrary.generateFpLibTable(kicadLib);
+                    const symTable = KicadLibrary.generateSymLibTable(kicadLib);
 
-        writeFileAtomic(path.join(outputDir, "fp-lib-table"), fpTable);
-        writeFileAtomic(path.join(outputDir, "sym-lib-table"), symTable);
+                    writeFileAtomic(path.join(outputDir, 'fp-lib-table'), fpTable);
+                    writeFileAtomic(path.join(outputDir, 'sym-lib-table'), symTable);
+                }
+                console.log(`  ✅ Generated KiCad library tables in project directory.`);
+            } catch (err: any) {
+                console.warn(`  ⚠️  Failed to generate library tables: ${err.message}`);
+            }
+        }
 
-        console.log(`  ✅ Generated KiCad library tables in project directory.`);
-      } catch (err: any) {
-        console.warn(`  ⚠️  Failed to generate library tables: ${err.message}`);
-      }
+        if (result.warnings && result.warnings.length > 0) {
+            for (const warn of result.warnings) {
+                console.warn(`  ⚠️  ${warn}`);
+            }
+        }
+
+        return {
+            success: result.success,
+            output: result.success
+                ? 'Successfully generated KiCad schematic and netlist.'
+                : 'Generated with warnings/errors.',
+            errors: result.errors,
+            warnings: result.warnings,
+        };
+    } catch (e: any) {
+        return {
+            success: false,
+            output: `Generation failed: ${e.message}`,
+            errors: [e.stack || e.message],
+        };
     }
-
-    if (result.warnings && result.warnings.length > 0) {
-      for (const warn of result.warnings) {
-        console.warn(`  ⚠️  ${warn}`);
-      }
-    }
-
-    return {
-      success: result.success,
-      output: result.success ? "Successfully generated KiCad schematic and netlist." : "Generated with warnings/errors.",
-      errors: result.errors,
-      warnings: result.warnings
-    };
-  } catch (e: any) {
-    return {
-      success: false,
-      output: `Generation failed: ${e.message}`,
-      errors: [e.stack || e.message]
-    };
-  }
 }

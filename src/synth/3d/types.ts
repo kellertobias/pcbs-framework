@@ -3,7 +3,7 @@
  * All dimensions are in millimeters.
  */
 
-import type { initOpenCascade } from "opencascade.js";
+import type { initOpenCascade } from 'opencascade.js';
 export type OpenCascadeInstance = Awaited<ReturnType<typeof initOpenCascade>>;
 
 // Re-export for convenience
@@ -41,12 +41,14 @@ export interface ExportOptions {
     /** Base filename without extension */
     baseName: string;
     /** Formats to export (default: ["wrl"]) */
-    formats?: ("wrl" | "step")[];
+    formats?: ('wrl' | 'step' | 'stl' | '3mf')[];
 }
 
 export interface ExportResult {
     wrlPath?: string;
     stepPath?: string;
+    stlPath?: string;
+    threeMfPath?: string;
 }
 
 /** Options for the model link in the KiCad footprint */
@@ -62,7 +64,7 @@ export interface Model3DLink {
  * Parse a hex color string (#RRGGBB or #RGB) to ColorRGBA.
  */
 export function parseHexColor(hex: string): ColorRGBA {
-    let h = hex.replace(/^#/, "");
+    let h = hex.replace(/^#/, '');
     if (h.length === 3) {
         h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
     }
@@ -70,4 +72,14 @@ export function parseHexColor(hex: string): ColorRGBA {
     const g = parseInt(h.substring(2, 4), 16) / 255;
     const b = parseInt(h.substring(4, 6), 16) / 255;
     return { r, g, b, a: 1 };
+}
+
+/** Indexed triangle geometry in millimetres, retained without re-tessellation.
+ * Meshes support WRL visualization; they are not STEP boundary-representation solids.
+ */
+export interface TriangleMesh {
+    vertices: Vec3[];
+    triangles: [number, number, number][];
+    color?: ColorRGBA;
+    name?: string;
 }

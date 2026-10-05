@@ -1,7 +1,8 @@
-import * as fs from "fs";
-import * as path from "path";
-import { KicadSymbol } from "@tobisk/pcbs/KicadSymbol";
-import { KicadFootprint } from "@tobisk/pcbs/KicadFootprint";
+import { exportLibraryDatasheets, LibraryDatasheetResult } from '../datasheet/LibraryDatasheets';
+import * as fs from 'fs';
+import * as path from 'path';
+import { KicadSymbol } from '@tobisk/pcbs/KicadSymbol';
+import { KicadFootprint } from '@tobisk/pcbs/KicadFootprint';
 
 /**
  * Merges multiple KicadSymbol and KicadFootprint instances into
@@ -20,124 +21,145 @@ import { KicadFootprint } from "@tobisk/pcbs/KicadFootprint";
  * ```
  */
 export class KicadLibrary {
-  private _symbols: KicadSymbol[] = [];
-  private _footprints: KicadFootprint[] = [];
+    private _symbols: KicadSymbol[] = [];
+    private _footprints: KicadFootprint[] = [];
 
-  public addSymbol(symbol: KicadSymbol): this {
-    this._symbols.push(symbol);
-    return this;
-  }
-
-  public addFootprint(footprint: KicadFootprint): this {
-    this._footprints.push(footprint);
-    return this;
-  }
-
-  public get symbols(): ReadonlyArray<KicadSymbol> {
-    return this._symbols;
-  }
-
-  public get footprints(): ReadonlyArray<KicadFootprint> {
-    return this._footprints;
-  }
-
-  // ── Symbol library file ────────────────────────────────────────────
-
-  /**
-   * Serialize all symbols into a complete `.kicad_sym` library file.
-   */
-  public serializeSymbols(): string {
-    const parts: string[] = [];
-
-    parts.push(`(kicad_symbol_lib`);
-    parts.push(`\t(version 20241209)`);
-    parts.push(`\t(generator "pcb_framework")`);
-    parts.push(`\t(generator_version "9.0")`);
-
-    for (const sym of this._symbols) {
-      parts.push(sym.serialize());
+    public addSymbol(symbol: KicadSymbol): this {
+        this._symbols.push(symbol);
+        return this;
     }
 
-    parts.push(`)`);
-
-    return parts.join("\n") + "\n";
-  }
-
-  /**
-   * Write all symbols into a single `.kicad_sym` file.
-   * Creates parent directories if needed.
-   * @returns The full path to the written file.
-   */
-  public writeSymbols(filePath: string): string {
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    public addFootprint(footprint: KicadFootprint): this {
+        this._footprints.push(footprint);
+        return this;
     }
-    fs.writeFileSync(filePath, this.serializeSymbols(), "utf-8");
-    return filePath;
-  }
 
-  // ── Footprint library directory ────────────────────────────────────
-
-  /**
-   * Write all footprints into a `.pretty` directory.
-   * Creates the directory if it doesn't exist.
-   * @returns Array of written file paths.
-   */
-  public writeFootprints(prettyDir: string): string[] {
-    if (!fs.existsSync(prettyDir)) {
-      fs.mkdirSync(prettyDir, { recursive: true });
+    public get symbols(): ReadonlyArray<KicadSymbol> {
+        return this._symbols;
     }
-    return this._footprints.map(fp => fp.writeFile(prettyDir));
-  }
 
-  /**
-   * Write both symbols and footprints to the given library directory.
-   * Convenience method combining `writeSymbols` and `writeFootprints`.
-   *
-   * @param libDir - The library directory (e.g. "lib")
-   * @param symFilename - Symbol library filename (default: "Project_Symbols.kicad_sym")
-   * @param fpDirname - Footprint directory name (default: "Project_Footprints.pretty")
-   */
-  public writeAll(
-    libDir: string,
-    symFilename = "Project_Symbols.kicad_sym",
-    fpDirname = "Project_Footprints.pretty"
-  ): { symbolsPath: string; footprintPaths: string[] } {
-    const symbolsPath = this.writeSymbols(path.join(libDir, symFilename));
-    const footprintPaths = this.writeFootprints(path.join(libDir, fpDirname));
-    return { symbolsPath, footprintPaths };
-  }
+    public get footprints(): ReadonlyArray<KicadFootprint> {
+        return this._footprints;
+    }
 
-  /**
-   * Generate the content for a KiCad fp-lib-table file.
-   * @param absolutePathToLibDir - Absolute path to the directory containing .pretty
-   * @param libName - The name of the library (default: "Project_Footprints")
-   */
-  public static generateFpLibTable(absolutePathToLibDir: string, libName = "Project_Footprints"): string {
-    const uri = path.join(absolutePathToLibDir, `${libName}.pretty`);
-    return [
-      `(fp_lib_table`,
-      `  (version 7)`,
-      `  (lib (name ${JSON.stringify(libName)})(type "KiCad")(uri ${JSON.stringify(uri)})(options "")(descr "Local Project Footprints"))`,
-      `)`,
-      ""
-    ].join("\n");
-  }
+    /** Generate a standard datasheet for every footprint added to this library. */
+    public async writeDatasheets(
+        outputDir: string,
+        modelWrlByFootprint: ReadonlyMap<string, string> = new Map(),
+    ): Promise<LibraryDatasheetResult[]> {
+        return exportLibraryDatasheets(
+            this._footprints.map((footprint) => ({
+                name: footprint.name,
+                footprint,
+                modelWrl: modelWrlByFootprint.get(footprint.name),
+            })),
+            outputDir,
+        );
+    }
 
-  /**
-   * Generate the content for a KiCad sym-lib-table file.
-   * @param absolutePathToLibDir - Absolute path to the directory containing .kicad_sym
-   * @param libName - The name of the library (default: "Project_Symbols")
-   */
-  public static generateSymLibTable(absolutePathToLibDir: string, libName = "Project_Symbols"): string {
-    const uri = path.join(absolutePathToLibDir, `${libName}.kicad_sym`);
-    return [
-      `(sym_lib_table`,
-      `  (version 7)`,
-      `  (lib (name ${JSON.stringify(libName)})(type "KiCad")(uri ${JSON.stringify(uri)})(options "")(descr "Local Project Symbols"))`,
-      `)`,
-      ""
-    ].join("\n");
-  }
+    // ── Symbol library file ────────────────────────────────────────────
+
+    /**
+     * Serialize all symbols into a complete `.kicad_sym` library file.
+     */
+    public serializeSymbols(): string {
+        const parts: string[] = [];
+
+        parts.push(`(kicad_symbol_lib`);
+        parts.push(`\t(version 20241209)`);
+        parts.push(`\t(generator "pcb_framework")`);
+        parts.push(`\t(generator_version "9.0")`);
+
+        for (const sym of this._symbols) {
+            parts.push(sym.serialize());
+        }
+
+        parts.push(`)`);
+
+        return parts.join('\n') + '\n';
+    }
+
+    /**
+     * Write all symbols into a single `.kicad_sym` file.
+     * Creates parent directories if needed.
+     * @returns The full path to the written file.
+     */
+    public writeSymbols(filePath: string): string {
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, this.serializeSymbols(), 'utf-8');
+        return filePath;
+    }
+
+    // ── Footprint library directory ────────────────────────────────────
+
+    /**
+     * Write all footprints into a `.pretty` directory.
+     * Creates the directory if it doesn't exist.
+     * @returns Array of written file paths.
+     */
+    public writeFootprints(prettyDir: string): string[] {
+        if (!fs.existsSync(prettyDir)) {
+            fs.mkdirSync(prettyDir, { recursive: true });
+        }
+        return this._footprints.map((fp) => fp.writeFile(prettyDir));
+    }
+
+    /**
+     * Write both symbols and footprints to the given library directory.
+     * Convenience method combining `writeSymbols` and `writeFootprints`.
+     *
+     * @param libDir - The library directory (e.g. "lib")
+     * @param symFilename - Symbol library filename (default: "Project_Symbols.kicad_sym")
+     * @param fpDirname - Footprint directory name (default: "Project_Footprints.pretty")
+     */
+    public writeAll(
+        libDir: string,
+        symFilename = 'Project_Symbols.kicad_sym',
+        fpDirname = 'Project_Footprints.pretty',
+    ): { symbolsPath: string; footprintPaths: string[] } {
+        const symbolsPath = this.writeSymbols(path.join(libDir, symFilename));
+        const footprintPaths = this.writeFootprints(path.join(libDir, fpDirname));
+        return { symbolsPath, footprintPaths };
+    }
+
+    /**
+     * Generate the content for a KiCad fp-lib-table file.
+     * @param absolutePathToLibDir - Absolute path to the directory containing .pretty
+     * @param libName - The name of the library (default: "Project_Footprints")
+     */
+    public static generateFpLibTable(
+        absolutePathToLibDir: string,
+        libName = 'Project_Footprints',
+    ): string {
+        const uri = path.join(absolutePathToLibDir, `${libName}.pretty`);
+        return [
+            `(fp_lib_table`,
+            `  (version 7)`,
+            `  (lib (name ${JSON.stringify(libName)})(type "KiCad")(uri ${JSON.stringify(uri)})(options "")(descr "Local Project Footprints"))`,
+            `)`,
+            '',
+        ].join('\n');
+    }
+
+    /**
+     * Generate the content for a KiCad sym-lib-table file.
+     * @param absolutePathToLibDir - Absolute path to the directory containing .kicad_sym
+     * @param libName - The name of the library (default: "Project_Symbols")
+     */
+    public static generateSymLibTable(
+        absolutePathToLibDir: string,
+        libName = 'Project_Symbols',
+    ): string {
+        const uri = path.join(absolutePathToLibDir, `${libName}.kicad_sym`);
+        return [
+            `(sym_lib_table`,
+            `  (version 7)`,
+            `  (lib (name ${JSON.stringify(libName)})(type "KiCad")(uri ${JSON.stringify(uri)})(options "")(descr "Local Project Symbols"))`,
+            `)`,
+            '',
+        ].join('\n');
+    }
 }
