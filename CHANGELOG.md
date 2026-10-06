@@ -1,3 +1,18 @@
+# [2.3.0](https://github.com/kellertobias/pcbs-framework/compare/v2.2.0...v2.3.0) (2026-10-06)
+
+
+### Bug Fixes
+
+* provision KiCad libraries for release tests ([35e6ec6](https://github.com/kellertobias/pcbs-framework/commit/35e6ec671669ad9eef43829a641c89b84330acf4))
+* use matching KiCad 10 libraries in release CI ([2f7ee4f](https://github.com/kellertobias/pcbs-framework/commit/2f7ee4f4fe98c11d33f99ab3748675aabaae0505))
+* use static temporary library paths in release job ([27b01b8](https://github.com/kellertobias/pcbs-framework/commit/27b01b84f48973b450bab777c0bb32411a70ac7f))
+
+
+### Features
+
+* add PCB projects panels routing and assembly tooling ([c9be6ae](https://github.com/kellertobias/pcbs-framework/commit/c9be6aee40951f9a3ad1158660f082b1d1ba2fcc))
+* automatically arrange schematics by functional groups ([3fd12cb](https://github.com/kellertobias/pcbs-framework/commit/3fd12cb7287080fc7f27c5a8ba9f892696751010))
+
 # [2.2.0](https://github.com/kellertobias/pcbs-framework/compare/v2.1.0...v2.2.0) (2026-08-01)
 
 
