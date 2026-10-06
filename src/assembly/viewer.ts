@@ -2,7 +2,7 @@
 import { AssemblyViewCube, cubeViewName } from './view-cube';
 import { measureAssemblyPoints } from './measurement';
 import { optimizeAssemblyPart } from './optimize';
-import * as THREE from 'three';
+import * as THREE from '../runtime/three.mjs';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';

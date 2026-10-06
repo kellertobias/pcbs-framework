@@ -6,7 +6,7 @@ import {
     ShapeGeometry,
     ShapePath,
     type Shape,
-} from 'three';
+} from '../../runtime/three.mjs';
 import font from './legend-font.json';
 import { writeVRML } from './vrmlWriter';
 import type { OC, TriangleMesh } from './types';

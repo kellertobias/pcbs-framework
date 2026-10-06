@@ -1,6 +1,6 @@
 import { bentSheetMesh } from '../synth/3d/bentSheet';
 import fs from 'node:fs';
-import * as THREE from 'three';
+import * as THREE from '../runtime/three.mjs';
 import polygonClipping, { type Polygon, type MultiPolygon } from 'polygon-clipping';
 import { SExpressionParser, type SExpr } from '../kicad/SExpressionParser';
 import type { FrontPanelCutout } from '../frontpanel/types';

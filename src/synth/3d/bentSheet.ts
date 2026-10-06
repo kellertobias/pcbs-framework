@@ -1,4 +1,4 @@
-import { ShapeUtils, Vector2 } from 'three';
+import { ShapeUtils, Vector2 } from '../../runtime/three.mjs';
 import type { TriangleMesh } from './types';
 export interface BentSheetOptions {
     xMin: number;

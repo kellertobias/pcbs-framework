@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-import * as THREE from 'three';
+import * as THREE from '../runtime/three.mjs';
 export const CUBE_FACES = [
     { name: 'Right', direction: [1, 0, 0] },
     { name: 'Left', direction: [-1, 0, 0] },
@@ -30,7 +30,11 @@ export class AssemblyViewCube {
         private canvas: HTMLCanvasElement,
         private choose: (direction: THREE.Vector3) => void,
     ) {
-        this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+        this.renderer = new THREE.WebGLRenderer({
+            canvas,
+            alpha: true,
+            antialias: true,
+        });
         this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
         this.renderer.setSize(144, 144, false);
         const materials = CUBE_FACES.map(({ name }) => {

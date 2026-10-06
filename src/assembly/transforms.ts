@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from '../runtime/three.mjs';
 import type { AssemblyPart, AssemblyPlacement } from '../synth/Assembly';
 export function placementMatrix(part: AssemblyPlacement): THREE.Matrix4 {
     return new THREE.Matrix4().compose(

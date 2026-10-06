@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from '../runtime/three.mjs';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 /** Native KiCad VRML contains many tiny face meshes. Merge equivalent untextured
  * materials within one assembly part, retaining world geometry and part identity.
@@ -9,7 +9,11 @@ export function optimizeAssemblyPart(root: THREE.Group): void {
     const inverse = root.matrixWorld.clone().invert();
     const buckets = new Map<
         string,
-        { material: THREE.Material; meshes: THREE.Mesh[]; geometries: THREE.BufferGeometry[] }
+        {
+            material: THREE.Material;
+            meshes: THREE.Mesh[];
+            geometries: THREE.BufferGeometry[];
+        }
     >();
     root.traverse((object) => {
         if (
