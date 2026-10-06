@@ -207,3 +207,7 @@ export { planOutputMigration, applyOutputMigration } from '../project/OutputMigr
 export { defineNetClass } from './NetClasses';
 export type { NetClassDefinition } from './types';
 export { joinPcbOutlines } from './PcbOutlineUnion';
+
+export { schematicGroup } from './SchematicGroup';
+export type { SchematicGroupOptions } from './SchematicGroup';
+export type { SchematicNote } from './types';

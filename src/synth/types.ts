@@ -429,11 +429,16 @@ export interface SchematicRouteHint {
     /** Required support points, in sheet millimetres and traversal order. */
     waypoints: PcbPoint[];
 }
+export interface SchematicNote {
+    text: string;
+    bold?: boolean;
+}
 export interface SchematicGroup {
     id: string;
     title: string;
     components: string[];
-    notes?: string[];
+    notes?: Array<string | SchematicNote>;
+    titleBold?: boolean;
     /** Relationship between functional boxes, not coordinates for individual symbols. */
     relativeTo?: { group: string; direction: 'left' | 'right' | 'up' | 'down'; gap?: number };
 }
@@ -473,7 +478,7 @@ export interface SchematicRoutingOptions {
     /** Drawing-only symbol definitions. Electrical pin numbers must remain unchanged. */
     symbolOverrides?: Record<string, import('./KicadSymbol').KicadSymbol>;
     /** Sheet headings or explanatory notes, in millimetres. */
-    annotations?: Array<{ text: string; x: number; y: number; size?: number }>;
+    annotations?: Array<{ text: string; x: number; y: number; size?: number; bold?: boolean }>;
     /** External connector references. Wire the remaining circuit; label only its interface nets. */
     interfaceComponents?: string[];
     /** Native power glyphs, keyed by circuit net name. The net name remains unchanged. */

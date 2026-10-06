@@ -9,7 +9,7 @@ import {
     configureOutputIgnore,
 } from '../project/OutputPaths';
 import { planOutputMigration, applyOutputMigration } from '../project/OutputMigration';
-import { automaticallyRoute } from '../router/AutomaticRouting';
+import { automaticallyRoute, routingInputHash } from '../router/AutomaticRouting';
 import { appendGeneratedRoutes, runIncrementalRouting } from '../router/IncrementalRouter';
 import { GridRoutingBackend } from '../router/GridRoutingBackend';
 import { CapacityRoutingBackend } from '../router/CapacityRoutingBackend';
@@ -114,6 +114,17 @@ describe('generated asset boundaries', () => {
     });
 });
 describe('source-driven PCB copper', () => {
+    it('ignores UUID regeneration while retaining physical geometry in the input hash', () => {
+        const snapshot = circuit();
+        const first = native().replace('(kicad_pcb', '(kicad_pcb (uuid "first")');
+        const second = first.replace('(uuid "first")', '(uuid "second")');
+        expect(routingInputHash(snapshot, first, 'grid')).toBe(
+            routingInputHash(snapshot, second, 'grid'),
+        );
+        expect(routingInputHash(snapshot, native(17), 'grid')).not.toBe(
+            routingInputHash(snapshot, native(), 'grid'),
+        );
+    });
     it('routes from scratch, reuses matching inputs, and invalidates for moved pads and constraints', () => {
         const root = temporary(),
             snapshot = circuit();

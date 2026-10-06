@@ -28,9 +28,10 @@ export function routingInputHash(
     return createHash('sha256')
         .update(
             JSON.stringify({
-                revision: 1,
+                revision: 2,
                 backend,
-                bareBoard,
+                // UUIDs identify drawings, not physical routing constraints.
+                bareBoard: bareBoard.replace(/\(uuid\s+"[^"\r\n]+"\)/g, ''),
                 hints: snapshot.pcb?.routeHints,
                 regions: snapshot.pcb?.routingRegions,
                 netClasses: snapshot.pcb?.netClasses,

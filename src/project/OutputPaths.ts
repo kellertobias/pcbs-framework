@@ -50,13 +50,21 @@ export function backupGeneratedFile(file: string, kind = 'backup'): string {
     return destination;
 }
 
-export const OUTPUT_IGNORE_RULES = ['**/export/', '**/.backups/'] as const;
+export const OUTPUT_IGNORE_RULES = [
+    '**/export/',
+    '**/.backups/',
+    '**/*-schematic-layout.json',
+] as const;
 
 /** Append only opted-in rules; retain the project's existing Git policy and comments. */
 export function configureOutputIgnore(root: string, exports: boolean, backups: boolean): void {
     const file = path.join(root, '.gitignore');
     const source = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
-    const rules = [exports && OUTPUT_IGNORE_RULES[0], backups && OUTPUT_IGNORE_RULES[1]].filter(
+    const rules = [
+        exports && OUTPUT_IGNORE_RULES[0],
+        backups && OUTPUT_IGNORE_RULES[1],
+        OUTPUT_IGNORE_RULES[2],
+    ].filter(
         (rule): rule is (typeof OUTPUT_IGNORE_RULES)[number] =>
             !!rule && !source.split(/\r?\n/).includes(rule),
     );

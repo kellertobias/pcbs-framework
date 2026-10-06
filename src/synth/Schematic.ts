@@ -15,6 +15,8 @@ import { loadRoutingFile } from '../kicad/RoutingFile';
 import type { BoardReference, BoardPlacement } from './BoardReference';
 import { GravityLayout } from './Layout';
 import { circuitNetClasses } from './NetClasses';
+import type { SchematicGroupOptions } from './SchematicGroup';
+import type { SchematicGroup as GroupDefinition } from './types';
 
 /**
  * Abstract base class for all schematics.
@@ -53,6 +55,44 @@ export abstract class Schematic {
 
     private _boards: BoardReference[] = [];
     private _capturing = false;
+    private _schematicGroups: GroupDefinition[] = [];
+
+    /** @internal Used by schematicGroup; capture is scoped to this generation. */
+    _captureSchematicGroup(options: SchematicGroupOptions, build: () => unknown): unknown {
+        if (!this._capturing) throw new Error('schematicGroup methods must run inside generate()');
+        if (this._schematicGroups.some((group) => group.id === options.id))
+            throw new Error(`Duplicate schematic group '${options.id}'`);
+        const before = new Set(registry.getComponents());
+        // Reserve the group before nested decorated calls, which claim their own components.
+        const { nodes = [], ...definition } = options;
+        const group: GroupDefinition = { ...definition, components: [] };
+        this._schematicGroups.push(group);
+        const result = build();
+        if (result && typeof (result as { then?: unknown }).then === 'function')
+            throw new Error('schematicGroup methods must be synchronous');
+        const claimed = new Set(
+            this._schematicGroups
+                .filter((item) => item !== group)
+                .flatMap((item) => item.components.map((node) => node.split('/')[0])),
+        );
+        const explicit = new Set(nodes.map((node) => node.split('/')[0]));
+        group.components = [
+            ...new Set([
+                ...registry
+                    .getComponents()
+                    .filter(
+                        (component) =>
+                            component.symbol !== 'Device:DNC' &&
+                            !before.has(component) &&
+                            !claimed.has(component.ref) &&
+                            !explicit.has(component.ref),
+                    )
+                    .map((component) => component.ref),
+                ...nodes,
+            ]),
+        ];
+        return result;
+    }
 
     /** Place an independent board on this schematic's panel, in PCB millimetres. */
     addBoard(schematic: Schematic, placement: BoardPlacement): void {
@@ -134,6 +174,7 @@ export abstract class Schematic {
 
     private _captureCircuit(): CircuitSnapshot {
         this._boards = [];
+        this._schematicGroups = [];
         this._capturedComponents = [];
         registry.start();
         try {
@@ -212,7 +253,18 @@ export abstract class Schematic {
             name: this.name,
             size: this.size,
             connectionStyle: this.connectionStyle,
-            schematicRouting: this.schematicRouting,
+            schematicRouting: this._schematicGroups.length
+                ? {
+                      ...this.schematicRouting,
+                      autoLayout: {
+                          ...this.schematicRouting?.autoLayout,
+                          groups: [
+                              ...(this.schematicRouting?.autoLayout?.groups ?? []),
+                              ...this._schematicGroups,
+                          ],
+                      },
+                  }
+                : this.schematicRouting,
             autoPack: this.autoPack,
             author: this.author,
             revision: this.revision,

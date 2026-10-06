@@ -207,3 +207,35 @@ visible-field controls, inline test points, and generation-time drawing warnings
 Automatic placement from functional groups: [Automatic schematic layout](docs/AutomaticSchematicLayout.md).
 
 See [Exports and automatic routing](docs/OutputWorkflow.md) for generated asset folders, installer Git policy, cleanup and routing constraints.
+
+### Circuit-method schematic groups
+
+Use `@schematicGroup` to keep a functional box and its explanations beside the
+method that builds the circuit. The framework collects newly created components,
+then arranges the drawings and routes their wires automatically:
+
+```ts
+@schematicGroup({
+    id: 'supply',
+    title: 'LOCAL SUPPLY',
+    notes: [{ text: 'Bypass at the regulator', bold: true }, 'Quiet 5V input.'],
+})
+private addSupply() {
+    // Construct the regulator and its capacitors here.
+}
+```
+
+Import `schematicGroup` from `@tobisk/pcbs` and enable TypeScript
+`experimentalDecorators`. Decorated methods must execute synchronously inside
+`generate()`. Their return values are preserved. Nested decorated methods claim
+their own newly created parts. Add `nodes: ['RV1/2']` for an existing drawing unit;
+explicit units replace automatic membership for that component. Split units such
+as `RV1/1` and `RV1/2` may belong to different groups while remaining one physical
+component. Existing `schematicRouting.autoLayout.groups` and relative group hints
+remain supported. Group IDs must be unique per generated circuit.
+
+Titles are bold by default (`titleBold: false` opts out). Group notes accept
+strings or `{ text, bold }`; free schematic `annotations` also accept `bold`.
+Generated `*-schematic-layout.json` reports are disposable diagnostics and the
+installer ignores them even when fabrication exports are tracked. Keep UUID maps
+tracked for stable drawing identities.

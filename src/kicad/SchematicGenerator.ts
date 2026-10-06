@@ -274,7 +274,11 @@ export class SchematicGenerator {
                 ['at', String(note.x), String(note.y), '0'],
                 [
                     'effects',
-                    ['font', ['size', String(note.size ?? 2), String(note.size ?? 2)]],
+                    [
+                        'font',
+                        ['size', String(note.size ?? 2), String(note.size ?? 2)],
+                        ...(note.bold ? ['bold'] : []),
+                    ],
                     ['justify', 'left', 'top'],
                 ],
                 ['uuid', this.quote(this.uuids.getOrGenerate(`sheet-note/${index}`))],
@@ -2168,13 +2172,14 @@ export class SchematicGenerator {
                 y: number,
                 size: number,
                 key: string,
+                bold = false,
             ): SExpr[] => [
                 'text',
                 this.quote(value),
                 ['at', String(x), String(y), '0'],
                 [
                     'effects',
-                    ['font', ['size', String(size), String(size)]],
+                    ['font', ['size', String(size), String(size)], ...(bold ? ['bold'] : [])],
                     ['justify', 'left', 'top'],
                 ],
                 ['uuid', this.quote(this.uuids.getOrGenerate(`group/${frame.id}/${key}`))],
@@ -2188,18 +2193,17 @@ export class SchematicGenerator {
                     ['fill', ['type', 'none']],
                     ['uuid', this.quote(this.uuids.getOrGenerate(`group/${frame.id}/box`))],
                 ],
-                text(frame.title, frame.x + 5.08, frame.y + 2.54, 2, 'title'),
-                ...(frame.notes.length
-                    ? [
-                          text(
-                              frame.notes.join('\n'),
-                              frame.x + 5.08,
-                              frame.y + frame.height - frame.notes.length * 3.175 - 5.08,
-                              1.27,
-                              'notes',
-                          ),
-                      ]
-                    : []),
+                text(frame.title, frame.x + 5.08, frame.y + 2.54, 2, 'title', frame.titleBold),
+                ...frame.notes.map((note, index) =>
+                    text(
+                        note.text,
+                        frame.x + 5.08,
+                        frame.y + frame.height - frame.notes.length * 3.175 - 5.08 + index * 3.175,
+                        1.27,
+                        `notes/${index}`,
+                        note.bold,
+                    ),
+                ),
             ] as SExpr[];
         });
     }

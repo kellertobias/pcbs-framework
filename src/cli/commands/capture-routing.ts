@@ -24,7 +24,7 @@ export async function cmdCaptureRouting(args: string[]): Promise<void> {
     const source = fs.readFileSync(board, 'utf-8');
     const uuids = new UuidManager();
     uuids.load(path.join(directory, 'uuids.json'));
-    const declared = new PcbGenerator(snapshot, uuids, directory).generate();
+    const declared = new PcbGenerator(snapshot, uuids, directory, path.dirname(entry)).generate();
     const routing = captureRouting(source, snapshot.name, {
         excludeUuids: copperUuids(declared.content),
         handoffs: snapshot.pcb.handoffs,

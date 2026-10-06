@@ -1,5 +1,5 @@
 import { groupClusters } from './GroupRelationships';
-import type { SchematicPosition, SchematicRoutingOptions } from '../synth/types';
+import type { SchematicPosition, SchematicRoutingOptions, SchematicNote } from '../synth/types';
 
 export interface LayoutPin {
     number: string;
@@ -20,7 +20,8 @@ export interface GroupFrame {
     id: string;
     title: string;
     members: string[];
-    notes: string[];
+    notes: SchematicNote[];
+    titleBold?: boolean;
     x: number;
     y: number;
     width: number;
@@ -223,8 +224,11 @@ export function arrangeSchematicGroups(
         const bounds = union(members.map((p) => envelope(p, positions.get(p.id)!)));
         const padding = 10.16,
             titleHeight = 10.16;
-        const notes = group.notes ?? [];
-        const noteWidth = Math.max(0, ...notes.map((n) => n.length * 0.8));
+        const notes = (group.notes ?? []).flatMap((note) => {
+            const value = typeof note === 'string' ? { text: note } : note;
+            return value.text.split('\n').map((text) => ({ ...value, text }));
+        });
+        const noteWidth = Math.max(0, ...notes.map((n) => n.text.length * (n.bold ? 0.88 : 0.8)));
         const width = Math.max(
             bounds.width + padding * 2,
             noteWidth + padding * 2,
@@ -248,6 +252,7 @@ export function arrangeSchematicGroups(
             title: group.title,
             members: group.components,
             notes,
+            titleBold: group.titleBold ?? true,
             x: 0,
             y: 0,
             width: Math.ceil(width / grid) * grid,
