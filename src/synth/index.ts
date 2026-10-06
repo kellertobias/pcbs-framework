@@ -196,3 +196,14 @@ export type { PcbPanelOptions, PanelBoardPlacement } from './PcbPanel';
 
 export { relocateBoardModels } from '../project/RelocateBoardModels';
 export type { AssetDirectoryMove } from '../project/RelocateBoardModels';
+
+export { outputPaths, generatedFile, resolveGeneratedInput } from '../project/OutputPaths';
+
+export { placePcbComponents } from './PcbPlacement';
+export { packPcbComponents, type PcbPackingOptions } from './PcbPacking';
+export type { SchematicGroup } from './types';
+export { planOutputMigration, applyOutputMigration } from '../project/OutputMigration';
+
+export { defineNetClass } from './NetClasses';
+export type { NetClassDefinition } from './types';
+export { joinPcbOutlines } from './PcbOutlineUnion';

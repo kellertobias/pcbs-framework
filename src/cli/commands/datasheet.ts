@@ -1,3 +1,4 @@
+import { outputPaths } from '../../project/OutputPaths';
 import { getConfig } from '../config';
 import { exportLibraryDatasheets, LibraryDatasheetEntry } from '../../datasheet/LibraryDatasheets';
 import { renderModel } from '../../datasheet/ModelRenderer';
@@ -12,7 +13,7 @@ export async function cmdDatasheet(args: string[]) {
         const sourceDir = path.join(projectRoot, '.kicad', 'Project_Footprints.pretty');
         const outputDir = args.includes('--output')
             ? path.resolve(args[args.indexOf('--output') + 1])
-            : path.join(projectRoot, '.kicad', 'datasheets', 'footprints');
+            : path.join(outputPaths(projectRoot).export, 'datasheets');
         const metadataDir = path.join(projectRoot, '.kicad', 'datasheets', 'footprints');
         const files = fs
             .readdirSync(sourceDir)
@@ -94,7 +95,10 @@ export async function cmdDatasheet(args: string[]) {
         ...manifest,
         output: args.includes('--output')
             ? path.resolve(args[args.indexOf('--output') + 1])
-            : file(manifest.output ?? 'datasheet.pdf'),
+            : path.join(
+                  outputPaths(base).export,
+                  path.basename(manifest.output ?? 'datasheet.pdf'),
+              ),
         footprints: manifest.footprints.map((f: any) => ({
             ...f,
             footprint: fs.readFileSync(file(f.path), 'utf8'),
@@ -114,7 +118,10 @@ export async function cmdFootprintPng(args: string[]) {
     });
     const output = args.includes('--output')
         ? args[args.indexOf('--output') + 1]
-        : args[0].replace(/\.kicad_mod$/, '') + '.png';
+        : path.join(
+              outputPaths(path.dirname(path.resolve(args[0]))).renders,
+              path.basename(args[0], '.kicad_mod') + '.png',
+          );
     fs.mkdirSync(path.dirname(path.resolve(output)), { recursive: true });
     fs.writeFileSync(output, result.png);
     console.log(path.resolve(output));

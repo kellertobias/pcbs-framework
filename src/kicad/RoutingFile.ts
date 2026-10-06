@@ -1,3 +1,4 @@
+import { backupGeneratedFile } from '../project/OutputPaths';
 import { normalizeBoardNets } from './KicadNetFormat';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -66,7 +67,11 @@ const coordinate = (node: Node | undefined) => {
 export function captureRouting(
     source: string,
     boardName: string,
-    options: { excludeUuids?: Iterable<string>; handoffs?: PcbHandoff[] } = {},
+    options: {
+        excludeUuids?: Iterable<string>;
+        handoffs?: PcbHandoff[];
+        coordinateOnly?: boolean;
+    } = {},
 ): RoutingFile {
     const board = SExpressionParser.parse(source).find(
         (item): item is Node => Array.isArray(item) && item[0] === 'kicad_pcb',
@@ -116,6 +121,7 @@ export function captureRouting(
             if (!uuid) throw new Error(`Cannot capture ${kind} without a stable UUID.`);
             const anchored = (key: string): PcbRoutePoint => {
                 const point = coordinate(child(item, key));
+                if (options.coordinateOnly) return point;
                 const handoffs = (options.handoffs ?? []).filter(
                     (handoff) =>
                         handoff.net === net &&
@@ -183,10 +189,7 @@ export function captureRouting(
 /** Save explicitly; never overwrite saved routing silently during synthesis. */
 export function saveRoutingFile(file: string, routing: RoutingFile): void {
     if (fs.existsSync(file)) {
-        let backup = `${file}.backup-${Date.now()}`;
-        let suffix = 1;
-        while (fs.existsSync(backup)) backup = `${file}.backup-${Date.now()}-${suffix++}`;
-        fs.copyFileSync(file, backup, fs.constants.COPYFILE_EXCL);
+        backupGeneratedFile(file);
     }
     const temporary = `${file}.${process.pid}.tmp`;
     try {

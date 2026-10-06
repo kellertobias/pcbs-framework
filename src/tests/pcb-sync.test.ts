@@ -187,10 +187,12 @@ describe('PCB modes', () => {
         });
 
         const backup = fs
-            .readdirSync(directory)
+            .readdirSync(path.join(directory, '.backups'))
             .find((name) => name.startsWith('ModeTest.kicad_pcb.backup-'));
         expect(backup).toBeDefined();
-        expect(fs.readFileSync(path.join(directory, backup!), 'utf-8')).toBe(existingBoard);
+        expect(fs.readFileSync(path.join(directory, '.backups', backup!), 'utf-8')).toBe(
+            existingBoard,
+        );
         expect(fs.readFileSync(pcbPath, 'utf-8')).toContain('(generator "pcb_framework")');
     });
 

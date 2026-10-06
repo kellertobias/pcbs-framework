@@ -174,6 +174,8 @@ export interface PcbRoutedSlot {
 }
 
 export interface PcbMountingHole {
+    /** Hide labels on dense fabrication perforations such as mouse bites. */
+    hideReference?: boolean;
     id: string;
     at: PcbPoint;
     drill: number;
@@ -209,6 +211,9 @@ export interface PcbLengthTarget {
     target?: number;
     tolerance?: number;
 }
+
+/** Circuit-owned physical rules, accepted directly by new Net({ class: rules }). */
+export type NetClassDefinition = Omit<PcbNetClass, 'nets'>;
 
 export interface PcbNetClass {
     name: string;
@@ -337,6 +342,16 @@ export interface PcbFiducial {
 }
 
 export interface PcbOptions {
+    /** CLI synthesis routes by default. Set false to maintain manual copper, or choose a backend. */
+    autoRoute?: false | { backend?: 'grid' | 'capacity' | 'simple' };
+    /** Routing-only polygons. Local regions admit nets with terminals inside, or explicitly listed nets. */
+    routingRegions?: Array<{
+        id: string;
+        points: PcbPoint[];
+        mode: 'keepout' | 'local';
+        layers?: Array<'F.Cu' | 'B.Cu'>;
+        nets?: string[];
+    }>;
     /** Direct manufacturing alignment marks; excluded from component BOM/CPL. */
     fiducials?: PcbFiducial[];
     /** KiCad board capability limits. These are checked against the actual copper. */
@@ -414,6 +429,14 @@ export interface SchematicRouteHint {
     /** Required support points, in sheet millimetres and traversal order. */
     waypoints: PcbPoint[];
 }
+export interface SchematicGroup {
+    id: string;
+    title: string;
+    components: string[];
+    notes?: string[];
+    /** Relationship between functional boxes, not coordinates for individual symbols. */
+    relativeTo?: { group: string; direction: 'left' | 'right' | 'up' | 'down'; gap?: number };
+}
 export interface SchematicRoutingOptions {
     /** Absolute field positions; multi-unit keys may be "RV1/2". Reserved by the wire router. */
     fields?: Record<
@@ -431,7 +454,7 @@ export interface SchematicRoutingOptions {
     /** Arrange every drawing from functional group membership; no individual coordinates required. */
     autoLayout?: {
         algorithm?: 'circuit' | 'grid';
-        groups: Array<{ id: string; title: string; components: string[]; notes?: string[] }>;
+        groups: SchematicGroup[];
     };
     /** Compact fields: resistor values inside their body, references beside it; IC names near the body. */
     compactFields?: boolean;
@@ -485,7 +508,7 @@ export type SchematicPaperSize =
 /** Options for Net constructor */
 export interface NetOptions {
     name: string;
-    class?: NetClass;
+    class?: NetClass | NetClassDefinition;
 }
 
 /** Dated component-only supplier quote. Assembly, shipping and taxes are excluded. */
@@ -568,6 +591,8 @@ export interface ModuleOptions<PinNames> extends ComponentOptions {
 
 /** Options for Schematic constructor */
 export interface SchematicOptions {
+    /** Circuit-owned rules, including the Default class for otherwise unassigned nets. */
+    netClasses?: PcbNetClass[];
     /** Physical contacts exported when this board is used as a module. */
     moduleInterface?: import('./BoardModule').BoardModuleInterface;
     name: string;

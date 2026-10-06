@@ -1,3 +1,4 @@
+import { outputPaths } from '../project/OutputPaths';
 import { prepareProjectLibraries } from '../project/ProjectLibraries';
 import { findPcbProject } from '../project/PcbProject';
 import * as path from 'path';
@@ -32,6 +33,9 @@ export function runSynthesis(
     outputDir: string,
     options: KicadGeneratorOptions = {},
 ): { success: boolean; output: string; errors?: string[]; warnings?: string[] } {
+    const sourceDirectory = outputPaths(outputDir).source;
+    outputDir = outputPaths(outputDir).export;
+    options = { autoRoute: true, footprintDirectory: sourceDirectory, ...options };
     const { projectRoot } = getConfig();
 
     // Define library search paths

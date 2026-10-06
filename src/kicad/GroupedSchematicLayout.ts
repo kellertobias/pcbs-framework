@@ -1,3 +1,4 @@
+import { groupClusters } from './GroupRelationships';
 import type { SchematicPosition, SchematicRoutingOptions } from '../synth/types';
 
 export interface LayoutPin {
@@ -285,6 +286,7 @@ export function arrangeSchematicGroups(
         0,
         sheets.findIndex((s) => s[0] === paper),
     );
+    const clusters = groupClusters(frames, options.groups);
     let selected = sheets[start];
     let packed = false;
     for (const sheet of sheets.slice(start)) {
@@ -292,7 +294,7 @@ export function arrangeSchematicGroups(
             y = 15.24,
             rowHeight = 0;
         const trial: Array<{ x: number; y: number }> = [];
-        const packingOrder = [...frames].sort((a, b) => b.height - a.height || b.width - a.width);
+        const packingOrder = [...clusters].sort((a, b) => b.height - a.height || b.width - a.width);
         const trialFrames = new Map<GroupFrame, { x: number; y: number }>();
         for (const frame of packingOrder) {
             if (x + frame.width > sheet[1] - 15.24) {
@@ -300,7 +302,8 @@ export function arrangeSchematicGroups(
                 y += rowHeight + 12.7;
                 rowHeight = 0;
             }
-            trialFrames.set(frame, { x, y });
+            for (const member of frame.offsets)
+                trialFrames.set(member.frame, { x: x + member.x, y: y + member.y });
             x += frame.width + 12.7;
             rowHeight = Math.max(rowHeight, frame.height);
         }

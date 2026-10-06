@@ -403,9 +403,9 @@ export class PcbGenerator {
         return (
             `\t(footprint "TSPCB:MountingHole"\n` +
             `\t\t(layer "F.Cu")\n\t\t(uuid "${this.uuids.getOrGenerate(`pcb:${managedId}`)}")\n\t\t(at ${hole.at.x} ${hole.at.y})\n` +
-            `\t\t(property "Reference" "${this.escapeQuoted(reference)}" (at 0 ${-(diameter / 2 + 1.5)} 0) (layer "F.SilkS") (uuid "${this.uuids.getOrGenerate(`pcb:${managedId}:reference`)}") (effects (font (size 1 1) (thickness 0.15))))\n` +
-            `\t\t(property "Value" "MountingHole_${hole.drill}mm" (at 0 ${diameter / 2 + 1.5} 0) (layer "F.Fab") hide (uuid "${this.uuids.getOrGenerate(`pcb:${managedId}:value`)}") (effects (font (size 1 1) (thickness 0.15))))\n` +
-            `\t\t(property "TSPCB.ManagedId" "${managedId}" (at 0 0 0) (layer "F.Fab") hide (uuid "${this.uuids.getOrGenerate(`pcb:${managedId}:property`)}") (effects (font (size 1 1) (thickness 0.15))))\n` +
+            `\t\t(property "Reference" "${this.escapeQuoted(reference)}" (at 0 ${-(diameter / 2 + 1.5)} 0) (layer "F.SilkS") ${hole.hideReference ? '(hide yes) ' : ''}(uuid "${this.uuids.getOrGenerate(`pcb:${managedId}:reference`)}") (effects (font (size 1 1) (thickness 0.15))))\n` +
+            `\t\t(property "Value" "MountingHole_${hole.drill}mm" (at 0 ${diameter / 2 + 1.5} 0) (layer "F.Fab") (hide yes) (uuid "${this.uuids.getOrGenerate(`pcb:${managedId}:value`)}") (effects (font (size 1 1) (thickness 0.15))))\n` +
+            `\t\t(property "TSPCB.ManagedId" "${managedId}" (at 0 0 0) (layer "F.Fab") (hide yes) (uuid "${this.uuids.getOrGenerate(`pcb:${managedId}:property`)}") (effects (font (size 1 1) (thickness 0.15))))\n` +
             `\t\t(attr exclude_from_pos_files exclude_from_bom)\n` +
             `\t\t(pad "${hole.plated ? '1' : ''}" ${padType} circle (at 0 0) (size ${diameter} ${diameter}) (drill ${hole.drill}) (layers ${layers}) (uuid "${this.uuids.getOrGenerate(`pcb:${managedId}:pad`)}"))\n\t)`
         );
@@ -807,7 +807,10 @@ export class PcbGenerator {
             );
             const match = table.match(libPattern);
             if (match) {
-                const root = match[1].replace(/\$\{KIPRJMOD\}/g, path.dirname(tablePath));
+                const root = path.resolve(
+                    path.dirname(tablePath),
+                    match[1].replace(/\$\{KIPRJMOD\}/g, path.dirname(tablePath)),
+                );
                 candidates.push(path.join(root, `${name}.kicad_mod`));
             }
         }

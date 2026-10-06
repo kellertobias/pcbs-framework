@@ -1,3 +1,5 @@
+import { backupGeneratedFile } from '../project/OutputPaths';
+import { automaticallyRoute } from '../router/AutomaticRouting';
 import { serializeNativeBoard } from './KicadNetFormat';
 import { copperUuids, loadRoutingFile } from './RoutingFile';
 import * as fs from 'fs';
@@ -13,6 +15,8 @@ import { PcbGenerator } from './PcbGenerator';
 import { PcbMode, PcbSyncReport, synchronizePcb } from './PcbSynchronizer';
 
 export interface KicadGeneratorOptions {
+    /** Enable source-driven PCB routing. The project CLI enables this for sync/rebuild. */
+    autoRoute?: boolean;
     /** Library lookup root, separate from the generated output directory. */
     footprintDirectory?: string;
     noWires?: boolean;
@@ -128,7 +132,8 @@ export class KicadGenerator {
             fs.mkdirSync(outputDir, { recursive: true });
         }
 
-        if ((options.pcbMode ?? 'preserve') !== 'preserve')
+        const automaticRouting = options.autoRoute === true && snapshot.pcb?.autoRoute !== false;
+        if ((options.pcbMode ?? 'preserve') !== 'preserve' && !automaticRouting)
             snapshot = loadRoutingFile(snapshot, outputDir);
         for (const board of snapshot.boards ?? []) {
             const generator = new KicadGenerator(this.libraryPaths);
@@ -265,6 +270,13 @@ export class KicadGenerator {
                 outputDir,
                 options.footprintDirectory,
             ).generate();
+            if (automaticRouting) {
+                const routed = automaticallyRoute(snapshot, pcbResult.content, outputDir);
+                pcbResult.content = routed.content;
+                console.log(
+                    `  → Automatic PCB routing: ${routed.cached ? 'reused matching generated cache' : 'regenerated from circuit and layout hints'}.`,
+                );
+            }
             this.uuids.save();
             this.warnings.push(...pcbResult.warnings);
             if (pcbMode === 'sync' && fs.existsSync(pcbPath)) {
@@ -335,12 +347,7 @@ export class KicadGenerator {
     }
 
     private createPcbBackup(pcbPath: string): string {
-        const stamp = new Date().toISOString().replace(/[-:.]/g, '');
-        let backupPath = `${pcbPath}.backup-${stamp}`;
-        let suffix = 1;
-        while (fs.existsSync(backupPath)) backupPath = `${pcbPath}.backup-${stamp}-${suffix++}`;
-        fs.copyFileSync(pcbPath, backupPath, fs.constants.COPYFILE_EXCL);
-        return backupPath;
+        return backupGeneratedFile(pcbPath);
     }
 
     private writeRouteIntent(outputDir: string, name: string, snapshot: CircuitSnapshot): void {

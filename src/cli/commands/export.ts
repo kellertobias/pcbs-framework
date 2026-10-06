@@ -1,3 +1,4 @@
+import { outputPaths } from '../../project/OutputPaths';
 import { PcbPanel } from '../../synth/PcbPanel';
 import { buildPcbPanel } from '../panel';
 import { findPcbProject } from '../../project/PcbProject';
@@ -27,7 +28,7 @@ import type { Component } from '../../synth/Component';
 export async function cmdExport(args: string[]): Promise<void> {
     const entry = args[0];
     const schematicPath = await resolveSchematic(entry);
-    const schematicDir = path.dirname(schematicPath);
+    const schematicDir = outputPaths(path.dirname(schematicPath)).export;
     const projectName = path.basename(schematicPath, path.extname(schematicPath));
     const { kicadCliPath } = getConfig();
 
@@ -258,7 +259,7 @@ export async function cmdExport(args: string[]): Promise<void> {
         // 6. 3D RENDERS
         // ══════════════════════════════════════════════
 
-        const renderDir = path.join(outputBase, 'renders');
+        const renderDir = outputPaths(schematicDir).renders;
         fs.mkdirSync(renderDir, { recursive: true });
 
         const topRender = path.join(renderDir, `${projectName}-top.png`);

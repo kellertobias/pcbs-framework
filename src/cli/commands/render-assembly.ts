@@ -1,3 +1,4 @@
+import { outputPaths } from '../../project/OutputPaths';
 import { resolveProjectEntryPath } from '../utils';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -40,7 +41,7 @@ export async function cmdRenderAssembly(args: string[]): Promise<void> {
         ].find((p) => fs.existsSync(p));
     if (!executable)
         throw new Error('Install Chrome/Chromium or set PCB_ASSEMBLY_CHROME to its executable');
-    const output = path.resolve(option('--output-dir') ?? path.join(path.dirname(file), 'renders'));
+    const output = path.resolve(option('--output-dir') ?? outputPaths(path.dirname(file)).renders);
     fs.mkdirSync(output, { recursive: true });
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'pcb-assembly-render-'));
     let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;

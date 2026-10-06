@@ -1,3 +1,4 @@
+import { outputPaths, generatedFile } from '../../project/OutputPaths';
 import { GridRoutingBackend } from '../../router/GridRoutingBackend';
 import { loadRoutingFile } from '../../kicad/RoutingFile';
 import * as path from 'path';
@@ -37,12 +38,12 @@ export async function cmdRoute(args: string[]): Promise<void> {
         schematic.generate();
         const snapshot = loadRoutingFile(
             schematic._generateWithCapture() as CircuitSnapshot,
-            path.dirname(schematicPath),
+            outputPaths(path.dirname(schematicPath)).export,
         );
         const backendName = valuesFor(args, '--backend')[0] ?? 'capacity';
         if (backendName !== 'simple' && backendName !== 'capacity' && backendName !== 'grid')
             die(`Unknown routing backend '${backendName}'. Available: capacity, grid, simple.`);
-        const boardPath = path.join(path.dirname(schematicPath), `${snapshot.name}.kicad_pcb`);
+        const boardPath = generatedFile(path.dirname(schematicPath), `${snapshot.name}.kicad_pcb`);
         const report = runIncrementalRouting(snapshot, boardPath, {
             backend:
                 backendName === 'grid'

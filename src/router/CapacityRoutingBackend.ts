@@ -1,4 +1,5 @@
 import { PcbExactRoute, PcbPoint } from '../synth/types';
+import { routingRegionObstacles } from './RoutingRegions';
 import { pointOnSegment } from '../kicad/Router';
 import { RoutingBackend, RoutingBackendRequest, RoutingBackendResult } from './types';
 import { runRoutingLibrary } from './LibraryRunner';
@@ -48,6 +49,7 @@ export class CapacityRoutingBackend implements RoutingBackend {
             };
         }
         const obstacles = [...geometry.obstacles];
+        const regionObstacles = routingRegionObstacles(request.snapshot, geometry.terminals);
         for (const net of request.eligibleNets) {
             try {
                 const hints = request.routeHints.filter((hint) => hint.nets.includes(net));
@@ -136,9 +138,7 @@ export class CapacityRoutingBackend implements RoutingBackend {
                     }
                 }
                 const names = connections.map((connection) => connection.name);
-                const forbidden = (hint?.forbiddenRegions ?? []).map((polygon) =>
-                    rectObstacle(polygon, 0, allowed),
-                );
+                const forbidden = regionObstacles.get(net) ?? [];
                 const inputObstacles = [...obstacles, ...forbidden].flatMap((obstacle) => {
                     const layers = obstacle.layers
                         .filter((layer) => layerNames.has(layer))

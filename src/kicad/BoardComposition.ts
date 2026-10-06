@@ -123,7 +123,7 @@ export function appendBoard(
                 );
                 item[1] = String(point.x);
                 item[2] = String(point.y);
-                if (key === 'at')
+                if (key === 'at' && node[0] !== 'via')
                     item[3] = String(Number(item[3] ?? 0) + (placement.rotation ?? 0));
             } else if (local && key === 'at') {
                 // KiCad pad orientations are absolute, unlike their local positions.

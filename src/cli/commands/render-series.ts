@@ -1,3 +1,4 @@
+import { outputPaths, resolveGeneratedInput } from '../../project/OutputPaths';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { BoardRender, RenderSeries } from '../../synth/RenderSeries';
@@ -37,7 +38,7 @@ export function planRenderSeries(
         if (!names.has(name)) throw new Error(`Unknown render: ${name}`);
     const directory = path.resolve(
         baseDirectory,
-        options.outputDirectory ?? series.outputDirectory ?? '.',
+        options.outputDirectory ?? series.outputDirectory ?? outputPaths(baseDirectory).renders,
     );
     return series.renders
         .filter((render) => !options.only || options.only.includes(render.name))
@@ -46,10 +47,12 @@ export function planRenderSeries(
                 throw new Error(`Unknown render kind: ${render.kind}`);
             const input = render.board ?? series.board;
             if (!input) throw new Error(`No board specified for ${render.name}`);
-            const board = path.resolve(baseDirectory, input);
+            const board = resolveGeneratedInput(path.resolve(baseDirectory, input));
             if (!fs.existsSync(board)) throw new Error(`Board missing: ${board}`);
             const output = path.resolve(
-                directory,
+                render.kind === 'model' && !options.outputDirectory && !series.outputDirectory
+                    ? outputPaths(baseDirectory).export
+                    : directory,
                 options.outputDirectory && render.output
                     ? path.basename(render.output)
                     : (render.output ??

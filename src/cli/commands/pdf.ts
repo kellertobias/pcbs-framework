@@ -1,3 +1,4 @@
+import { outputPaths, generatedFile, resolveGeneratedInput } from '../../project/OutputPaths';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -134,16 +135,19 @@ export async function cmdPdf(args: string[]): Promise<void> {
     const options = parsePdfArgs(args);
     let base: string;
     if (options.entry && /\.kicad_(sch|pcb)$/.test(options.entry)) {
-        base = path.resolve(options.entry).replace(/\.kicad_(sch|pcb)$/, '');
+        base = resolveGeneratedInput(options.entry).replace(/\.kicad_(sch|pcb)$/, '');
     } else {
         const entry = await resolveSchematic(options.entry);
         const schematic = require(entry).default;
         if (!schematic || typeof schematic.name !== 'string' || !schematic.name) {
             throw new Error(`${entry} must default-export a named Schematic instance.`);
         }
-        base = path.join(path.dirname(entry), schematic.name);
+        base = generatedFile(path.dirname(entry), `${schematic.name}.kicad_sch`).replace(
+            /\.kicad_sch$/,
+            '',
+        );
     }
-    const outputDir = path.resolve(options.output ?? path.join(path.dirname(base), 'pdf'));
+    const outputDir = path.resolve(options.output ?? outputPaths(path.dirname(base)).export);
     for (const output of exportProjectPdfs(base, outputDir, options.only)) {
         console.log(`PDF generated: ${output}`);
     }

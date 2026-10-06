@@ -1,3 +1,4 @@
+import { generatedFile, resolveGeneratedInput } from '../project/OutputPaths';
 import { assemblyWorldMatrix, validateAssemblyHierarchy } from './transforms';
 import { buildPanelModel, projectPanelCutouts, panelSVG, panelDXF } from './front-panel';
 import { threeMFMillimetreScale } from './model-units';
@@ -34,9 +35,12 @@ export function resolveAssemblyBoard(
 ): string {
     let file: string;
     if (part.schematic)
-        file = path.resolve(base, part.sourceDirectory!, `${part.schematic.name}.kicad_pcb`);
+        file = generatedFile(
+            path.resolve(base, part.sourceDirectory!),
+            `${part.schematic.name}.kicad_pcb`,
+        );
     else {
-        file = path.resolve(base, part.file!);
+        file = resolveGeneratedInput(path.resolve(base, part.file!));
         const ext = path.extname(file).toLowerCase();
         if (ext === '.kicad_sch') file = file.replace(/\.kicad_sch$/i, '.kicad_pcb');
         else if (['.ts', '.js'].includes(ext)) {
@@ -47,7 +51,7 @@ export function resolveAssemblyBoard(
                 typeof schematic._generateWithCapture !== 'function'
             )
                 throw new Error(`Not a schematic entry: ${file}`);
-            file = path.join(path.dirname(file), `${schematic.name}.kicad_pcb`);
+            file = generatedFile(path.dirname(file), `${schematic.name}.kicad_pcb`);
         } else if (ext !== '.kicad_pcb') throw new Error(`Unsupported board source: ${file}`);
     }
     if (!fs.existsSync(file))

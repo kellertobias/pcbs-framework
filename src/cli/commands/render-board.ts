@@ -1,3 +1,4 @@
+import { outputPaths, resolveGeneratedInput } from '../../project/OutputPaths';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -17,14 +18,17 @@ export async function cmdRenderBoard(
         const i = args.indexOf(flag);
         return i < 0 ? fallback : args[i + 1];
     }
-    const board = path.resolve(input);
+    const board = resolveGeneratedInput(input);
     if (!fs.existsSync(board)) throw new Error(`Board missing: ${board}`);
     const output = path.resolve(
         option(
             '--output',
-            board.replace(
-                /\.kicad_pcb$/,
-                kind === 'model' ? '.wrl' : kind === 'layers' ? '-layers.png' : '-3d.png',
+            path.join(
+                kind === 'model'
+                    ? outputPaths(path.dirname(board)).export
+                    : outputPaths(path.dirname(board)).renders,
+                path.basename(board, '.kicad_pcb') +
+                    (kind === 'model' ? '.wrl' : kind === 'layers' ? '-layers.png' : '-3d.png'),
             ),
         ),
     );

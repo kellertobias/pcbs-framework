@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import * as fs from "fs";
-import * as path from "path";
-import { Schematic, Net, Component } from "../synth";
-import { runSynthesis } from "../cli/synthesis";
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Schematic, Net, Component } from '../synth';
+import { runSynthesis } from '../cli/synthesis';
 
-describe("Component Auto-Rotation & Text Placement", () => {
-    const TEST_DIR = path.join(__dirname, "temp_autorotation_test");
+describe('Component Auto-Rotation & Text Placement', () => {
+    const TEST_DIR = path.join(__dirname, 'temp_autorotation_test');
 
     beforeAll(() => {
         if (!fs.existsSync(TEST_DIR)) {
@@ -20,28 +20,28 @@ describe("Component Auto-Rotation & Text Placement", () => {
     });
 
     function getSchContent(result: any, name: string): string {
-        if (!result.success) console.error("Synthesis failed:", JSON.stringify(result, null, 2));
+        if (!result.success) console.error('Synthesis failed:', JSON.stringify(result, null, 2));
         expect(result.success).toBe(true);
-        const schPath = path.join(TEST_DIR, `${name}.kicad_sch`);
+        const schPath = path.join(TEST_DIR, 'export', `${name}.kicad_sch`);
         expect(fs.existsSync(schPath)).toBe(true);
         return fs.readFileSync(schPath, 'utf8');
     }
 
-    it("auto-rotates a single resistor between +5V and GND vertically", () => {
+    it('auto-rotates a single resistor between +5V and GND vertically', () => {
         class ResistorTest extends Schematic {
             constructor() {
-                super({ name: "ResistorTest" });
+                super({ name: 'ResistorTest' });
             }
 
             generate(): void {
-                const vcc = new Net({ name: "+5V", class: "Power" });
-                const gnd = new Net({ name: "GND", class: "Power" });
+                const vcc = new Net({ name: '+5V', class: 'Power' });
+                const gnd = new Net({ name: 'GND', class: 'Power' });
 
                 const r1 = new Component({
-                    symbol: "Device:R",
-                    ref: "R1",
-                    footprint: "Resistor_SMD:R_0603_1608Metric",
-                    value: "10k",
+                    symbol: 'Device:R',
+                    ref: 'R1',
+                    footprint: 'Resistor_SMD:R_0603_1608Metric',
+                    value: '10k',
                 });
 
                 // Pin 1 to +5V, Pin 2 to GND
@@ -54,12 +54,12 @@ describe("Component Auto-Rotation & Text Placement", () => {
         const snapshot = board._generateWithCapture();
 
         // Check pre-condition: Component has no explicit rotation overrides preventing our heuristic.
-        const r1Def = snapshot.components.find(c => c.ref === "R1");
+        const r1Def = snapshot.components.find((c) => c.ref === 'R1');
         // We evaluate its final placement directly from the resulting kicad_sch file.
 
         if (!fs.existsSync(TEST_DIR)) fs.mkdirSync(TEST_DIR, { recursive: true });
         const result = runSynthesis(snapshot, TEST_DIR);
-        const sch = getSchContent(result, "ResistorTest");
+        const sch = getSchContent(result, 'ResistorTest');
 
         // After schematic generation, the component should be auto-rotated to align with Power/GND rails automatically.
         // It's a vertical layout since it's bridging top and bottom rails.
@@ -77,29 +77,29 @@ describe("Component Auto-Rotation & Text Placement", () => {
         expect(sch).toMatch(/\(lib_id "power:GND"\)\s+\(at [0-9.-]+ [0-9.-]+ (90|270)\)/);
     });
 
-    it("properly aligns a 3-pin header layout horizontally or vertically with valid labels", () => {
+    it('properly aligns a 3-pin header layout horizontally or vertically with valid labels', () => {
         class HeaderTest extends Schematic {
             constructor() {
-                super({ name: "HeaderTest" });
+                super({ name: 'HeaderTest' });
             }
 
             generate(): void {
-                const vcc = new Net({ name: "+5V", class: "Power" });
-                const gnd = new Net({ name: "GND", class: "Power" });
-                const sig = new Net({ name: "SIGNAL" });
+                const vcc = new Net({ name: '+5V', class: 'Power' });
+                const gnd = new Net({ name: 'GND', class: 'Power' });
+                const sig = new Net({ name: 'SIGNAL' });
 
                 const r1 = new Component({
-                    symbol: "Device:R",
-                    ref: "R1",
-                    footprint: "Resistor_SMD:R_0603_1608Metric",
-                    value: "10k",
+                    symbol: 'Device:R',
+                    ref: 'R1',
+                    footprint: 'Resistor_SMD:R_0603_1608Metric',
+                    value: '10k',
                 });
 
                 const j1 = new Component({
-                    symbol: "Connector_Generic:Conn_01x03",
-                    ref: "J1",
-                    footprint: "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
-                    value: "HDR"
+                    symbol: 'Connector_Generic:Conn_01x03',
+                    ref: 'J1',
+                    footprint: 'Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical',
+                    value: 'HDR',
                 });
 
                 // Resistor connected to GND
@@ -121,7 +121,7 @@ describe("Component Auto-Rotation & Text Placement", () => {
         if (!fs.existsSync(TEST_DIR)) fs.mkdirSync(TEST_DIR, { recursive: true });
         const result = runSynthesis(snapshot, TEST_DIR);
 
-        const sch = getSchContent(result, "HeaderTest");
+        const sch = getSchContent(result, 'HeaderTest');
 
         // Verify elements were correctly rendered
         expect(sch).toMatch(/\(property "Reference" "R1"/);
@@ -133,7 +133,9 @@ describe("Component Auto-Rotation & Text Placement", () => {
 
         // Ensure R1 is horizontally aligned, since the header provides vertical pins
         // Actually J1 is native vertical (0 degrees), so R1 connects horizontally.
-        // We ensure that text positions were evaluated preventing label overlaps. 
-        expect(sch).toMatch(/\(lib_id "Connector_Generic:Conn_01x03"\)\s+\(at [0-9.-]+ [0-9.-]+(?: [0-9.-]+)?\)/);
+        // We ensure that text positions were evaluated preventing label overlaps.
+        expect(sch).toMatch(
+            /\(lib_id "Connector_Generic:Conn_01x03"\)\s+\(at [0-9.-]+ [0-9.-]+(?: [0-9.-]+)?\)/,
+        );
     });
 });

@@ -1,3 +1,4 @@
+import { outputPaths, resolveGeneratedInput } from '../../project/OutputPaths';
 import * as fs from 'fs';
 import * as path from 'path';
 import { resolveSchematic, die } from '../utils';
@@ -42,9 +43,9 @@ export async function cmdFrontPanel(args: string[]): Promise<void> {
     )
         die('Vertical frontpanel export requires --edge');
     const schematicPath = entry?.endsWith('.kicad_pcb')
-        ? path.resolve(entry)
+        ? resolveGeneratedInput(entry)
         : await resolveSchematic(entry);
-    const schematicDir = path.dirname(schematicPath);
+    const schematicDir = outputPaths(path.dirname(schematicPath)).export;
     if (
         !schematicPath.endsWith('.kicad_pcb') &&
         (panelName || flags.has('--list') || !flags.has('--edge'))

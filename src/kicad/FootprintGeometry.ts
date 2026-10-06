@@ -66,6 +66,10 @@ export function footprint(name: string, libraryDirectories: readonly string[] = 
             path.resolve(directory, `${lib}.pretty`, `${part}.kicad_mod`),
         ),
         path.resolve('.kicad', `${lib}.pretty`, `${part}.kicad_mod`),
+        ...(process.env.KICAD_FOOTPRINT_DIR?.split(path.delimiter) ?? []).map((directory) =>
+            path.join(directory, `${lib}.pretty`, `${part}.kicad_mod`),
+        ),
+        path.join('/usr/share/kicad/footprints', `${lib}.pretty`, `${part}.kicad_mod`),
         path.join(
             '/Applications/KiCad/KiCad.app/Contents/SharedSupport/footprints',
             `${lib}.pretty`,

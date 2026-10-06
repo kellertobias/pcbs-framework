@@ -1,4 +1,5 @@
 import { RoutingBackend, RoutingBackendRequest, RoutingBackendResult } from './types';
+import { routingRegionObstacles } from './RoutingRegions';
 import { PcbPoint, PcbExactRoute } from '../synth/types';
 import {
     boardRoutingGeometry,
@@ -34,6 +35,7 @@ export class GridRoutingBackend implements RoutingBackend {
     private routeAttempt(request: RoutingBackendRequest, attempt: number): RoutingBackendResult {
         const out: RoutingBackendResult = { completed: [], skipped: [], failed: [] };
         const geometry = boardRoutingGeometry(request.boardSource, new Set());
+        const regionObstacles = routingRegionObstacles(request.snapshot, geometry.terminals);
         const obstacles = [...geometry.obstacles];
         const pitch = 0.05,
             b = geometry.bounds,
@@ -91,7 +93,7 @@ export class GridRoutingBackend implements RoutingBackend {
                     ),
                 ) &&
                 geometry.contours.reduce((yes, p) => (inPolygon(a, p) ? !yes : yes), false) &&
-                obstacles.every(
+                [...obstacles, ...(regionObstacles.get(t.net!) ?? [])].every(
                     (o) =>
                         o.net === t.net ||
                         !o.layers.includes(z) ||
@@ -216,15 +218,7 @@ export class GridRoutingBackend implements RoutingBackend {
                     diameter = rule?.viaDiameter ?? 0.5,
                     drill = rule?.viaDrill ?? 0.25;
                 const hints = request.routeHints.filter((h) => h.nets.includes(net));
-                if (
-                    hints.some(
-                        (h) =>
-                            h.corridors?.length ||
-                            h.forbiddenRegions?.length ||
-                            h.differential ||
-                            h.length,
-                    )
-                )
+                if (hints.some((h) => h.corridors?.length || h.differential || h.length))
                     throw Error('Grid backend does not support this route hint; use capacity.');
                 const allowed = hints[0]?.preferredLayers ??
                     rule?.preferredLayers ?? ['F.Cu', 'B.Cu'];
@@ -251,7 +245,10 @@ export class GridRoutingBackend implements RoutingBackend {
                     out.skipped.push({ net, reason: 'one terminal' });
                     continue;
                 }
-                const foreign = obstacles.filter((o) => o.net !== net);
+                const foreign = [
+                    ...obstacles.filter((o) => o.net !== net),
+                    ...(regionObstacles.get(net) ?? []),
+                ];
                 const bins = new Map<string, typeof foreign>();
                 for (const o of foreign)
                     for (
@@ -375,6 +372,20 @@ export class GridRoutingBackend implements RoutingBackend {
                     segments: [...(f?.segments ?? []), ...(trunk?.segments ?? [])],
                     vias: [...(f?.vias ?? [])],
                 };
+                if (
+                    route.segments!.some(
+                        (s) =>
+                            !legal(
+                                s.start as PcbPoint,
+                                s.end as PcbPoint,
+                                s.layer,
+                                (s.width ?? width) / 2,
+                            ),
+                    )
+                )
+                    throw new Error(
+                        'Required support-point trunk crosses a keepout, foreign copper, or board edge.',
+                    );
                 const remaining = terminals.slice(1),
                     ordered = [terminals[0]];
                 while (remaining.length) {

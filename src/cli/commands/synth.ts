@@ -1,3 +1,4 @@
+import { outputPaths } from '../../project/OutputPaths';
 import { PcbPanel } from '../../synth/PcbPanel';
 import { buildPcbPanel } from '../panel';
 import * as path from 'path';
@@ -82,7 +83,7 @@ export function pcbModeFromArgs(args: string[]): PcbMode {
 export async function cmdSynth(args: string[]): Promise<void> {
     const parsed = parseSynthArgs(args);
     const schematicPath = await resolveSchematic(parsed.entry);
-    const schematicDir = path.dirname(schematicPath);
+    const schematicDir = outputPaths(path.dirname(schematicPath)).export;
     const schematicName = path.basename(schematicDir);
 
     console.log(`\n🚀  Synthesizing: ${schematicName}\n`);

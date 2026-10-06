@@ -205,3 +205,5 @@ See [Schematic field placement and readability](docs/SchematicReadability.md) fo
 visible-field controls, inline test points, and generation-time drawing warnings.
 
 Automatic placement from functional groups: [Automatic schematic layout](docs/AutomaticSchematicLayout.md).
+
+See [Exports and automatic routing](docs/OutputWorkflow.md) for generated asset folders, installer Git policy, cleanup and routing constraints.

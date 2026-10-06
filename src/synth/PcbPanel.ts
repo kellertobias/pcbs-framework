@@ -1,3 +1,4 @@
+import { outputPaths, generatedFile } from '../project/OutputPaths';
 import path from 'node:path';
 import { PcbProject, findPcbProject } from '../project/PcbProject';
 import { Schematic } from './Schematic';
@@ -63,8 +64,8 @@ export class PcbPanel {
                         throw new Error(`Panel source must be a Schematic: ${entry}`);
                     this.addBoard(source, {
                         ...placement,
-                        sourceDirectory: path.dirname(entry),
-                        sourcePcb: `${source.name}.kicad_pcb`,
+                        sourceDirectory: outputPaths(path.dirname(entry)).export,
+                        sourcePcb: generatedFile(path.dirname(entry), `${source.name}.kicad_pcb`),
                     });
                 }
             }

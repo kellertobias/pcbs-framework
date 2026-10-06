@@ -173,7 +173,9 @@ describe('persistent PCB routing', () => {
         saveRoutingFile(file, saved);
         saveRoutingFile(file, saved);
         expect(
-            fs.readdirSync(dir).filter((name) => name.startsWith('routing.json.backup-')),
+            fs
+                .readdirSync(path.join(dir, '.backups'))
+                .filter((name) => name.startsWith('routing.json.backup-')),
         ).toHaveLength(1);
     });
 

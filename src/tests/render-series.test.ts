@@ -120,7 +120,11 @@ describe('declarative render batches', () => {
         ).toThrow('Invalid zoom');
         expect(() =>
             planRenderSeries(
-                { ...series, renders: [{ ...series.renders[0], output: 'board.kicad_pcb' }] },
+                {
+                    ...series,
+                    outputDirectory: '.',
+                    renders: [{ ...series.renders[0], output: 'board.kicad_pcb' }],
+                },
                 directory,
             ),
         ).toThrow('Conflicting');

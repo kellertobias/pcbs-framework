@@ -58,6 +58,8 @@ export class SimpleRoutingBackend implements RoutingBackend {
         pads: RouterPad[],
         request: RoutingBackendRequest,
     ): BackendNetResult {
+        if (request.snapshot.pcb?.routingRegions?.length)
+            throw new Error('Routing regions require the grid or capacity backend.');
         const hint = request.routeHints.find((candidate) => candidate.nets.includes(net));
         const netClass = request.netClasses.find((candidate) => candidate.nets?.includes(net));
         const layer = hint?.preferredLayers?.[0] ?? netClass?.preferredLayers?.[0] ?? 'F.Cu';

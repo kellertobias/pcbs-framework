@@ -1,3 +1,4 @@
+import { outputPaths } from '../project/OutputPaths';
 import { serializeNativeBoard } from '../kicad/KicadNetFormat';
 import { KicadGenerator } from '../kicad/KicadGenerator';
 import fs from 'node:fs';
@@ -24,7 +25,7 @@ export async function buildPcbPanel(
         const { cmdSynth } = await import('./commands/synth');
         for (const source of panel.sourceEntries()) await cmdSynth([source, '--pcb', 'sync']);
     }
-    const directory = path.dirname(entry);
+    const directory = outputPaths(path.dirname(entry)).export;
     fs.mkdirSync(directory, { recursive: true });
     prepareProjectLibraries(directory, getConfig().projectRoot);
     const uuids = new UuidManager();

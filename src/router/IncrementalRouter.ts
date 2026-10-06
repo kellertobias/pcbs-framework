@@ -1,4 +1,5 @@
-import { normalizeBoardNets } from '../kicad/KicadNetFormat';
+import { backupGeneratedFile } from '../project/OutputPaths';
+import { normalizeBoardNets, serializeNativeBoard } from '../kicad/KicadNetFormat';
 import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -152,12 +153,11 @@ export function runIncrementalRouting(
     };
     let backupPath: string | undefined;
     if (completed.length) {
-        backupPath = `${boardPath}.route-backup-${timestamp()}`;
-        fs.copyFileSync(boardPath, backupPath);
+        backupPath = backupGeneratedFile(boardPath, 'route-backup');
         if (replacedCodes.size) removeSelectedCopper(board, replacedCodes);
         for (const entry of completed)
             appendRoute(board, entry.route!, codesByName.get(entry.net)!);
-        writeAtomic(boardPath, `${SExpressionParser.serialize(board)}\n`);
+        writeAtomic(boardPath, serializeNativeBoard(SExpressionParser.serialize(board)));
     }
 
     const drc =
@@ -246,7 +246,10 @@ function appendRoute(board: Node, route: PcbExactRoute, netCode: number): void {
             ['width', String(segment.width ?? route.width ?? 0.25)],
             ['layer', `"${segment.layer}"`],
             ['net', String(netCode)],
-            ['uuid', `"${stableUuid(`${route.id}:segment:${segment.id ?? index}`)}"`],
+            [
+                'uuid',
+                `"${segment.uuid ?? stableUuid(`${route.id}:segment:${segment.id ?? index}`)}"`,
+            ],
         ]);
     }
     for (const [index, arc] of (route.arcs ?? []).entries()) {
@@ -260,7 +263,7 @@ function appendRoute(board: Node, route: PcbExactRoute, netCode: number): void {
             ['width', String(arc.width ?? route.width ?? 0.25)],
             ['layer', `"${arc.layer}"`],
             ['net', String(netCode)],
-            ['uuid', `"${stableUuid(`${route.id}:arc:${arc.id ?? index}`)}"`],
+            ['uuid', `"${arc.uuid ?? stableUuid(`${route.id}:arc:${arc.id ?? index}`)}"`],
         ]);
     }
     for (const [index, via] of (route.vias ?? []).entries()) {
@@ -272,9 +275,35 @@ function appendRoute(board: Node, route: PcbExactRoute, netCode: number): void {
             ['drill', String(via.drill ?? 0.4)],
             ['layers', `"${via.fromLayer ?? 'F.Cu'}"`, `"${via.toLayer ?? 'B.Cu'}"`],
             ['net', String(netCode)],
-            ['uuid', `"${stableUuid(`${route.id}:via:${via.id ?? index}`)}"`],
+            ['uuid', `"${via.uuid ?? stableUuid(`${route.id}:via:${via.id ?? index}`)}"`],
         ]);
     }
+}
+
+/** Reapply only coordinate-based generated copper to the matching bare board. */
+export function appendGeneratedRoutes(source: string, routes: PcbExactRoute[]): string {
+    const board = SExpressionParser.parse(source).find((value): value is Node =>
+        isNode(value, 'kicad_pcb'),
+    );
+    if (!board) throw new Error('Invalid PCB for routing cache.');
+    normalizeBoardNets(board);
+    const codes = new Map(
+        children(board, 'net').map((net) => [atom(net, 2), Number(atom(net, 1))]),
+    );
+    for (const route of routes) {
+        const code = codes.get(route.net);
+        if (code === undefined)
+            throw new Error(`Routing cache references unknown net ${route.net}.`);
+        const points = [
+            ...(route.segments ?? []).flatMap((s) => [s.start, s.end]),
+            ...(route.arcs ?? []).flatMap((s) => [s.start, s.mid, s.end]),
+            ...(route.vias ?? []).map((v) => v.at),
+        ];
+        if (points.some((p) => !('x' in p) || !Number.isFinite(p.x) || !Number.isFinite(p.y)))
+            throw new Error('Automatic routing cache must contain finite coordinates.');
+        appendRoute(board, route, code);
+    }
+    return serializeNativeBoard(SExpressionParser.serialize(board));
 }
 
 function removeSelectedCopper(board: Node, codes: Set<number>): void {
@@ -291,8 +320,19 @@ function runDrc(boardPath: string): RoutingDrcReport {
         `${path.basename(boardPath, '.kicad_pcb')}.route-drc.rpt`,
     );
     const result = spawnSync(
-        'kicad-cli',
-        ['pcb', 'drc', '--exit-code-violations', '--output', reportPath, boardPath],
+        process.env.KICAD_CLI ??
+            (fs.existsSync('/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli')
+                ? '/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli'
+                : 'kicad-cli'),
+        [
+            'pcb',
+            'drc',
+            '--refill-zones',
+            '--exit-code-violations',
+            '--output',
+            reportPath,
+            boardPath,
+        ],
         { encoding: 'utf-8' },
     );
     if (result.error && (result.error as NodeJS.ErrnoException).code === 'ENOENT')

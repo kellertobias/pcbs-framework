@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { cmdProjects } from './commands/projects';
+import { cmdCleanOutputs } from './commands/clean-outputs';
 import { cmdDxf } from './commands/dxf';
 import { cmdRenderAssembly } from './commands/render-assembly';
 
@@ -62,7 +63,9 @@ Commands:
   datasheet <manifest.json>      Generate a component datasheet PDF
   datasheet --all                Regenerate PDFs for all library footprints
   types                          Sync KiCad library symbols and footprints to TS types
-  setup                          Configure project tsconfig.json for KiCad types
+  setup                          Configure KiCad types and choose export/backup Git policy
+    [--track-exports|--ignore-exports] [--track-backups|--ignore-backups]
+  clean-outputs [root] [--apply] Preview or migrate generated files into export/ and .backups/
   frontpanel <schematic> <name>  Export a named schematic panel to four-layer DXF/SVG
     --list [--pcb <file>] [--output <dir>]
   frontpanel [entry|pcb]         Legacy footprint-property panel export
@@ -85,7 +88,8 @@ Schematic Selection:
 
 PCB Modes:
   preserve  Do not read or write the PCB (default; safest for routed boards)
-  sync      Merge declared footprint placement and nets; preserve copper/manual objects
+  sync      Merge declared placement/nets and regenerate automatic copper on changed inputs
+            Set pcb.autoRoute=false to preserve manual routing.
   rebuild   Back up the existing PCB and generate a fresh declared board
 
 KiCad Reload:
@@ -123,6 +127,8 @@ async function main(): Promise<void> {
     const commandArgs = args.slice(1);
 
     switch (command) {
+        case 'clean-outputs':
+            return cmdCleanOutputs(commandArgs);
         case 'projects':
             cmdProjects(commandArgs);
             break;
