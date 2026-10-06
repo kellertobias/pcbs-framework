@@ -167,6 +167,17 @@ export class KicadGenerator {
         console.log(`  → Generating Schematic: ${schPath}...`);
         const schematicGen = new SchematicGenerator(snapshot, this.library, this.uuids, options);
         const schematicContent = schematicGen.generate();
+        if (schematicGen.layoutReport) {
+            const { positions, ...layout } = schematicGen.layoutReport;
+            fs.writeFileSync(
+                path.join(outputDir, `${name}-schematic-layout.json`),
+                `${JSON.stringify({ ...layout, positions: Object.fromEntries(positions), warnings: schematicGen.warnings }, null, 2)}\n`,
+            );
+            console.log(
+                `  → Arranged ${positions.size} drawings in ${layout.frames.length} functional groups (${layout.paper}, ${layout.algorithm}).`,
+            );
+        }
+
         if (schematicGen.errors.length > 0) {
             this.errors.push(...schematicGen.errors);
         }

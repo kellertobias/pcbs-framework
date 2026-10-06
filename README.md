@@ -200,3 +200,8 @@ geometry, circuit construction and fabrication APIs, and their project consumers
 ## PCB projects and panels
 
 See [Projects and manufacturing panels](docs/ProjectsAndPanels.md) for optional project-local modules, libraries, schematics and assemblies, and PCB-only panel exports.
+
+See [Schematic field placement and readability](docs/SchematicReadability.md) for
+visible-field controls, inline test points, and generation-time drawing warnings.
+
+Automatic placement from functional groups: [Automatic schematic layout](docs/AutomaticSchematicLayout.md).

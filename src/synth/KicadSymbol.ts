@@ -143,6 +143,15 @@ export class KicadSymbol {
     private _texts: SymText[] = [];
     private _circles: SymCircle[] = [];
     private _lines: SymLine[] = [];
+    private _units = new Map<number, KicadSymbol>();
+
+    /** Independent KiCad drawing units sharing one reference and footprint. */
+    public addUnit(number: number, drawing: KicadSymbol): this {
+        if (!Number.isInteger(number) || number < 1 || this._units.has(number))
+            throw new Error(`Invalid or duplicate symbol unit: ${number}`);
+        this._units.set(number, drawing);
+        return this;
+    }
 
     constructor(options: {
         name: string;
@@ -249,6 +258,20 @@ export class KicadSymbol {
         }
         parts.push(this._serializePropertyHidden('Datasheet', ''));
         parts.push(this._serializePropertyHidden('Description', this.description));
+
+        if (this._units.size) {
+            for (const [unit, drawing] of this._units) {
+                parts.push(`\t\t(symbol "${this.name}_${unit}_1"`);
+                for (const rect of drawing._rects) parts.push(this._serializeRect(rect));
+                for (const circle of drawing._circles) parts.push(this._serializeCircle(circle));
+                for (const line of drawing._lines) parts.push(this._serializeLine(line));
+                for (const text of drawing._texts) parts.push(this._serializeText(text));
+                for (const pin of drawing._pins) parts.push(this._serializePin(pin));
+                parts.push('\t\t)');
+            }
+            parts.push('\t\t(embedded_fonts no)', '\t)');
+            return parts.join('\n');
+        }
 
         // Graphical sub-symbol: <Name>_0_1 — contains rectangles, circles, lines
         if (this._rects.length > 0 || this._circles.length > 0 || this._lines.length > 0) {

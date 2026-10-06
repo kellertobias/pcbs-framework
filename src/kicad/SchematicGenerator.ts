@@ -1,3 +1,9 @@
+import {
+    arrangeSchematicGroups,
+    type GroupLayoutResult,
+    type LayoutPart,
+} from './GroupedSchematicLayout';
+import { schematicReadabilityWarnings } from './SchematicReadability';
 import { componentCostFields } from '../synth/ComponentCost';
 import { CircuitSnapshot, Pin } from '../synth/types';
 import { Component } from '../synth/Component';
@@ -22,8 +28,10 @@ interface PinInfo {
     y: number;
     rotation: number;
     number?: string;
+    length?: number;
 }
 interface PinPos {
+    terminal?: string;
     x: number;
     y: number;
     rotation: number;
@@ -37,6 +45,8 @@ export class SchematicGenerator {
     private router = new Router(1.27);
     public errors: string[] = [];
     public warnings: string[] = [];
+    public layoutReport?: GroupLayoutResult;
+    private groupOwners = new WeakMap<Component, string>();
     private _cachedBoxes: Box[] | undefined;
     private fieldKeepouts: Box[] = [];
     private portAnchors: { point: Point; net: string }[] = [];
@@ -46,6 +56,84 @@ export class SchematicGenerator {
     private moduleUnusedPins = new Set<Pin>();
     private powerSymbolCounter = 0;
     private options: KicadGeneratorOptions;
+    private sourceSnapshot: CircuitSnapshot;
+    private drawingUnits = new WeakMap<Component, { unit: number; symbol: SymbolDefinition }>();
+
+    private drawingSymbol(comp: Component): SymbolDefinition | null {
+        return this.drawingUnits.get(comp)?.symbol ?? this.library.getSymbol(comp.symbol);
+    }
+
+    private expandDrawingUnits(): void {
+        const components = this.snapshot.components.flatMap((component) => {
+            const placements = this.snapshot.schematicRouting?.units?.[component.ref];
+            const symbol = this.library.getSymbol(component.symbol);
+            if (!placements) {
+                if (
+                    symbol &&
+                    Array.isArray(symbol.definition) &&
+                    symbol.definition.some((item) => {
+                        if (!Array.isArray(item) || item[0] !== 'symbol') return false;
+                        const match = String(item[1]).match(/_(\d+)_\d+"?$/);
+                        return match && Number(match[1]) > 1;
+                    })
+                )
+                    throw new Error(
+                        `Multi-unit symbol ${component.ref} requires schematicRouting.units placement for every unit`,
+                    );
+                return [component];
+            }
+            if (!symbol || !Array.isArray(symbol.definition))
+                throw new Error(`Missing multi-unit symbol for ${component.ref}`);
+            const seenUnits = new Set<number>();
+            const seenPins = new Set<string>();
+            const drawings = placements.map(({ unit, position }) => {
+                if (!position && !this.snapshot.schematicRouting?.autoLayout)
+                    throw new Error(
+                        `Unit ${component.ref}/${unit} needs a position or automatic groups.`,
+                    );
+                position ??= { x: 0, y: 0, rotation: 0 };
+                if (!Number.isInteger(unit) || unit < 1 || seenUnits.has(unit))
+                    throw new Error(`Invalid or duplicate unit for ${component.ref}`);
+                seenUnits.add(unit);
+                const definition = (symbol.definition as SExpr[]).filter((item) => {
+                    if (!Array.isArray(item) || item[0] !== 'symbol') return true;
+                    const match = String(item[1]).match(/_(\d+)_\d+"?$/);
+                    return !match || Number(match[1]) === 0 || Number(match[1]) === unit;
+                });
+                const selected = { ...symbol, definition };
+                const numbers = new Set(
+                    this.findAllPinsInSymbol(selected).map((pin) =>
+                        SExpressionParser.unquote(String(pin.number)),
+                    ),
+                );
+                if (!numbers.size) throw new Error(`Empty unit ${component.ref}/${unit}`);
+                for (const number of numbers) {
+                    if (seenPins.has(number))
+                        throw new Error(`Pin ${component.ref}.${number} appears in multiple units`);
+                    seenPins.add(number);
+                }
+                const drawing = Object.create(component) as Component;
+                Object.defineProperties(drawing, {
+                    schematicPosition: { value: { ...position }, configurable: true },
+                    absoluteSchematicPosition: { value: { ...position }, configurable: true },
+                    allPins: {
+                        value: new Map(
+                            [...component.allPins].filter(([, pin]) => numbers.has(pin.name)),
+                        ),
+                    },
+                });
+                this.drawingUnits.set(drawing, { unit, symbol: selected });
+                return drawing;
+            });
+            const expected = this.findAllPinsInSymbol(symbol).map((pin) =>
+                SExpressionParser.unquote(String(pin.number)),
+            );
+            if (expected.some((number) => !seenPins.has(number)))
+                throw new Error(`Not all units are placed for ${component.ref}`);
+            return drawings;
+        });
+        this.snapshot = { ...this.snapshot, components };
+    }
 
     constructor(
         snapshot: CircuitSnapshot,
@@ -54,12 +142,41 @@ export class SchematicGenerator {
         options: KicadGeneratorOptions = {},
     ) {
         this.snapshot = snapshot;
+        this.sourceSnapshot = snapshot;
         this.library = library;
         this.uuids = uuids;
         this.options = options;
     }
 
     generate(): string {
+        this.errors = [];
+        this.warnings = [];
+        this.snapshot = this.sourceSnapshot;
+        const attached = new Set(
+            this.snapshot.schematicRouting?.branches?.map((rule) => rule.component),
+        );
+        if (attached.size || this.snapshot.schematicRouting?.autoLayout)
+            this.snapshot = {
+                ...this.snapshot,
+                components: this.snapshot.components.map((comp) => {
+                    if (!attached.has(comp.ref) && !this.snapshot.schematicRouting?.autoLayout)
+                        return comp;
+                    const drawing = Object.create(comp) as Component;
+                    Object.defineProperties(drawing, {
+                        schematicPosition: {
+                            value: comp.schematicPosition && { ...comp.schematicPosition },
+                            writable: true,
+                            configurable: true,
+                        },
+                        parent: { value: comp.parent, writable: true, configurable: true },
+                    });
+                    return drawing;
+                }),
+            };
+        this.drawingUnits = new WeakMap();
+        this.groupOwners = new WeakMap();
+        this.layoutReport = undefined;
+        this._cachedBoxes = undefined;
         this.fieldKeepouts = [];
         this.portAnchors = [];
         this.moduleNets.clear();
@@ -102,15 +219,23 @@ export class SchematicGenerator {
                 throw new Error(`Schematic override changes electrical pin numbers for ${name}.`);
         }
         // Auto-layout components if needed
-        if (this.snapshot.placementAlgorithm !== 'none')
+        this.expandDrawingUnits();
+        if (
+            !this.snapshot.schematicRouting?.autoLayout &&
+            this.snapshot.placementAlgorithm !== 'none'
+        )
             HierarchicalPlacer.place(this.snapshot, (comp) => this.getComponentDimensions(comp), {
                 experimental: this.options.experimentalLayout,
             });
 
         // Auto-rotate 2-pin passives connected to power/GND
-        this.autoRotateComponents();
+        if (this.snapshot.schematicRouting?.autoLayout) this.arrangeGroups();
+        else {
+            this.autoRotateComponents();
+            this.placeConnectedBranches();
+        }
 
-        if (this.snapshot.autoPack) {
+        if (this.snapshot.autoPack && !this.snapshot.schematicRouting?.autoLayout) {
             this.packComponentsOnSheet();
         }
 
@@ -150,7 +275,7 @@ export class SchematicGenerator {
                 [
                     'effects',
                     ['font', ['size', String(note.size ?? 2), String(note.size ?? 2)]],
-                    ['justify', 'left'],
+                    ['justify', 'left', 'top'],
                 ],
                 ['uuid', this.quote(this.uuids.getOrGenerate(`sheet-note/${index}`))],
             ]);
@@ -173,11 +298,58 @@ export class SchematicGenerator {
             if (!directLabels) this.verifyRouting();
         }
 
+        schematic.push(...this.generateGroupFrames());
+
         if (this.errors.length > 0) {
             throw new Error('Schematic Generator Errors:\n' + this.errors.join('\n'));
         }
 
+        if (this.snapshot.schematicRouting?.readabilityWarnings !== false) {
+            this.warnings.push(
+                ...schematicReadabilityWarnings(schematic, {
+                    embeddedValues: new Set(
+                        this.snapshot.schematicRouting?.compactFields
+                            ? this.snapshot.components
+                                  .filter(
+                                      (c) =>
+                                          c.symbol === 'Device:R' &&
+                                          !this.snapshot.schematicRouting?.fields?.[c.ref]?.value,
+                                  )
+                                  .map((c) => c.ref)
+                            : [],
+                    ),
+                }),
+            );
+            this.checkRouteDetours();
+        }
         return SExpressionParser.serialize(schematic);
+    }
+
+    private checkRouteDetours(): void {
+        for (const net of this.snapshot.nets) {
+            if (this.snapshot.schematicRouting?.powerSymbols?.[net.name]) continue;
+            const points = this.snapshot.components
+                .filter((c) => c.symbol !== 'Device:DNC')
+                .flatMap((c) =>
+                    [...new Set(c.allPins.values())]
+                        .filter((pin) => pin.net === net && !pin.isDNC)
+                        .map((pin) => this.getPinAbsolutePosition(pin))
+                        .filter((p): p is PinPos => p !== null),
+                );
+            if (points.length !== 2) continue;
+            const direct =
+                Math.abs(points[0].x - points[1].x) + Math.abs(points[0].y - points[1].y);
+            const length = this._generatedWires
+                .filter((w) => w.netName === net.name)
+                .reduce(
+                    (total, w) => total + Math.abs(w.p1.x - w.p2.x) + Math.abs(w.p1.y - w.p2.y),
+                    0,
+                );
+            if (direct > 0 && length >= 20 && length > direct * 2.5)
+                this.warnings.push(
+                    `SCHEMATIC_ROUTE_DETOUR ${net.name}: ${length.toFixed(1)} mm of wire for ${direct.toFixed(1)} mm terminal separation; review placement, pin orientation or route hints.`,
+                );
+        }
     }
 
     private checkOverlaps() {
@@ -321,7 +493,7 @@ export class SchematicGenerator {
         for (const comp of this.snapshot.components) {
             if (comp.symbol === 'Device:DNC') continue;
 
-            const symDef = this.library.getSymbol(comp.symbol);
+            const symDef = this.drawingSymbol(comp);
             if (!symDef) continue; // Missing symbol is handled elsewhere
 
             const pins = this.findAllPinsInSymbol(symDef);
@@ -362,7 +534,7 @@ export class SchematicGenerator {
 
     private getComponentDimensions(comp: Component): { width: number; height: number } {
         if (comp.symbol === 'Device:DNC') return { width: 0, height: 0 };
-        const symDef = this.library.getSymbol(comp.symbol);
+        const symDef = this.drawingSymbol(comp);
         if (!symDef) return { width: 25, height: 25 };
 
         const pins = this.findAllPinsInSymbol(symDef);
@@ -385,10 +557,10 @@ export class SchematicGenerator {
         return { width: Math.max(15, maxX - minX), height: Math.max(15, maxY - minY) };
     }
 
-    private getComponentBox(comp: Component, padding: number): Box | null {
+    private getComponentBox(comp: Component, padding: number, graphicBounds = false): Box | null {
         if (comp.symbol === 'Device:DNC') return null;
 
-        const symDef = this.library.getSymbol(comp.symbol);
+        const symDef = this.drawingSymbol(comp);
         if (!symDef) {
             if (comp.absoluteSchematicPosition) {
                 const x = comp.absoluteSchematicPosition.x;
@@ -405,7 +577,7 @@ export class SchematicGenerator {
 
         const pins = this.findAllPinsInSymbol(symDef);
 
-        if (this.snapshot.schematicRouting?.symbolOverrides?.[comp.symbol]) {
+        if (graphicBounds || this.snapshot.schematicRouting?.symbolOverrides?.[comp.symbol]) {
             const corners: PinInfo[] = [];
             const collect = (node: SExpr) => {
                 if (!Array.isArray(node)) return;
@@ -513,6 +685,13 @@ export class SchematicGenerator {
                         x: parseFloat(at[1] as string),
                         y: parseFloat(at[2] as string),
                         rotation: parseFloat(at[3] as string),
+                        length: Number(
+                            (
+                                item.find((e) => Array.isArray(e) && e[0] === 'length') as
+                                    | SExpr[]
+                                    | undefined
+                            )?.[1] ?? 2.54,
+                        ),
                         number: numberStr,
                     });
                 }
@@ -595,7 +774,10 @@ export class SchematicGenerator {
         for (const comp of this.snapshot.components) {
             if (comp.symbol === 'Device:DNC') continue;
 
-            const uuid = this.uuids.getOrGenerate(comp.ref);
+            const unit = this.drawingUnits.get(comp)?.unit ?? 1;
+            const uuid = this.uuids.getOrGenerate(
+                this.drawingUnits.has(comp) ? `${comp.ref}/unit/${unit}` : comp.ref,
+            );
             const x = comp.absoluteSchematicPosition?.x || 0;
             const y = comp.absoluteSchematicPosition?.y || 0;
             const rot = comp.absoluteSchematicPosition?.rotation || 0;
@@ -654,7 +836,7 @@ export class SchematicGenerator {
                 }
                 if (this.snapshot.schematicRouting.hideValues?.includes(comp.ref)) {
                     refX = valX = x;
-                    refY = box.y - 3.81;
+                    refY = (this.getComponentBox(comp, 0, true) ?? box).y - 2.54;
                     fieldJustify = [];
                 }
             }
@@ -665,15 +847,89 @@ export class SchematicGenerator {
                 refY = box.y - 10.16;
                 valY = box.y - 7.62;
             }
+            let compactValueRotation: number | undefined;
+            if (this.snapshot.schematicRouting?.compactFields && box) {
+                const body = this.getComponentBox(comp, 0, true) ?? box;
+                const horizontal = comp.symbol.startsWith('Device:C')
+                    ? rot % 180 === 90
+                    : body.width > body.height;
+                if (comp.symbol === 'Device:R') {
+                    valX = x;
+                    valY = y;
+                    compactValueRotation = ((horizontal ? 0 : 90) - rot + 360) % 180;
+                    textRot = (360 - rot) % 180;
+                    if (horizontal) {
+                        refX = x;
+                        refY = body.y - 1.27;
+                        fieldJustify = [];
+                    } else {
+                        refX = body.x + body.width + 1.27;
+                        refY = y;
+                        fieldJustify = [['justify', 'left']];
+                    }
+                } else if (comp.symbol.startsWith('Device:C')) {
+                    textRot = (360 - rot) % 180;
+                    if (!horizontal) {
+                        refX = valX = body.x + body.width + 1.27;
+                        refY = y - 1.27;
+                        valY = y + 1.27;
+                        fieldJustify = [['justify', 'left']];
+                    } else {
+                        refX = valX = x;
+                        refY = body.y - 1.27;
+                        valY = body.y + body.height + 1.27;
+                        fieldJustify = [];
+                    }
+                } else if (this.snapshot.schematicRouting.symbolOverrides?.[comp.symbol]) {
+                    textRot = (360 - rot) % 180;
+                    refX = valX = body.x + 1.27;
+                    refY = body.y - 3.81;
+                    valY = body.y - 1.27;
+                    fieldJustify = [['justify', 'right']];
+                }
+            }
+            const fields =
+                this.snapshot.schematicRouting?.fields?.[`${comp.ref}/${unit}`] ??
+                this.snapshot.schematicRouting?.fields?.[comp.ref];
+            if (fields?.reference) {
+                refX = fields.reference.x;
+                refY = fields.reference.y;
+            }
+            if (fields?.value) {
+                valX = fields.value.x;
+                valY = fields.value.y;
+            }
+            const refTextRot = fields?.reference
+                ? ((fields.reference.rotation ?? 0) + rot) % 180
+                : textRot;
+            const valTextRot = fields?.value
+                ? ((fields.value.rotation ?? 0) + rot) % 180
+                : (compactValueRotation ?? textRot);
+            if (fields?.justify)
+                fieldJustify = fields.justify === 'center' ? [] : [['justify', fields.justify]];
             if (rot % 360 === 180)
                 fieldJustify = fieldJustify.map((item) =>
                     item[0] === 'justify'
                         ? ['justify', item[1] === 'left' ? 'right' : 'left']
                         : item,
                 );
+            const embeddedValue = compactValueRotation !== undefined && !fields?.value;
+            const valueJustify = embeddedValue ? [] : fieldJustify;
+            const body = embeddedValue ? this.getComponentBox(comp, 0, true) : null;
+            const valueSize = body
+                ? String(
+                      Math.min(
+                          Number(fieldSize),
+                          (Math.max(body.width, body.height) - 0.635) /
+                              (Math.max(1, (comp.value || symName).length) * 0.7),
+                      ),
+                  )
+                : fieldSize;
             if (this.snapshot.schematicRouting?.symbolClearance !== undefined) {
-                const reserve = (text: string, fx: number, fy: number) => {
-                    const width = text.length * 0.85 + 1.27;
+                const reserve = (text: string, fx: number, fy: number, angle: number) => {
+                    let width = text.length * 0.85 + 1.27,
+                        height = 2.54;
+                    if ((angle + rot) % 180 === 90) [width, height] = [height, width];
                     let justify = fieldJustify[0]?.[1];
                     if (rot % 360 === 180 && justify)
                         justify = justify === 'left' ? 'right' : 'left';
@@ -684,20 +940,23 @@ export class SchematicGenerator {
                                 : justify === 'right'
                                   ? fx - width + 0.635
                                   : fx - width / 2,
-                        y: fy - 1.27,
+                        y: fy - height / 2,
                         width,
-                        height: 2.54,
+                        height,
                     });
                 };
-                reserve(comp.ref, refX, refY);
-                if (!this.snapshot.schematicRouting.hideValues?.includes(comp.ref))
-                    reserve(comp.value || symName, valX, valY);
+                reserve(comp.ref, refX, refY, refTextRot);
+                if (
+                    !embeddedValue &&
+                    !this.snapshot.schematicRouting.hideValues?.includes(comp.ref)
+                )
+                    reserve(comp.value || symName, valX, valY, valTextRot);
             }
             const instance: SExpr[] = [
                 'symbol',
                 ['lib_id', this.quote(symName)],
                 ['at', x.toFixed(2), y.toFixed(2), rot.toFixed(2)],
-                ['unit', '1'],
+                ['unit', String(unit)],
                 ['in_bom', 'yes'],
                 ['on_board', 'yes'],
                 ['dnp', 'no'],
@@ -706,15 +965,15 @@ export class SchematicGenerator {
                     'property',
                     '"Reference"',
                     this.quote(comp.ref),
-                    ['at', `${refX.toFixed(2)}`, `${refY.toFixed(2)}`, `${textRot}`],
+                    ['at', `${refX.toFixed(2)}`, `${refY.toFixed(2)}`, `${refTextRot}`],
                     ['effects', ['font', ['size', fieldSize, fieldSize]], ...fieldJustify],
                 ],
                 [
                     'property',
                     '"Value"',
                     this.quote(comp.value || symName),
-                    ['at', `${valX.toFixed(2)}`, `${valY.toFixed(2)}`, `${textRot}`],
-                    ['effects', ['font', ['size', fieldSize, fieldSize]], ...fieldJustify],
+                    ['at', `${valX.toFixed(2)}`, `${valY.toFixed(2)}`, `${valTextRot}`],
+                    ['effects', ['font', ['size', valueSize, valueSize]], ...valueJustify],
                 ],
                 [
                     'property',
@@ -788,7 +1047,7 @@ export class SchematicGenerator {
                             'path',
                             this.quote(`/${rootUuid}`),
                             ['reference', this.quote(comp.ref)],
-                            ['unit', '1'],
+                            ['unit', String(unit)],
                         ],
                     ],
                     [
@@ -798,7 +1057,7 @@ export class SchematicGenerator {
                             'path',
                             this.quote(`/${rootUuid}`),
                             ['reference', this.quote(comp.ref)],
-                            ['unit', '1'],
+                            ['unit', String(unit)],
                         ],
                     ],
                 ],
@@ -1101,6 +1360,20 @@ export class SchematicGenerator {
             this.snapshot.schematicRouting ||
             this.moduleNets.size
         ) {
+            const pinAnchors = this.snapshot.components
+                .filter((comp) => comp.symbol !== 'Device:DNC')
+                .flatMap((comp) =>
+                    [...new Set(comp.allPins.values())]
+                        .filter((pin) => pin.net && !pin.isDNC)
+                        .map((pin) => ({
+                            point: this.getPinAbsolutePosition(pin),
+                            net: pin.net!.name,
+                        }))
+                        .filter(
+                            (anchor): anchor is { point: PinPos; net: string } =>
+                                anchor.point !== null,
+                        ),
+                );
             const points = new Map<string, { point: Point; net: string }>();
             for (const wire of this._generatedWires)
                 for (const point of [wire.p1, wire.p2])
@@ -1108,7 +1381,7 @@ export class SchematicGenerator {
                         point,
                         net: wire.netName,
                     });
-            for (const anchor of this.portAnchors)
+            for (const anchor of [...this.portAnchors, ...pinAnchors])
                 points.set(`${anchor.net}/${anchor.point.x}/${anchor.point.y}`, anchor);
             for (const { point, net } of points.values()) {
                 let branches = this.portAnchors.some(
@@ -1116,6 +1389,11 @@ export class SchematicGenerator {
                 )
                     ? 1
                     : 0;
+                // Native KiCad needs a junction when a pin lands in a wire's
+                // interior, even if no third wire segment exists after merging.
+                branches += pinAnchors.filter(
+                    (anchor) => anchor.net === net && pointOnSegment(anchor.point, point, point),
+                ).length;
                 for (const wire of this._generatedWires.filter((item) => item.netName === net)) {
                     if (!pointOnSegment(point, wire.p1, wire.p2)) continue;
                     branches +=
@@ -1168,6 +1446,10 @@ export class SchematicGenerator {
                 if (!position) continue;
                 const group = byNet.get(pin.net) ?? [];
                 const owner =
+                    (interfaceComponents?.includes(component.ref)
+                        ? `interface:${component.ref}`
+                        : undefined) ??
+                    this.groupOwners.get(component) ??
                     this.routedSchematicOwner(component) ??
                     (interfaceComponents
                         ? interfaceComponents.includes(component.ref)
@@ -1182,13 +1464,25 @@ export class SchematicGenerator {
             requests: WireRoutingRequest[] = [];
         const endpoints: { net: Net; a: PinPos; b: PinPos }[] = [];
         const portKeepouts: (Box & { net: string })[] = [];
-        const obstacles = [...this.getCachedComponentBoxes(), ...this.fieldKeepouts];
+        const componentObstacles = this.snapshot.components
+            .filter((c) => c.symbol !== 'Device:DNC')
+            .map((comp) => ({
+                comp,
+                box: this.getComponentBox(
+                    comp,
+                    this.snapshot.schematicRouting?.symbolClearance ?? 0.5,
+                ),
+            }))
+            .filter((item): item is { comp: Component; box: Box } => item.box !== null);
         const escape = (p: PinPos) => {
             const direction = this.getDirectionVector(p.rotation);
-            return {
-                x: p.x - direction.dx * (this.snapshot.schematicRouting?.pinEscape ?? 1.27),
-                y: p.y - direction.dy * (this.snapshot.schematicRouting?.pinEscape ?? 1.27),
-            };
+            const length =
+                this.snapshot.schematicRouting?.pinEscapes?.[p.terminal ?? ''] ??
+                this.snapshot.schematicRouting?.pinEscape ??
+                1.27;
+            if (!Number.isFinite(length) || length < 0)
+                throw new Error(`Invalid schematic pin escape for ${p.terminal}`);
+            return { x: p.x - direction.dx * length, y: p.y - direction.dy * length };
         };
         for (const [net, points] of byNet) {
             if (!points.some((point) => point.owner)) continue;
@@ -1199,6 +1493,27 @@ export class SchematicGenerator {
                 this.snapshot.schematicRouting?.powerGroups?.filter(
                     (group) => group.net === net.name,
                 ) ?? [];
+            if (this.layoutReport && powerSymbol) {
+                const byComponent = new Map<string, string[]>();
+                for (const { pin } of points) {
+                    const terminals = byComponent.get(pin.component.ref) ?? [];
+                    terminals.push(`${pin.component.ref}.${pin.name}`);
+                    byComponent.set(pin.component.ref, terminals);
+                }
+                for (const terminals of byComponent.values()) {
+                    const positions = terminals.map(
+                        (terminal) =>
+                            points.find(
+                                ({ pin }) => `${pin.component.ref}.${pin.name}` === terminal,
+                            )!.position,
+                    );
+                    if (
+                        terminals.length > 1 &&
+                        positions.every((p) => p.rotation === positions[0].rotation)
+                    )
+                        localGroups.push({ net: net.name, pins: terminals });
+                }
+            }
             const claimed = new Set<string>();
             for (const [index, local] of localGroups.entries()) {
                 for (const terminal of local.pins) {
@@ -1245,7 +1560,8 @@ export class SchematicGenerator {
                     const ground = powerSymbol === 'power:GND';
                     const defaultDy = ground ? 1 : -1;
                     const inline =
-                        interfaceComponents?.includes(group[0].pin.component.ref) &&
+                        (this.layoutReport ||
+                            interfaceComponents?.includes(group[0].pin.component.ref)) &&
                         Math.abs(e.x - p.x) > 0.001;
                     const glyphDx = inline ? Math.sign(e.x - p.x) : 0;
                     const glyphDy = inline
@@ -1357,10 +1673,10 @@ export class SchematicGenerator {
                     for (const a of connected)
                         remaining.forEach((b, index) => {
                             if (pendingIc && !/^U\d+$/.test(b.pin.component.ref)) return;
-                            const d = Math.hypot(
-                                a.position.x - b.position.x,
-                                a.position.y - b.position.y,
-                            );
+                            // Orthogonal wires cost Manhattan length, not straight-line distance.
+                            const d =
+                                Math.abs(a.position.x - b.position.x) +
+                                Math.abs(a.position.y - b.position.y);
                             if (d < distance) {
                                 distance = d;
                                 bestA = a;
@@ -1399,6 +1715,28 @@ export class SchematicGenerator {
                         )
                             waypoints = [...waypoints].reverse();
                     }
+                    // A one-pin probe with zero escape is a connection anchor on its own
+                    // net, not a component body to route around. Keep its text and
+                    // all foreign-net clearances as obstacles.
+                    const inlineProbes = new Set(
+                        group
+                            .filter(({ pin }) => {
+                                const comp = this.snapshot.components.find(
+                                    (c) => c.ref === pin.component.ref && c.allPins.has(pin.name),
+                                );
+                                const symbol = comp && this.drawingSymbol(comp);
+                                return (
+                                    comp &&
+                                    comp.allPins.size === 1 &&
+                                    symbol &&
+                                    (this.findPinInSymbol(symbol, pin.name)?.length === 0 ||
+                                        this.snapshot.schematicRouting?.pinEscapes?.[
+                                            `${comp.ref}.${pin.name}`
+                                        ] === 0)
+                                );
+                            })
+                            .map(({ pin }) => pin.component.ref),
+                    );
                     requests.push({
                         net: net.name,
                         clearance:
@@ -1406,7 +1744,14 @@ export class SchematicGenerator {
                             (['A4', 'A3'].includes(this.snapshot.size ?? 'A4') ? 2 : undefined),
                         start: escape(bestA.position),
                         end: escape(b.position),
-                        obstacles: [...obstacles, ...foreignLegs],
+                        obstacles: [
+                            ...componentObstacles
+                                .filter(({ comp }) => !inlineProbes.has(comp.ref))
+                                .map(({ box }) => box),
+                            ...this.fieldKeepouts,
+                            ...foreignLegs,
+                            ...this.groupRoutingWalls(ownerRef),
+                        ],
                         waypoints,
                     });
                     endpoints.push({ net, a: bestA.position, b: b.position });
@@ -1726,6 +2071,200 @@ export class SchematicGenerator {
         }
     }
 
+    private drawingKey(comp: Component): string {
+        const unit = this.drawingUnits.get(comp)?.unit;
+        return unit ? `${comp.ref}/${unit}` : comp.ref;
+    }
+
+    private arrangeGroups() {
+        const options = this.snapshot.schematicRouting!.autoLayout!;
+        if (
+            this.snapshot.schematicRouting?.branches?.length ||
+            this.snapshot.schematicRouting?.fields ||
+            this.snapshot.schematicRouting?.routeHints?.length
+        )
+            throw new Error(
+                'Automatic groups cannot be combined with authored branches, fields or route hints.',
+            );
+        const drawings = this.snapshot.components.filter((c) => c.symbol !== 'Device:DNC');
+        const parts: LayoutPart[] = drawings.map((comp) => {
+            Object.defineProperties(comp, {
+                parent: { value: undefined, writable: true, configurable: true },
+                schematicPosition: {
+                    value: { x: 0, y: 0, rotation: 0 },
+                    writable: true,
+                    configurable: true,
+                },
+                absoluteSchematicPosition: {
+                    get() {
+                        return this.schematicPosition;
+                    },
+                    configurable: true,
+                },
+            });
+            const symbol = this.drawingSymbol(comp);
+            if (!symbol) throw new Error(`Missing symbol for automatic layout: ${comp.ref}`);
+            const body = this.getComponentBox(comp, 0, true);
+            if (!body) throw new Error(`Missing geometry for automatic layout: ${comp.ref}`);
+            return {
+                id: this.drawingKey(comp),
+                symbol: comp.symbol,
+                value: comp.value || comp.symbol,
+                body,
+                pins: this.findAllPinsInSymbol(symbol).map((pin) => {
+                    const number = SExpressionParser.unquote(String(pin.number));
+                    const net = comp.allPins.get(number)?.net;
+                    return {
+                        ...pin,
+                        number,
+                        net: net?.name,
+                        power:
+                            net?.class === 'Power' ||
+                            Boolean(
+                                net && this.snapshot.schematicRouting?.powerSymbols?.[net.name],
+                            ),
+                    };
+                }),
+            };
+        });
+        this.layoutReport = arrangeSchematicGroups(parts, options, this.snapshot.size);
+        this.snapshot = {
+            ...this.snapshot,
+            size: this.layoutReport.paper as CircuitSnapshot['size'],
+        };
+        for (const comp of drawings) {
+            const id = this.drawingKey(comp);
+            Object.assign(comp, { schematicPosition: this.layoutReport.positions.get(id)! });
+            const frame = this.layoutReport.frames.find((f) => f.members.includes(id))!;
+            this.groupOwners.set(comp, `group:${frame.id}`);
+        }
+        this._cachedBoxes = undefined;
+    }
+
+    private groupRoutingWalls(owner: string): Box[] {
+        const frame = this.layoutReport?.frames.find((f) => `group:${f.id}` === owner);
+        if (!frame) return [];
+        const top = frame.y + 10.16;
+        const bottom =
+            frame.y +
+            frame.height -
+            (frame.notes.length ? frame.notes.length * 3.175 + 7.62 : 0) -
+            2.54;
+        const left = frame.x + 2.54,
+            right = frame.x + frame.width - 2.54;
+        return [
+            { x: left - 2000, y: top - 2000, width: 2000, height: 4000 },
+            { x: right, y: top - 2000, width: 2000, height: 4000 },
+            { x: left, y: top - 2000, width: right - left, height: 2000 },
+            { x: left, y: bottom, width: right - left, height: 2000 },
+        ];
+    }
+
+    private generateGroupFrames(): SExpr[] {
+        return (this.layoutReport?.frames ?? []).flatMap((frame) => {
+            const text = (
+                value: string,
+                x: number,
+                y: number,
+                size: number,
+                key: string,
+            ): SExpr[] => [
+                'text',
+                this.quote(value),
+                ['at', String(x), String(y), '0'],
+                [
+                    'effects',
+                    ['font', ['size', String(size), String(size)]],
+                    ['justify', 'left', 'top'],
+                ],
+                ['uuid', this.quote(this.uuids.getOrGenerate(`group/${frame.id}/${key}`))],
+            ];
+            return [
+                [
+                    'rectangle',
+                    ['start', String(frame.x), String(frame.y)],
+                    ['end', String(frame.x + frame.width), String(frame.y + frame.height)],
+                    ['stroke', ['width', '0.254'], ['type', 'dash']],
+                    ['fill', ['type', 'none']],
+                    ['uuid', this.quote(this.uuids.getOrGenerate(`group/${frame.id}/box`))],
+                ],
+                text(frame.title, frame.x + 5.08, frame.y + 2.54, 2, 'title'),
+                ...(frame.notes.length
+                    ? [
+                          text(
+                              frame.notes.join('\n'),
+                              frame.x + 5.08,
+                              frame.y + frame.height - frame.notes.length * 3.175 - 5.08,
+                              1.27,
+                              'notes',
+                          ),
+                      ]
+                    : []),
+            ] as SExpr[];
+        });
+    }
+
+    private placeConnectedBranches() {
+        for (const rule of this.snapshot.schematicRouting?.branches ?? []) {
+            const comp = this.snapshot.components.find((c) => c.ref === rule.component);
+            const split = rule.anchor.lastIndexOf('.');
+            const anchorComp = this.snapshot.components.find(
+                (c) =>
+                    c.ref === rule.anchor.slice(0, split) &&
+                    c.allPins.has(rule.anchor.slice(split + 1)),
+            );
+            const anchorPin = anchorComp?.allPins.get(rule.anchor.slice(split + 1));
+            const anchor = anchorPin && this.getPinAbsolutePosition(anchorPin);
+            const pins = comp && [...comp.allPins.values()];
+            const connected = pins?.filter((pin) => pin.net && pin.net === anchorPin?.net);
+            if (
+                !comp ||
+                !anchor ||
+                pins?.length !== 2 ||
+                connected?.length !== 1 ||
+                !Number.isFinite(rule.gap) ||
+                rule.gap < 0 ||
+                !Number.isFinite(rule.laneOffset ?? 0)
+            )
+                throw new Error(
+                    `Invalid schematic branch ${rule.component} -> ${rule.anchor}: require a two-pin component with exactly one shared net and finite spacing.`,
+                );
+            const definition = this.drawingSymbol(comp);
+            const pin = definition && this.findPinInSymbol(definition, connected[0].name);
+            if (!pin) throw new Error(`Missing drawing terminal for branch ${rule.component}.`);
+            const targetAngle = { down: 270, up: 90, left: 180, right: 0 }[rule.direction];
+            const rotation = (targetAngle - pin.rotation + 360) % 360;
+            const rad = (rotation * Math.PI) / 180;
+            const vector = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] }[
+                rule.direction
+            ];
+            const offset = rule.laneOffset ?? 0;
+            const escapeAngle = ((anchor.rotation + 180) * Math.PI) / 180;
+            const escapeVector = [Math.cos(escapeAngle), -Math.sin(escapeAngle)];
+            const perpendicular =
+                Math.abs(vector[0] * escapeVector[0] + vector[1] * escapeVector[1]) < 0.01;
+            const escape =
+                rule.laneOffset === undefined && perpendicular
+                    ? (this.snapshot.schematicRouting?.pinEscapes?.[rule.anchor] ??
+                      this.snapshot.schematicRouting?.pinEscape ??
+                      5.08)
+                    : 0;
+            const x =
+                anchor.x + vector[0] * rule.gap + vector[1] * offset + escapeVector[0] * escape;
+            const y =
+                anchor.y + vector[1] * rule.gap - vector[0] * offset + escapeVector[1] * escape;
+            Object.assign(comp, {
+                parent: undefined,
+                schematicPosition: {
+                    x: x - (pin.x * Math.cos(rad) - pin.y * Math.sin(rad)),
+                    y: y + pin.x * Math.sin(rad) + pin.y * Math.cos(rad),
+                    rotation,
+                },
+            });
+        }
+        this._cachedBoxes = undefined;
+    }
+
     private autoRotateComponents() {
         for (const comp of this.snapshot.components) {
             if (comp.symbol === 'Device:DNC') continue;
@@ -1963,10 +2502,12 @@ export class SchematicGenerator {
     }
 
     private getPinAbsolutePosition(pin: Pin): PinPos | null {
-        const comp = this.snapshot.components.find((c) => c.ref === pin.component.ref);
+        const comp = this.snapshot.components.find(
+            (c) => c.ref === pin.component.ref && c.allPins.has(pin.name),
+        );
         if (!comp) return null;
 
-        const symDef = this.library.getSymbol(comp.symbol);
+        const symDef = this.drawingSymbol(comp);
         if (!symDef) return null;
 
         const pinInfo = this.findPinInSymbol(symDef, pin.name);
@@ -1985,6 +2526,7 @@ export class SchematicGenerator {
         const ry = -(pinInfo.x * sin + pinInfo.y * cos);
 
         return {
+            terminal: `${comp.ref}.${pin.name}`,
             x: Number((cx + rx).toFixed(6)),
             y: Number((cy + ry).toFixed(6)),
             rotation: (crot + pinInfo.rotation) % 360,
@@ -2022,6 +2564,13 @@ export class SchematicGenerator {
                             x: parseFloat(at[1] as string),
                             y: parseFloat(at[2] as string),
                             rotation: parseFloat(at[3] as string),
+                            length: Number(
+                                (
+                                    item.find((e) => Array.isArray(e) && e[0] === 'length') as
+                                        | SExpr[]
+                                        | undefined
+                                )?.[1] ?? 2.54,
+                            ),
                         };
                     }
                 }

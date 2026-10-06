@@ -415,6 +415,36 @@ export interface SchematicRouteHint {
     waypoints: PcbPoint[];
 }
 export interface SchematicRoutingOptions {
+    /** Absolute field positions; multi-unit keys may be "RV1/2". Reserved by the wire router. */
+    fields?: Record<
+        string,
+        {
+            reference?: SchematicPosition;
+            value?: SchematicPosition;
+            justify?: 'left' | 'right' | 'center';
+        }
+    >;
+    /** Heuristic drawing diagnostics (text, glyph and pin-wire collisions); enabled by default. */
+    readabilityWarnings?: boolean;
+    /** Drawing units; positions may be omitted with autoLayout groups. Circuit and PCB remain one component. */
+    units?: Record<string, Array<{ unit: number; position?: SchematicPosition }>>;
+    /** Arrange every drawing from functional group membership; no individual coordinates required. */
+    autoLayout?: {
+        algorithm?: 'circuit' | 'grid';
+        groups: Array<{ id: string; title: string; components: string[]; notes?: string[] }>;
+    };
+    /** Compact fields: resistor values inside their body, references beside it; IC names near the body. */
+    compactFields?: boolean;
+    /** Place a two-pin passive relative to an electrically connected terminal. Evaluated in order, so branches can form chains. */
+    branches?: Array<{
+        component: string;
+        anchor: string;
+        direction: 'up' | 'down' | 'left' | 'right';
+        /** Distance between connected terminals, in mm. */
+        gap: number;
+        /** Perpendicular offset for a neighbouring routing lane, in mm. */
+        laneOffset?: number;
+    }>;
     /** Hide redundant drawing values (e.g. generic connector/test-point symbol names). */
     hideValues?: string[];
     /** Drawing-only symbol definitions. Electrical pin numbers must remain unchanged. */
@@ -431,6 +461,8 @@ export interface SchematicRoutingOptions {
     symbolClearance?: number;
     /** Straight lead length before a signal wire may turn, in millimetres. */
     pinEscape?: number;
+    /** Per-terminal lead override, e.g. zero for a test point directly on a signal spine. */
+    pinEscapes?: Record<string, number>;
     /** Hard parallel wire separation, in millimetres. Defaults to 2 on A4/A3. */
     wireClearance?: number;
     routeHints?: SchematicRouteHint[];
