@@ -13,6 +13,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    env:
+      KICAD_FOOTPRINT_DIR: ${{ runner.temp }}/kicad-footprints
+      KICAD_SYMBOL_DIR: ${{ runner.temp }}/kicad-symbols
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,8 +30,8 @@ jobs:
         run: npm ci
       - name: Install KiCad libraries
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y kicad-footprints kicad-symbols
+          git clone --depth 1 --branch 10.0.6 https://gitlab.com/kicad/libraries/kicad-footprints.git "$KICAD_FOOTPRINT_DIR"
+          git clone --depth 1 --branch 10.0.6 https://gitlab.com/kicad/libraries/kicad-symbols.git "$KICAD_SYMBOL_DIR"
       - name: Build
         run: npm run build
       - name: Test
