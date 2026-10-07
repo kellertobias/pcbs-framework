@@ -1,3 +1,4 @@
+import { schematicHeader, schematicRevision } from './SchematicHeader';
 import { placementRoutingScore } from './SchematicPlacementScore';
 import {
     arrangeSchematicGroups,
@@ -116,7 +117,10 @@ export class SchematicGenerator {
                 const drawing = Object.create(component) as Component;
                 Object.defineProperties(drawing, {
                     schematicPosition: { value: { ...position }, configurable: true },
-                    absoluteSchematicPosition: { value: { ...position }, configurable: true },
+                    absoluteSchematicPosition: {
+                        value: { ...position },
+                        configurable: true,
+                    },
                     allPins: {
                         value: new Map(
                             [...component.allPins].filter(([, pin]) => numbers.has(pin.name)),
@@ -149,7 +153,12 @@ export class SchematicGenerator {
         this.options = options;
     }
 
-    private placementFeedback?: { wireLengths: Map<string, number>; pass: number };
+    private placementParts: LayoutPart[] = [];
+
+    private placementFeedback?: {
+        wireLengths: Map<string, number>;
+        pass: number;
+    };
 
     generate(): string {
         this.placementFeedback = undefined;
@@ -162,12 +171,17 @@ export class SchematicGenerator {
             this.options.noWires
         )
             return content;
-        const initial = placementRoutingScore(this._generatedWires, this.layoutReport);
+        const initial = placementRoutingScore(
+            this._generatedWires,
+            this.layoutReport,
+            this.placementParts,
+        );
         let best: SchematicGenerator = this,
             score = initial,
             accepted = 0,
             passes = 1;
-        for (let pass = 1; pass <= 2; pass++) {
+        const trials: NonNullable<GroupLayoutResult['refinement']>['trials'] = [];
+        for (let pass = 1; pass <= 4; pass++) {
             const trial = new SchematicGenerator(
                 this.sourceSnapshot,
                 this.library,
@@ -178,7 +192,11 @@ export class SchematicGenerator {
             try {
                 const drawing = trial.generatePass();
                 passes++;
-                const candidate = placementRoutingScore(trial._generatedWires, trial.layoutReport!);
+                const candidate = placementRoutingScore(
+                    trial._generatedWires,
+                    trial.layoutReport!,
+                    trial.placementParts,
+                );
                 if (
                     trial.warnings.length <= best.warnings.length &&
                     candidate.cost < score.cost - 0.001
@@ -188,7 +206,18 @@ export class SchematicGenerator {
                     content = drawing;
                     accepted++;
                 }
-            } catch {
+                trials.push({
+                    pass,
+                    accepted: best === trial,
+                    cost: candidate.cost,
+                    warnings: trial.warnings,
+                });
+            } catch (error) {
+                trials.push({
+                    pass,
+                    accepted: false,
+                    error: error instanceof Error ? error.message : String(error),
+                });
                 // A rejected trial must never replace a valid drawing/connectivity result.
                 passes++;
             }
@@ -200,8 +229,19 @@ export class SchematicGenerator {
             initialCost: initial.cost,
             finalCost: score.cost,
             accepted,
-            initial: { length: initial.length, crossings: initial.crossings, area: initial.area },
-            final: { length: score.length, crossings: score.crossings, area: score.area },
+            trials,
+            initial: {
+                length: initial.length,
+                crossings: initial.crossings,
+                area: initial.area,
+                conventions: initial.conventions,
+            },
+            final: {
+                length: score.length,
+                crossings: score.crossings,
+                area: score.area,
+                conventions: score.conventions,
+            },
         };
         return content;
     }
@@ -231,6 +271,17 @@ export class SchematicGenerator {
                     return drawing;
                 }),
             };
+        if ((this.placementFeedback?.pass ?? 0) >= 3) {
+            for (const comp of this.snapshot.components) {
+                const variant = comp.symbol === 'Device:R' ? 'Device:R_Small' : undefined;
+                if (variant && this.library.getSymbol(variant))
+                    Object.defineProperty(comp, 'symbol', {
+                        value: variant,
+                        writable: true,
+                        configurable: true,
+                    });
+            }
+        }
         this.drawingUnits = new WeakMap();
         this.groupOwners = new WeakMap();
         this.layoutReport = undefined;
@@ -312,9 +363,9 @@ export class SchematicGenerator {
             ['paper', this.quote(this.snapshot.size ?? 'A4')],
             [
                 'title_block',
-                ['title', this.quote(this.snapshot.name)],
+                ['title', this.quote(this.snapshot.projectName ?? this.snapshot.name)],
                 ['date', this.quote(new Date().toISOString().split('T')[0])],
-                this.snapshot.revision ? ['rev', this.quote(this.snapshot.revision)] : [],
+                ['rev', this.quote(schematicRevision(this.snapshot))],
                 this.snapshot.company ? ['company', this.quote(this.snapshot.company)] : [],
                 this.snapshot.author
                     ? ['comment', '1', this.quote(`Author: ${this.snapshot.author}`)]
@@ -324,6 +375,9 @@ export class SchematicGenerator {
                     : [],
             ].filter((x) => x.length > 0),
         ];
+
+        if (this.snapshot.schematicRouting?.autoLayout)
+            schematic.push(...schematicHeader(this.snapshot, this.uuids));
 
         for (const [index, note] of (this.snapshot.schematicRouting?.annotations ?? []).entries()) {
             schematic.push([
@@ -580,7 +634,10 @@ export class SchematicGenerator {
         return this._cachedBoxes;
     }
 
-    private getComponentDimensions(comp: Component): { width: number; height: number } {
+    private getComponentDimensions(comp: Component): {
+        width: number;
+        height: number;
+    } {
         if (comp.symbol === 'Device:DNC') return { width: 0, height: 0 };
         const symDef = this.drawingSymbol(comp);
         if (!symDef) return { width: 25, height: 25 };
@@ -602,7 +659,10 @@ export class SchematicGenerator {
         }
 
         if (minX === Infinity) return { width: 15, height: 15 };
-        return { width: Math.max(15, maxX - minX), height: Math.max(15, maxY - minY) };
+        return {
+            width: Math.max(15, maxX - minX),
+            height: Math.max(15, maxY - minY),
+        };
     }
 
     private getComponentBox(comp: Component, padding: number, graphicBounds = false): Box | null {
@@ -645,7 +705,11 @@ export class SchematicGenerator {
                     );
                     for (const point of pts?.slice(1) ?? [])
                         if (Array.isArray(point))
-                            corners.push({ x: Number(point[1]), y: Number(point[2]), rotation: 0 });
+                            corners.push({
+                                x: Number(point[1]),
+                                y: Number(point[2]),
+                                rotation: 0,
+                            });
                 } else if (node[0] === 'circle') {
                     const center = node.find(
                         (item): item is SExpr[] => Array.isArray(item) && item[0] === 'center',
@@ -901,7 +965,7 @@ export class SchematicGenerator {
                 const horizontal = comp.symbol.startsWith('Device:C')
                     ? rot % 180 === 90
                     : body.width > body.height;
-                if (comp.symbol === 'Device:R') {
+                if (/^Device:R(?:_Small)?$/.test(comp.symbol)) {
                     valX = horizontal ? x : body.x - 1.27;
                     valY = horizontal ? body.y + body.height + 1.27 : y;
                     compactValueRotation = undefined;
@@ -963,7 +1027,7 @@ export class SchematicGenerator {
                 );
             const embeddedValue = compactValueRotation !== undefined && !fields?.value;
             const valueJustify =
-                comp.symbol === 'Device:R' &&
+                /^Device:R(?:_Small)?$/.test(comp.symbol) &&
                 this.snapshot.schematicRouting?.compactFields &&
                 !fields?.value
                     ? fieldJustify.length
@@ -1224,7 +1288,10 @@ export class SchematicGenerator {
                     .filter((position): position is PinPos => position !== null);
                 const escape = (position: PinPos) => {
                     const dir = this.getDirectionVector(position.rotation);
-                    return { x: position.x - dir.dx * 1.27, y: position.y - dir.dy * 1.27 };
+                    return {
+                        x: position.x - dir.dx * 1.27,
+                        y: position.y - dir.dy * 1.27,
+                    };
                 };
                 if (hint && positions.length < 2)
                     throw new Error(
@@ -1540,12 +1607,43 @@ export class SchematicGenerator {
                 ),
             }))
             .filter((item): item is { comp: Component; box: Box } => item.box !== null);
+        const componentOf = (pin: Pin) =>
+            this.snapshot.components.find(
+                (c) => c.ref === pin.component.ref && c.allPins.has(pin.name),
+            )!;
+        const motif = (this.placementFeedback?.pass ?? 0) >= 3;
+        const junctionTerminals = new Set(
+            motif
+                ? [...byNet].flatMap(([net, points]) =>
+                      points
+                          .filter(({ pin }) => {
+                              const comp = componentOf(pin);
+                              const pins = [...new Set(comp.allPins.values())];
+                              return (
+                                  pins.length === 1 ||
+                                  (pins.length === 2 &&
+                                      /Device:[RC]/.test(comp.symbol) &&
+                                      pins.some(
+                                          (other) =>
+                                              other.net &&
+                                              this.snapshot.schematicRouting?.powerSymbols?.[
+                                                  other.net.name
+                                              ],
+                                      ) &&
+                                      !this.snapshot.schematicRouting?.powerSymbols?.[net.name])
+                              );
+                          })
+                          .map(({ pin }) => `${pin.component.ref}.${pin.name}`),
+                  )
+                : [],
+        );
         const escape = (p: PinPos) => {
             const direction = this.getDirectionVector(p.rotation);
             const length =
                 this.snapshot.schematicRouting?.pinEscapes?.[p.terminal ?? ''] ??
-                this.snapshot.schematicRouting?.pinEscape ??
-                1.27;
+                (junctionTerminals.has(p.terminal ?? '')
+                    ? 0
+                    : (this.snapshot.schematicRouting?.pinEscape ?? 1.27));
             if (!Number.isFinite(length) || length < 0)
                 throw new Error(`Invalid schematic pin escape for ${p.terminal}`);
             return { x: p.x - direction.dx * length, y: p.y - direction.dy * length };
@@ -1664,9 +1762,9 @@ export class SchematicGenerator {
                             : [p, elbow, { x: end.x, y: elbow.y }, end];
                         const labelBox = {
                             x: end.x - width / 2,
-                            y: end.y + (ground ? 2.54 : -5.08),
+                            y: end.y + (ground ? 1.905 : -5.715),
                             width,
-                            height: 2.54,
+                            height: 3.81,
                         };
                         const glyphBox = {
                             x: end.x - 1.52,
@@ -1701,6 +1799,17 @@ export class SchematicGenerator {
                                     y: Math.min(q.y, path[i].y) - 0.1,
                                     width: Math.abs(q.x - path[i].x) + 0.2,
                                     height: Math.abs(q.y - path[i].y) + 0.2,
+                                }),
+                            ) ||
+                            [...byNet].some(([, pts]) =>
+                                pts.some(({ position }) => {
+                                    const q = escape(position);
+                                    return intersects(labelBox, {
+                                        x: Math.min(q.x, position.x) - 0.1,
+                                        y: Math.min(q.y, position.y) - 0.1,
+                                        width: Math.abs(q.x - position.x) + 0.2,
+                                        height: Math.abs(q.y - position.y) + 0.2,
+                                    });
                                 }),
                             ) ||
                             this._generatedWires.some((w) =>
@@ -1774,11 +1883,11 @@ export class SchematicGenerator {
                     if (this.snapshot.schematicRouting?.symbolClearance !== undefined) {
                         const width = net.name.length * 0.85 + 1.27;
                         portKeepouts.push({
-                            net: net.name,
+                            net: `label:${net.name}`,
                             x: e.x - width / 2,
-                            y: e.y + (ground ? 2.54 : -5.08),
+                            y: e.y + (ground ? 1.905 : -5.715),
                             width,
-                            height: 2.54,
+                            height: 3.81,
                         });
                     }
                     portKeepouts.push({
@@ -1802,17 +1911,42 @@ export class SchematicGenerator {
                         ),
                     );
                 } else if (boundary) {
-                    const p = (
-                            group.find(({ pin }) => /^[RC]\d+$/.test(pin.component.ref)) ?? group[0]
-                        ).position,
-                        e = escape(p);
+                    const selected =
+                        (motif
+                            ? group.find(({ pin }) => componentOf(pin).allPins.size === 1)
+                            : undefined) ??
+                        group.find(({ pin }) => /^[RC]\d+$/.test(pin.component.ref)) ??
+                        group[0];
+                    const p = selected.position;
+                    const principal = group.find(
+                        ({ pin, position }) =>
+                            componentOf(pin).allPins.size > 2 &&
+                            [0, 180].includes(position.rotation),
+                    );
+                    const horizontal =
+                        motif && (principal || /Device:[RC]/.test(selected.pin.component.symbol));
+                    const out = principal
+                        ? -this.getDirectionVector(principal.position.rotation).dx
+                        : p.x <
+                            (this.layoutReport?.frames.find((f) => `group:${f.id}` === ownerRef)
+                                ?.x ?? p.x) +
+                                30
+                          ? -1
+                          : 1;
+                    const probe = motif && componentOf(selected.pin).allPins.size === 1;
+                    const e = probe ? p : horizontal ? { x: p.x + out * 5.08, y: p.y } : escape(p);
+                    const labelDirection = probe
+                        ? { dx: out, dy: 0 }
+                        : { dx: e.x - p.x, dy: e.y - p.y };
                     this.portAnchors.push({ point: e, net: net.name });
-                    output.push(this.createWire(p, e, net.name));
-                    this._generatedWires.push({ p1: p, p2: e, netName: net.name });
+                    if (Math.abs(p.x - e.x) + Math.abs(p.y - e.y) > 0.001) {
+                        output.push(this.createWire(p, e, net.name));
+                        this._generatedWires.push({ p1: p, p2: e, netName: net.name });
+                    }
                     if (this.snapshot.schematicRouting?.symbolClearance !== undefined) {
                         const length = net.name.length * 0.85 + 2.54;
-                        const dx = e.x - p.x,
-                            dy = e.y - p.y;
+                        const dx = labelDirection.dx,
+                            dy = labelDirection.dy;
                         portKeepouts.push({
                             net: `label:${net.name}`,
                             x: dx < 0 ? e.x - length : dx > 0 ? e.x + 0.635 : e.x - 1.52,
@@ -1826,7 +1960,7 @@ export class SchematicGenerator {
                             net.name,
                             e.x,
                             e.y,
-                            { dx: e.x - p.x, dy: e.y - p.y },
+                            labelDirection,
                             this.uuids.getOrGenerate(`module-port/${ownerRef}/${net.name}`),
                         ),
                     );
@@ -1924,6 +2058,20 @@ export class SchematicGenerator {
                             })
                             .map(({ pin }) => pin.component.ref),
                     );
+                    const start = escape(bestA.position),
+                        end = escape(b.position);
+                    if (Math.hypot(start.x - end.x, start.y - end.y) < 0.001) {
+                        for (const [p1, p2] of [
+                            [bestA.position, start],
+                            [end, b.position],
+                        ]) {
+                            if (Math.hypot(p1.x - p2.x, p1.y - p2.y) > 0.001) {
+                                output.push(this.createWire(p1, p2, net.name));
+                                this._generatedWires.push({ p1, p2, netName: net.name });
+                            }
+                        }
+                        continue;
+                    }
                     requests.push({
                         net: net.name,
                         clearance:
@@ -1953,7 +2101,10 @@ export class SchematicGenerator {
                     ...portKeepouts.filter((box) => box.net !== request.net),
                 ],
             })),
-            this._generatedWires.map((w) => ({ net: w.netName, points: [w.p1, w.p2] })),
+            this._generatedWires.map((w) => ({
+                net: w.netName,
+                points: [w.p1, w.p2],
+            })),
         );
         paths.forEach((path, index) => {
             const { net, a, b } = endpoints[index];
@@ -2100,7 +2251,13 @@ export class SchematicGenerator {
         // 3. Pin Termination (Rule 3: All assigned pins must be touched)
         const pinRegistry = new Map<
             string,
-            { pos: PinPos; netName: string; compRef: string; pinName: string; touched: boolean }
+            {
+                pos: PinPos;
+                netName: string;
+                compRef: string;
+                pinName: string;
+                touched: boolean;
+            }
         >();
 
         for (const comp of this.snapshot.components) {
@@ -2315,9 +2472,10 @@ export class SchematicGenerator {
                 }),
             };
         });
+        this.placementParts = parts;
         this.layoutReport = arrangeSchematicGroups(
             parts,
-            options,
+            { ...options, topMargin: options.topMargin ?? 33.02 },
             this.snapshot.size,
             this.placementFeedback,
         );
@@ -2327,7 +2485,9 @@ export class SchematicGenerator {
         };
         for (const comp of drawings) {
             const id = this.drawingKey(comp);
-            Object.assign(comp, { schematicPosition: this.layoutReport.positions.get(id)! });
+            Object.assign(comp, {
+                schematicPosition: this.layoutReport.positions.get(id)!,
+            });
             const frame = this.layoutReport.frames.find((f) => f.members.includes(id))!;
             this.groupOwners.set(comp, `group:${frame.id}`);
         }
@@ -2337,7 +2497,7 @@ export class SchematicGenerator {
     private groupRoutingWalls(owner: string): Box[] {
         const frame = this.layoutReport?.frames.find((f) => `group:${f.id}` === owner);
         if (!frame) return [];
-        const top = frame.y + 10.16;
+        const top = frame.y + (this.layoutReport?.algorithm === 'grid' ? 10.16 : 7.62);
         const bottom =
             frame.y +
             frame.height -
@@ -2428,9 +2588,12 @@ export class SchematicGenerator {
             const targetAngle = { down: 270, up: 90, left: 180, right: 0 }[rule.direction];
             const rotation = (targetAngle - pin.rotation + 360) % 360;
             const rad = (rotation * Math.PI) / 180;
-            const vector = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] }[
-                rule.direction
-            ];
+            const vector = {
+                down: [0, 1],
+                up: [0, -1],
+                left: [-1, 0],
+                right: [1, 0],
+            }[rule.direction];
             const offset = rule.laneOffset ?? 0;
             const escapeAngle = ((anchor.rotation + 180) * Math.PI) / 180;
             const escapeVector = [Math.cos(escapeAngle), -Math.sin(escapeAngle)];

@@ -38,8 +38,15 @@ export interface GroupLayoutResult {
         initialCost: number;
         finalCost: number;
         accepted: number;
-        initial: { length: number; crossings: number; area: number };
-        final: { length: number; crossings: number; area: number };
+        trials: Array<{
+            pass: number;
+            accepted: boolean;
+            cost?: number;
+            warnings?: string[];
+            error?: string;
+        }>;
+        initial: { length: number; crossings: number; area: number; conventions: number };
+        final: { length: number; crossings: number; area: number; conventions: number };
     };
 }
 type Box = { x: number; y: number; width: number; height: number };
@@ -53,7 +60,10 @@ const rotate = (p: { x: number; y: number }, rotation: number) => {
     };
 };
 const overlaps = (a: Box, b: Box) =>
-    a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+    a.x < b.x + b.width - 0.001 &&
+    b.x < a.x + a.width - 0.001 &&
+    a.y < b.y + b.height - 0.001 &&
+    b.y < a.y + a.height - 0.001;
 const union = (boxes: Box[]): Box => {
     const x = Math.min(...boxes.map((b) => b.x)),
         y = Math.min(...boxes.map((b) => b.y));
@@ -161,10 +171,12 @@ export function arrangeSchematicGroups(
         )[0];
         const remaining = members.filter((p) => p !== root);
         const put = (part: LayoutPart, wanted: SchematicPosition, row = false) => {
+            const motif = (feedback?.pass ?? 0) >= 3;
+            const shunt = part.pins.length === 2 && part.pins.filter((p) => p.power).length === 1;
             let best: SchematicPosition | undefined,
                 cost = Infinity;
             const rotations =
-                feedback && !row && part.pins.length === 2
+                feedback && !row && part.pins.length === 2 && !(motif && shunt)
                     ? [...new Set([wanted.rotation ?? 0, 0, 90, 180, 270])]
                     : [wanted.rotation ?? 0];
             const step = grid * 2;
@@ -270,13 +282,29 @@ export function arrangeSchematicGroups(
                     b.owner.pins.length - a.owner.pins.length ||
                     a.anchor.number.localeCompare(b.anchor.number),
             )[0];
+            if ((feedback?.pass ?? 0) >= 3 && part.pins.length === 1 && link) {
+                // Zero-length probe pins are junction ornaments, not separate branches.
+                const host = absolute(link.anchor, positions.get(link.owner.id)!);
+                const angle = (host.rotation + 180) % 360,
+                    rad = (angle * Math.PI) / 180;
+                const local = rotate(link.pin, 0);
+                positions.set(part.id, {
+                    x: snap(host.x + Math.cos(rad) * 5.08 - local.x),
+                    y: snap(host.y - Math.sin(rad) * 5.08 - local.y),
+                    rotation: 0,
+                });
+                occupied.push(partEnvelope(part, positions.get(part.id)!));
+                placed.push(part);
+                continue;
+            }
             if (!link) {
                 // Power-only decoupling belongs near the dominant device, in a supply row.
                 const rootBox = partEnvelope(root, positions.get(root.id)!);
                 powerX ??= rootBox.x;
                 powerY ??= rootBox.y - 17.78;
                 const lowPin = part.pins.find((p) => ground(p.net));
-                const orientation = lowPin ? (90 - lowPin.rotation + 360) % 360 : 0;
+                const orientation =
+                    lowPin && part.pins.length === 2 ? (90 - lowPin.rotation + 360) % 360 : 0;
                 put(part, { x: powerX, y: powerY, rotation: orientation }, true);
                 const placedBox = partEnvelope(part, positions.get(part.id)!);
                 powerX = placedBox.x + placedBox.width + 10.16;
@@ -311,12 +339,18 @@ export function arrangeSchematicGroups(
             )
                 rotation = 0;
             if (part.pins.length === 1) rotation = 0;
+            const aligned =
+                (feedback?.pass ?? 0) >= 3 &&
+                part.pins.length === 2 &&
+                !!supply &&
+                Math.abs(out.x) > 0.5;
+            if (aligned) terminal.y = anchor.y;
             const local = rotate(link.pin, rotation);
-            put(part, { x: terminal.x - local.x, y: terminal.y - local.y, rotation });
+            put(part, { x: terminal.x - local.x, y: terminal.y - local.y, rotation }, aligned);
         }
         const bounds = union(members.map((p) => partEnvelope(p, positions.get(p.id)!)));
-        const padding = 10.16,
-            titleHeight = 10.16;
+        const padding = algorithm === 'grid' ? 10.16 : 5.08,
+            titleHeight = algorithm === 'grid' ? 10.16 : 7.62;
         const notes = (group.notes ?? []).flatMap((note) => {
             const value = typeof note === 'string' ? { text: note } : note;
             return value.text.split('\n').map((text) => ({ ...value, text }));
@@ -388,23 +422,44 @@ export function arrangeSchematicGroups(
     let selected = sheets[start];
     let packed = false;
     for (const sheet of sheets.slice(start)) {
-        let x = 15.24,
-            y = 15.24,
-            rowHeight = 0;
+        const left = 15.24,
+            top = options.topMargin ?? 15.24,
+            gap = 5.08;
         const trial: Array<{ x: number; y: number }> = [];
         const packingOrder = [...clusters].sort((a, b) => b.height - a.height || b.width - a.width);
         const trialFrames = new Map<GroupFrame, { x: number; y: number }>();
-        for (const frame of packingOrder) {
-            if (x + frame.width > sheet[1] - 15.24) {
-                x = 15.24;
-                y += rowHeight + 12.7;
-                rowHeight = 0;
-            }
-            for (const member of frame.offsets)
-                trialFrames.set(member.frame, { x: x + member.x, y: y + member.y });
-            x += frame.width + 12.7;
-            rowHeight = Math.max(rowHeight, frame.height);
+        const occupied: Box[] = [];
+        for (const cluster of packingOrder) {
+            // Fill free columns as well as rows; a shelf would waste the space
+            // below a short group beside a taller controller/notes block.
+            const xs = [left, ...occupied.map((b) => b.x + b.width + gap)];
+            const ys = [top, ...occupied.map((b) => b.y + b.height + gap)];
+            const candidates = ys
+                .flatMap((y) =>
+                    xs.map((x) => ({ x, y, width: cluster.width, height: cluster.height })),
+                )
+                .filter(
+                    (box) =>
+                        box.x + box.width <= sheet[1] - 15.24 &&
+                        box.y + box.height <= sheet[2] - 35.56 &&
+                        occupied.every(
+                            (b) =>
+                                !overlaps(box, {
+                                    x: b.x - gap,
+                                    y: b.y - gap,
+                                    width: b.width + gap * 2,
+                                    height: b.height + gap * 2,
+                                }),
+                        ),
+                )
+                .sort((a, b) => a.y - b.y || a.x - b.x);
+            const box = candidates[0];
+            if (!box) break;
+            for (const member of cluster.offsets)
+                trialFrames.set(member.frame, { x: box.x + member.x, y: box.y + member.y });
+            occupied.push(box);
         }
+        if (trialFrames.size !== frames.length) continue;
         frames.forEach((frame) => trial.push(trialFrames.get(frame)!));
         if (
             frames.every(

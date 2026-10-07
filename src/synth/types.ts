@@ -459,7 +459,9 @@ export interface SchematicRoutingOptions {
     /** Arrange every drawing from functional group membership; no individual coordinates required. */
     autoLayout?: {
         algorithm?: 'circuit' | 'grid';
-        /** Route, then score up to two automatic placement refinements. Enabled for circuit layout. */
+        /** Reserved header space; generation supplies this automatically. */
+        topMargin?: number;
+        /** Route, then score up to four automatic placement refinements. Enabled for circuit layout. */
         refine?: boolean;
         groups: SchematicGroup[];
     };
@@ -597,7 +599,16 @@ export interface ModuleOptions<PinNames> extends ComponentOptions {
 }
 
 /** Options for Schematic constructor */
+export interface SchematicBranding {
+    company?: string;
+    /** PNG or SVG file; project configuration resolves paths relative to pcb.config.json. */
+    logo?: string;
+}
 export interface SchematicOptions {
+    projectName?: string;
+    branding?: SchematicBranding;
+    /** Internal drawing revision, printed as R1, R2, ... independently of release revision. */
+    schematicRevision?: number;
     /** Circuit-owned rules, including the Default class for otherwise unassigned nets. */
     netClasses?: PcbNetClass[];
     /** Physical contacts exported when this board is used as a module. */
@@ -654,6 +665,9 @@ export type PinProxy<T extends string | number> = {
 
 /** A snapshot of the circuit state needed for codegen/synthesis. */
 export interface CircuitSnapshot {
+    projectName?: string;
+    branding?: SchematicBranding;
+    schematicRevision?: number;
     /** Independent boards placed on a panel; never merged into the parent circuit. */
     boards?: import('./BoardReference').BoardReference[];
     name: string;

@@ -95,6 +95,34 @@ describe('automatic functional-group layout', () => {
                 b.y + b.height <= a.y,
         ).toBe(true);
     });
+    it('keeps power connectors upright and places probe ornaments at the signal junction', () => {
+        const probe: LayoutPart = {
+            id: 'TP1',
+            symbol: 'Connector:TestPoint',
+            value: '',
+            body: { x: -1.27, y: 0, width: 2.54, height: 2.54 },
+            pins: [{ number: '1', x: 0, y: 0, rotation: 90, net: 'OUTPUT' }],
+        };
+        const connector: LayoutPart = {
+            ...root,
+            id: 'J1',
+            pins: root.pins.filter((p) => p.power).map((p) => ({ ...p, x: -7.62, rotation: 0 })),
+        };
+        const result = arrangeSchematicGroups(
+            [root, probe, connector],
+            {
+                groups: [
+                    { id: 'signal', title: 'Signal', components: ['U1', 'TP1'] },
+                    { id: 'connector', title: 'Power', components: ['J1'] },
+                ],
+            },
+            'A4',
+            { wireLengths: new Map(), pass: 3 },
+        );
+        expect(result.positions.get('J1')!.rotation).toBe(0);
+        expect(result.positions.get('TP1')!.x - result.positions.get('U1')!.x).toBeCloseTo(12.7);
+        expect(result.positions.get('TP1')!.y).toBe(result.positions.get('U1')!.y);
+    });
     it('rejects omissions and duplicate/unknown membership instead of falling back to manual placement', () => {
         expect(() => arrangeSchematicGroups(parts, { groups: [] })).toThrow(
             'must include every drawing',

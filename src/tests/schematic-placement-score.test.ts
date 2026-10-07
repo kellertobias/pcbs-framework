@@ -62,6 +62,76 @@ describe('routing-informed schematic placement', () => {
         expect(new Set(row.map((p) => p.y)).size).toBe(1);
         expect(new Set(row.map((p) => p.rotation))).toEqual(new Set([0]));
     });
+    it('scores aligned shunts and nearby probes ahead of awkward branch geometry', () => {
+        const parts: LayoutPart[] = [
+            {
+                id: 'U1',
+                symbol: 'IC',
+                value: 'IC',
+                body: { x: 0, y: 0, width: 10, height: 10 },
+                pins: [
+                    { number: '1', x: 0, y: 0, rotation: 0, net: 'SIG' },
+                    { number: '2', x: 1, y: 1, rotation: 0, net: 'OTHER' },
+                    { number: '3', x: 2, y: 2, rotation: 0, net: 'VCC', power: true },
+                ],
+            },
+            {
+                id: 'R1',
+                symbol: 'Device:R',
+                value: '1k',
+                body: { x: 0, y: 0, width: 2, height: 4 },
+                pins: [
+                    { number: '1', x: 0, y: 0, rotation: 90, net: 'SIG' },
+                    { number: '2', x: 0, y: 5, rotation: 270, net: 'VCC', power: true },
+                ],
+            },
+            {
+                id: 'TP1',
+                symbol: 'Connector:TestPoint',
+                value: '',
+                body: { x: 0, y: 0, width: 1, height: 1 },
+                pins: [{ number: '1', x: 0, y: 0, rotation: 90, net: 'SIG' }],
+            },
+        ];
+        const layout = {
+            positions: new Map([
+                ['U1', { x: 50, y: 50 }],
+                ['R1', { x: 30, y: 50 }],
+                ['TP1', { x: 44.92, y: 50 }],
+            ]),
+            frames: [
+                {
+                    id: 'control',
+                    title: 'Control',
+                    members: ['U1', 'R1', 'TP1'],
+                    notes: [],
+                    x: 0,
+                    y: 0,
+                    width: 100,
+                    height: 100,
+                },
+            ],
+            paper: 'A4',
+            algorithm: 'circuit' as const,
+            estimatedWireLength: 0,
+        };
+        const good = placementRoutingScore([], layout, parts);
+        const bad = placementRoutingScore(
+            [],
+            {
+                ...layout,
+                positions: new Map([
+                    ['U1', { x: 50, y: 50 }],
+                    ['R1', { x: 30, y: 60, rotation: 90 }],
+                    ['TP1', { x: 10, y: 50 }],
+                ]),
+            },
+            parts,
+        );
+        expect(good.conventions).toBe(0);
+        expect(bad.conventions).toBeGreaterThan(good.conventions);
+        expect(bad.cost).toBeGreaterThan(good.cost);
+    });
     it('routes around reserved leads without blocking perpendicular crossings', () => {
         const reserved = [
             {

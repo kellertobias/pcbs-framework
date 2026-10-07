@@ -105,3 +105,40 @@ The motor-fader board is the integration fixture: both `grid` and `circuit`
 are generated with no individual authored coordinates and must preserve all
 33 original circuit nets, including both units of RV1. The comparison artifact
 records their page sizes, estimated lengths and native verification results.
+
+## Project header and reusable branding
+
+Place a `pcb.config.json` at the project root to reuse branding across circuits:
+
+```json
+{
+  "branding": {
+    "company": "Your company",
+    "logo": "assets/logo.svg"
+  }
+}
+```
+
+The nearest configuration above the working directory wins. Logo paths are
+relative to that configuration. SVG and PNG logos are embedded in native KiCad
+schematics and survive PDF export. Per-circuit `branding` options override the
+project defaults. Use `projectName` for the visible heading, `description` for a
+short explanation, and `schematicRevision: 1` for the internal drawing revision
+(`R1`). The release `revision` remains independent. Automatic groups reserve a
+header strip and select the smallest supported sheet that contains their frames;
+A4 is the starting default, not a promise that a large circuit fits on one A4.
+
+Placement refinements include compact resistor drawings, aligned supply shunts,
+and direct test-point junctions. Each candidate is routed and scored; failed or
+less readable candidates are rejected, with reasons in the ignored layout report.
+Multi-pin connectors keep their native orientation rather than inheriting the
+orientation of a ground pin. These rules use symbol geometry and nets, rather
+than board-specific reference names or authored drawing coordinates.
+
+The route score also accounts for drawing conventions: a rail shunt should be
+vertical with power above or ground below, its signal terminal should align with
+the device pin row, and a probe should sit at its device junction. These costs
+prevent a small reduction in wire length from selecting a less readable layout.
+Reported scores include the convention cost separately from wire length,
+crossings and frame area. Sheet packing fills free columns below short groups,
+while preserving explicit relative group relationships.
