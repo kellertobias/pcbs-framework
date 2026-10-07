@@ -99,15 +99,15 @@ describe('connected passive placement', () => {
         expect(gen.generate()).toEqual(content);
         expect(gen.warnings).toEqual([]);
         const value = children(instance, 'property').find((p) => p[1] === '"Value"')!;
-        expect(children(value, 'at')[0]).toEqual(['at', '60.96', '64.77', '90']);
+        expect(children(value, 'at')[0]).toEqual(['at', '58.67', '64.77', '0']);
     });
-    it('rotates horizontal series branches and keeps values centered and references above the body', () => {
+    it('rotates horizontal series branches and places values below, opposite references above', () => {
         const { snapshot, gen } = fixture();
         snapshot.schematicRouting!.branches![0].direction = 'right';
         const instance = resistorInstance(gen.generate());
         expect(children(instance, 'at')[0]).toEqual(['at', '69.85', '50.80', '90.00']);
         const value = children(instance, 'property').find((p) => p[1] === '"Value"')!;
-        expect(children(value, 'at')[0]).toEqual(['at', '69.85', '50.80', '90']);
+        expect(children(value, 'at')[0]).toEqual(['at', '69.85', '53.09', '90']);
         const reference = children(instance, 'property').find((p) => p[1] === '"Reference"')!;
         expect(Number(children(reference, 'at')[0][2])).toBeLessThan(49.8);
         expect(gen.warnings).toEqual([]);

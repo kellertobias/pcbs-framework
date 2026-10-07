@@ -33,6 +33,14 @@ export interface GroupLayoutResult {
     paper: string;
     algorithm: 'circuit' | 'grid';
     estimatedWireLength: number;
+    refinement?: {
+        passes: number;
+        initialCost: number;
+        finalCost: number;
+        accepted: number;
+        initial: { length: number; crossings: number; area: number };
+        final: { length: number; crossings: number; area: number };
+    };
 }
 type Box = { x: number; y: number; width: number; height: number };
 const grid = 2.54;
@@ -56,7 +64,12 @@ const union = (boxes: Box[]): Box => {
         height: Math.max(...boxes.map((b) => b.y + b.height)) - y,
     };
 };
-function envelope(part: LayoutPart, position: SchematicPosition): Box {
+function envelope(
+    part: LayoutPart,
+    position: SchematicPosition,
+    compact = false,
+    probeHost = false,
+): Box {
     const r = position.rotation ?? 0;
     const corners = [
         { x: part.body.x, y: -part.body.y },
@@ -66,18 +79,32 @@ function envelope(part: LayoutPart, position: SchematicPosition): Box {
         ...part.pins,
     ].map((p) => rotate(p, r));
     const box = union(corners.map((p) => ({ x: p.x, y: p.y, width: 0, height: 0 })));
-    // Reserve fields, pin escapes and native supply/interface labels before routing.
+    // Compact envelopes reserve real fields and escape lanes, rather than an empty
+    // 25 mm band around every passive and probe.
     const label = Math.max(
         12.7,
         part.value.length * 0.7 + 5.08,
         ...part.pins.map((p) => (p.net?.length ?? 0) * 0.7 + 6.35),
     );
-    const side = part.pins.length > 2 ? label : Math.max(10.16, part.value.length * 0.7 + 5.08);
+    const side = probeHost
+        ? 3.81
+        : part.pins.length > 2
+          ? label
+          : part.pins.length === 1
+            ? 7.62
+            : Math.max(10.16, part.value.length * 0.7 + 5.08);
+    const vertical = probeHost
+        ? 7.62
+        : compact && part.pins.every((p) => !p.power)
+          ? part.pins.length <= 2
+              ? 7.62
+              : 12.7
+          : 12.7;
     return {
         x: position.x + box.x - side,
-        y: position.y + box.y - 12.7,
+        y: position.y + box.y - vertical,
         width: box.width + side * 2,
-        height: box.height + 25.4,
+        height: box.height + vertical * 2,
     };
 }
 const ground = (net: string | undefined) => /gnd|vss/i.test(net ?? '');
@@ -94,7 +121,8 @@ function absolute(pin: LayoutPin, position: SchematicPosition) {
 export function arrangeSchematicGroups(
     parts: LayoutPart[],
     options: NonNullable<SchematicRoutingOptions['autoLayout']>,
-    paper = 'A3',
+    paper = 'A4',
+    feedback?: { wireLengths: Map<string, number>; pass: number },
 ): GroupLayoutResult {
     const byId = new Map(parts.map((p) => [p.id, p]));
     const seen = new Set<string>(),
@@ -116,6 +144,8 @@ export function arrangeSchematicGroups(
                 .map((p) => p.id)
                 .join(', ')}`,
         );
+    const partEnvelope = (part: LayoutPart, position: SchematicPosition) =>
+        envelope(part, position, (feedback?.pass ?? 0) > 1);
     const positions = new Map<string, SchematicPosition>(),
         frames: GroupFrame[] = [];
     const algorithm = options.algorithm ?? 'circuit';
@@ -130,39 +160,92 @@ export function arrangeSchematicGroups(
             (a, b) => b.pins.length - a.pins.length || a.id.localeCompare(b.id),
         )[0];
         const remaining = members.filter((p) => p !== root);
-        const put = (part: LayoutPart, wanted: SchematicPosition) => {
+        const put = (part: LayoutPart, wanted: SchematicPosition, row = false) => {
             let best: SchematicPosition | undefined,
                 cost = Infinity;
-            for (let dx = -12; dx <= 12; dx++)
-                for (let dy = -12; dy <= 12; dy++) {
-                    const candidate = {
-                        x: snap(wanted.x + dx * 12.7),
-                        y: snap(wanted.y + dy * 12.7),
-                        rotation: wanted.rotation ?? 0,
-                    };
-                    if (occupied.some((b) => overlaps(envelope(part, candidate), b))) continue;
-                    const score =
-                        Math.abs(candidate.x - wanted.x) + Math.abs(candidate.y - wanted.y) * 1.2;
-                    if (score < cost) {
-                        cost = score;
-                        best = candidate;
+            const rotations =
+                feedback && !row && part.pins.length === 2
+                    ? [...new Set([wanted.rotation ?? 0, 0, 90, 180, 270])]
+                    : [wanted.rotation ?? 0];
+            const step = grid * 2;
+            for (const rotation of rotations)
+                for (let dx = -24; dx <= 24; dx++)
+                    for (let dy = row ? 0 : -16; dy <= (row ? 0 : 16); dy++) {
+                        const candidate = {
+                            x: snap(wanted.x + dx * step),
+                            y: snap(wanted.y + dy * step),
+                            rotation,
+                        };
+                        if (
+                            occupied.some((b, index) =>
+                                overlaps(
+                                    partEnvelope(part, candidate),
+                                    (feedback?.pass ?? 0) > 1 &&
+                                        part.pins.length === 1 &&
+                                        placed[index].pins.length > 2
+                                        ? envelope(
+                                              placed[index],
+                                              positions.get(placed[index].id)!,
+                                              true,
+                                              true,
+                                          )
+                                        : b,
+                                ),
+                            )
+                        )
+                            continue;
+                        let score =
+                            (Math.abs(candidate.x - wanted.x) +
+                                Math.abs(candidate.y - wanted.y) * 1.2) *
+                            (feedback ? 0.15 : 1);
+                        if (feedback) {
+                            for (const pin of part.pins.filter((p) => p.net && !p.power)) {
+                                const target = absolute(pin, candidate);
+                                const anchors = placed.flatMap((owner) =>
+                                    owner.pins
+                                        .filter((p) => p.net === pin.net)
+                                        .map((p) => absolute(p, positions.get(owner.id)!)),
+                                );
+                                if (anchors.length) {
+                                    const weight =
+                                        1 +
+                                        Math.min(3, (feedback.wireLengths.get(pin.net!) ?? 0) / 40);
+                                    score +=
+                                        weight *
+                                        Math.min(
+                                            ...anchors.map(
+                                                (a) =>
+                                                    Math.abs(target.x - a.x) +
+                                                    Math.abs(target.y - a.y),
+                                            ),
+                                        );
+                                }
+                            }
+                            score += rotation === (wanted.rotation ?? 0) ? 0 : 2.54;
+                        }
+                        if (score < cost) {
+                            cost = score;
+                            best = candidate;
+                        }
                     }
-                }
             if (!best)
                 throw new Error(
                     `Unable to arrange ${part.id} in group '${group.id}'. Split a very dense group.`,
                 );
             positions.set(part.id, best);
-            occupied.push(envelope(part, best));
+            occupied.push(partEnvelope(part, best));
             placed.push(part);
         };
         put(root, { x: 0, y: 0 });
-        let powerIndex = 0;
+        let powerX: number | undefined, powerY: number | undefined;
         while (remaining.length) {
             remaining.sort(
                 (a, b) =>
                     Math.max(...placed.map((p) => connectivity(b, p))) -
                         Math.max(...placed.map((p) => connectivity(a, p))) ||
+                    ((feedback?.pass ?? 0) > 1
+                        ? Number(b.pins.length === 1) - Number(a.pins.length === 1)
+                        : 0) ||
                     b.pins.length - a.pins.length ||
                     a.id.localeCompare(b.id),
             );
@@ -189,12 +272,15 @@ export function arrangeSchematicGroups(
             )[0];
             if (!link) {
                 // Power-only decoupling belongs near the dominant device, in a supply row.
-                const rootBox = envelope(root, positions.get(root.id)!);
-                put(part, {
-                    x: rootBox.x + powerIndex++ * 35.56,
-                    y: rootBox.y - 30.48,
-                    rotation: 0,
-                });
+                const rootBox = partEnvelope(root, positions.get(root.id)!);
+                powerX ??= rootBox.x;
+                powerY ??= rootBox.y - 17.78;
+                const lowPin = part.pins.find((p) => ground(p.net));
+                const orientation = lowPin ? (90 - lowPin.rotation + 360) % 360 : 0;
+                put(part, { x: powerX, y: powerY, rotation: orientation }, true);
+                const placedBox = partEnvelope(part, positions.get(part.id)!);
+                powerX = placedBox.x + placedBox.width + 10.16;
+
                 continue;
             }
             const anchor = absolute(link.anchor, positions.get(link.owner.id)!);
@@ -202,7 +288,10 @@ export function arrangeSchematicGroups(
                 rad = (angle * Math.PI) / 180;
             const out = { x: Math.cos(rad), y: -Math.sin(rad) };
             let rotation = (angle - link.pin.rotation + 360) % 360;
-            let terminal = { x: anchor.x + out.x * 25.4, y: anchor.y + out.y * 25.4 };
+            let terminal = {
+                x: anchor.x + out.x * (part.pins.length === 1 ? 12.7 : 15.24),
+                y: anchor.y + out.y * (part.pins.length === 1 ? 12.7 : 15.24),
+            };
             const supply = part.pins.find((p) => p.power && p !== link.pin);
             if (part.pins.length === 2 && supply && Math.abs(out.x) > 0.5) {
                 // Shunt capacitors and pull resistors read vertically: supply above, ground below.
@@ -216,12 +305,16 @@ export function arrangeSchematicGroups(
                         (Math.abs(out.x) > 0.5 ? (down ? 12.7 : -12.7) : 0),
                 };
             }
-            if (part.pins.length > 2 || !/^(Device:|Jumper:|TestPoint:)/.test(part.symbol))
+            if (
+                part.pins.length > 2 ||
+                !/^(Device:|Jumper:|TestPoint:|Connector:TestPoint)/.test(part.symbol)
+            )
                 rotation = 0;
+            if (part.pins.length === 1) rotation = 0;
             const local = rotate(link.pin, rotation);
             put(part, { x: terminal.x - local.x, y: terminal.y - local.y, rotation });
         }
-        const bounds = union(members.map((p) => envelope(p, positions.get(p.id)!)));
+        const bounds = union(members.map((p) => partEnvelope(p, positions.get(p.id)!)));
         const padding = 10.16,
             titleHeight = 10.16;
         const notes = (group.notes ?? []).flatMap((note) => {

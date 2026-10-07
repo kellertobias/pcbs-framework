@@ -29,7 +29,7 @@ try {
         const { AvoidLib } = await import('libavoid-js');
         await AvoidLib.load();
         const A = AvoidLib.getInstance();
-        const reserved = [];
+        const reserved = [...(input.reserved ?? [])];
         const onSegment = (p, a, b) =>
             Math.abs((b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)) < 1e-7 &&
             p.x >= Math.min(a.x, b.x) - 1e-7 &&

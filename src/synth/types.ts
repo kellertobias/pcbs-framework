@@ -459,9 +459,11 @@ export interface SchematicRoutingOptions {
     /** Arrange every drawing from functional group membership; no individual coordinates required. */
     autoLayout?: {
         algorithm?: 'circuit' | 'grid';
+        /** Route, then score up to two automatic placement refinements. Enabled for circuit layout. */
+        refine?: boolean;
         groups: SchematicGroup[];
     };
-    /** Compact fields: resistor values inside their body, references beside it; IC names near the body. */
+    /** Compact fields: references and values outside opposite sides of passives; IC names above the body. */
     compactFields?: boolean;
     /** Place a two-pin passive relative to an electrically connected terminal. Evaluated in order, so branches can form chains. */
     branches?: Array<{

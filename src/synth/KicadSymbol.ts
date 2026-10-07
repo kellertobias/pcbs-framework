@@ -16,6 +16,8 @@ export type SymbolPinSide = 'left' | 'right' | 'top' | 'bottom';
 export type SymbolPinStyle = 'line' | 'inverted' | 'clock' | 'inverted_clock';
 
 export interface SymbolPinOptions {
+    /** Optional capability text drawn beneath the pin name; never part of the electrical name. */
+    annotation?: string;
     name: string;
     number: string;
     x: number;
@@ -36,6 +38,7 @@ export interface SymbolRectOptions {
 }
 
 export interface SymbolTextOptions {
+    justify?: 'left' | 'right' | 'center';
     text: string;
     x: number;
     y: number;
@@ -81,6 +84,7 @@ interface SymRect {
 }
 
 interface SymText {
+    justify?: 'left' | 'right' | 'center';
     text: string;
     x: number;
     y: number;
@@ -170,6 +174,8 @@ export class KicadSymbol {
     // ── Builder methods ────────────────────────────────────────────────
 
     public addPin(options: SymbolPinOptions): this {
+        if (options.annotation && options.side !== 'left' && options.side !== 'right')
+            throw new Error('Pin annotations currently require a left or right pin.');
         this._pins.push({
             name: options.name,
             number: options.number,
@@ -180,6 +186,16 @@ export class KicadSymbol {
             style: options.style ?? 'line',
             length: options.length ?? 2.54,
         });
+        if (options.annotation) {
+            const left = options.side === 'left';
+            this.addText({
+                text: options.annotation,
+                x: options.x + (left ? 1 : -1) * ((options.length ?? 2.54) + 0.635),
+                y: options.y - 1.905,
+                fontSize: 0.8,
+                justify: left ? 'left' : 'right',
+            });
+        }
         return this;
     }
 
@@ -197,6 +213,7 @@ export class KicadSymbol {
 
     public addText(options: SymbolTextOptions): this {
         this._texts.push({
+            justify: options.justify,
             text: options.text,
             x: options.x,
             y: options.y,
@@ -355,12 +372,13 @@ export class KicadSymbol {
     }
 
     private _serializeText(text: SymText): string {
-        let s = `\t\t\t(text "${text.text}"\n`;
+        let s = `\t\t\t(text ${JSON.stringify(text.text)}\n`;
         s += `\t\t\t\t(at ${text.x} ${text.y} 0)\n`;
         s += `\t\t\t\t(effects\n`;
         s += `\t\t\t\t\t(font\n`;
         s += `\t\t\t\t\t\t(size ${text.fontSize} ${text.fontSize})\n`;
         s += `\t\t\t\t\t)\n`;
+        if (text.justify && text.justify !== 'center') s += `\t\t\t\t\t(justify ${text.justify})\n`;
         s += `\t\t\t\t)\n`;
         s += `\t\t\t)`;
         return s;

@@ -1,3 +1,4 @@
+import { placementRoutingScore } from './SchematicPlacementScore';
 import {
     arrangeSchematicGroups,
     type GroupLayoutResult,
@@ -148,7 +149,64 @@ export class SchematicGenerator {
         this.options = options;
     }
 
+    private placementFeedback?: { wireLengths: Map<string, number>; pass: number };
+
     generate(): string {
+        this.placementFeedback = undefined;
+        let content = this.generatePass();
+        const layoutOptions = this.sourceSnapshot.schematicRouting?.autoLayout;
+        if (
+            !this.layoutReport ||
+            layoutOptions?.algorithm === 'grid' ||
+            layoutOptions?.refine === false ||
+            this.options.noWires
+        )
+            return content;
+        const initial = placementRoutingScore(this._generatedWires, this.layoutReport);
+        let best: SchematicGenerator = this,
+            score = initial,
+            accepted = 0,
+            passes = 1;
+        for (let pass = 1; pass <= 2; pass++) {
+            const trial = new SchematicGenerator(
+                this.sourceSnapshot,
+                this.library,
+                this.uuids,
+                this.options,
+            );
+            trial.placementFeedback = { wireLengths: score.wireLengths, pass };
+            try {
+                const drawing = trial.generatePass();
+                passes++;
+                const candidate = placementRoutingScore(trial._generatedWires, trial.layoutReport!);
+                if (
+                    trial.warnings.length <= best.warnings.length &&
+                    candidate.cost < score.cost - 0.001
+                ) {
+                    best = trial;
+                    score = candidate;
+                    content = drawing;
+                    accepted++;
+                }
+            } catch {
+                // A rejected trial must never replace a valid drawing/connectivity result.
+                passes++;
+            }
+        }
+        if (best !== this) Object.assign(this, best);
+        this.placementFeedback = undefined;
+        this.layoutReport!.refinement = {
+            passes,
+            initialCost: initial.cost,
+            finalCost: score.cost,
+            accepted,
+            initial: { length: initial.length, crossings: initial.crossings, area: initial.area },
+            final: { length: score.length, crossings: score.crossings, area: score.area },
+        };
+        return content;
+    }
+
+    private generatePass(): string {
         this.errors = [];
         this.warnings = [];
         this.snapshot = this.sourceSnapshot;
@@ -309,21 +367,7 @@ export class SchematicGenerator {
         }
 
         if (this.snapshot.schematicRouting?.readabilityWarnings !== false) {
-            this.warnings.push(
-                ...schematicReadabilityWarnings(schematic, {
-                    embeddedValues: new Set(
-                        this.snapshot.schematicRouting?.compactFields
-                            ? this.snapshot.components
-                                  .filter(
-                                      (c) =>
-                                          c.symbol === 'Device:R' &&
-                                          !this.snapshot.schematicRouting?.fields?.[c.ref]?.value,
-                                  )
-                                  .map((c) => c.ref)
-                            : [],
-                    ),
-                }),
-            );
+            this.warnings.push(...schematicReadabilityWarnings(schematic));
             this.checkRouteDetours();
         }
         return SExpressionParser.serialize(schematic);
@@ -858,9 +902,9 @@ export class SchematicGenerator {
                     ? rot % 180 === 90
                     : body.width > body.height;
                 if (comp.symbol === 'Device:R') {
-                    valX = x;
-                    valY = y;
-                    compactValueRotation = ((horizontal ? 0 : 90) - rot + 360) % 180;
+                    valX = horizontal ? x : body.x - 1.27;
+                    valY = horizontal ? body.y + body.height + 1.27 : y;
+                    compactValueRotation = undefined;
                     textRot = (360 - rot) % 180;
                     if (horizontal) {
                         refX = x;
@@ -884,11 +928,11 @@ export class SchematicGenerator {
                         valY = body.y + body.height + 1.27;
                         fieldJustify = [];
                     }
-                } else if (this.snapshot.schematicRouting.symbolOverrides?.[comp.symbol]) {
+                } else if (comp.allPins.size > 2) {
                     textRot = (360 - rot) % 180;
                     refX = valX = body.x + 1.27;
-                    refY = body.y - 3.81;
-                    valY = body.y - 1.27;
+                    refY = body.y - 6.35;
+                    valY = body.y - 3.81;
                     fieldJustify = [['justify', 'right']];
                 }
             }
@@ -918,7 +962,19 @@ export class SchematicGenerator {
                         : item,
                 );
             const embeddedValue = compactValueRotation !== undefined && !fields?.value;
-            const valueJustify = embeddedValue ? [] : fieldJustify;
+            const valueJustify =
+                comp.symbol === 'Device:R' &&
+                this.snapshot.schematicRouting?.compactFields &&
+                !fields?.value
+                    ? fieldJustify.length
+                        ? fieldJustify.map((item) => [
+                              'justify',
+                              item[1] === 'left' ? 'right' : 'left',
+                          ])
+                        : []
+                    : embeddedValue
+                      ? []
+                      : fieldJustify;
             const body = embeddedValue ? this.getComponentBox(comp, 0, true) : null;
             const valueSize = body
                 ? String(
@@ -930,11 +986,17 @@ export class SchematicGenerator {
                   )
                 : fieldSize;
             if (this.snapshot.schematicRouting?.symbolClearance !== undefined) {
-                const reserve = (text: string, fx: number, fy: number, angle: number) => {
+                const reserve = (
+                    text: string,
+                    fx: number,
+                    fy: number,
+                    angle: number,
+                    alignment: SExpr[],
+                ) => {
                     let width = text.length * 0.85 + 1.27,
                         height = 2.54;
                     if ((angle + rot) % 180 === 90) [width, height] = [height, width];
-                    let justify = fieldJustify[0]?.[1];
+                    let justify = Array.isArray(alignment[0]) ? alignment[0][1] : undefined;
                     if (rot % 360 === 180 && justify)
                         justify = justify === 'left' ? 'right' : 'left';
                     this.fieldKeepouts.push({
@@ -949,12 +1011,12 @@ export class SchematicGenerator {
                         height,
                     });
                 };
-                reserve(comp.ref, refX, refY, refTextRot);
+                reserve(comp.ref, refX, refY, refTextRot, fieldJustify);
                 if (
                     !embeddedValue &&
                     !this.snapshot.schematicRouting.hideValues?.includes(comp.ref)
                 )
-                    reserve(comp.value || symName, valX, valY, valTextRot);
+                    reserve(comp.value || symName, valX, valY, valTextRot, valueJustify);
             }
             const instance: SExpr[] = [
                 'symbol',
@@ -1488,7 +1550,11 @@ export class SchematicGenerator {
                 throw new Error(`Invalid schematic pin escape for ${p.terminal}`);
             return { x: p.x - direction.dx * length, y: p.y - direction.dy * length };
         };
-        for (const [net, points] of byNet) {
+        for (const [net, points] of [...byNet].sort(
+            ([a], [b]) =>
+                Number(!!this.snapshot.schematicRouting?.powerSymbols?.[a.name]) -
+                Number(!!this.snapshot.schematicRouting?.powerSymbols?.[b.name]),
+        )) {
             if (!points.some((point) => point.owner)) continue;
             this.moduleNets.add(net);
             const groups = new Map<Owner, typeof points>();
@@ -1556,66 +1622,183 @@ export class SchematicGenerator {
                 const boundary =
                     groups.size > 1 || (interfaceNet && !net.name.startsWith(`${ownerRef}_`));
                 if (powerSymbol) {
-                    const p = group[0].position,
-                        e = escape(p);
-                    this.portAnchors.push({ point: e, net: net.name });
-                    output.push(this.createWire(p, e, net.name));
-                    this._generatedWires.push({ p1: p, p2: e, netName: net.name });
+                    const p = group[0].position;
+                    const lead = escape(p);
                     const ground = powerSymbol === 'power:GND';
-                    const defaultDy = ground ? 1 : -1;
-                    const inline =
-                        (this.layoutReport ||
-                            interfaceComponents?.includes(group[0].pin.component.ref)) &&
-                        Math.abs(e.x - p.x) > 0.001;
-                    const glyphDx = inline ? Math.sign(e.x - p.x) : 0;
-                    const glyphDy = inline
-                        ? 0
-                        : Math.abs(e.y - p.y) > 0.001
-                          ? Math.sign(e.y - p.y)
-                          : defaultDy;
-                    const glyphRotation = inline
-                        ? ground
-                            ? glyphDx > 0
-                                ? 90
-                                : 270
-                            : glyphDx > 0
-                              ? 270
-                              : 90
-                        : glyphDy === defaultDy
-                          ? 0
-                          : 180;
+                    const dy = ground ? 1 : -1;
+                    const horizontal = Math.abs(lead.x - p.x) > 0.001;
+                    const outward = horizontal ? Math.sign(lead.x - p.x) : Math.sign(lead.y - p.y);
+                    const width = net.name.length * 0.85 + 1.27;
+                    const intersects = (a: Box, b: Box) =>
+                        a.x < b.x + b.width &&
+                        b.x < a.x + a.width &&
+                        a.y < b.y + b.height &&
+                        b.y < a.y + a.height;
+                    let chain: Point[] | undefined;
+                    // Keep glyphs upright. Search outward escape lanes before drawing a
+                    // short orthogonal stub, so adjacent connector rails cannot overlap.
+                    for (let step = 0; step < 80; step++) {
+                        const elbow = horizontal
+                            ? { x: lead.x + outward * step * 2.54, y: lead.y }
+                            : {
+                                  x: lead.x,
+                                  y:
+                                      p.y +
+                                      outward *
+                                          Math.max(
+                                              1.27,
+                                              Math.abs(lead.y - p.y) - Math.floor(step / 20) * 1.27,
+                                          ),
+                              };
+                        const lane = step % 20;
+                        const offset =
+                            lane === 0 ? 0 : (lane % 2 ? 1 : -1) * Math.ceil(lane / 2) * 5.08;
+                        const end = horizontal
+                            ? { x: elbow.x, y: elbow.y + dy * 5.08 }
+                            : {
+                                  x: elbow.x + offset,
+                                  y: elbow.y + dy * (step === 0 && outward === dy ? 0 : 7.62),
+                              };
+                        const path = horizontal
+                            ? [p, elbow, end]
+                            : [p, elbow, { x: end.x, y: elbow.y }, end];
+                        const labelBox = {
+                            x: end.x - width / 2,
+                            y: end.y + (ground ? 2.54 : -5.08),
+                            width,
+                            height: 2.54,
+                        };
+                        const glyphBox = {
+                            x: end.x - 1.52,
+                            y: ground ? end.y + 0.1 : end.y - 2.54,
+                            width: 3.04,
+                            height: 2.44,
+                        };
+                        const blocked =
+                            [
+                                ...this.fieldKeepouts,
+                                ...componentObstacles.map((o) => o.box),
+                                ...portKeepouts,
+                            ].some(
+                                (box) => intersects(box, labelBox) || intersects(box, glyphBox),
+                            ) ||
+                            [...byNet].some(
+                                ([other, pts]) =>
+                                    other !== net &&
+                                    pts.some(({ position }) =>
+                                        path
+                                            .slice(1)
+                                            .some(
+                                                (q, i) =>
+                                                    pointOnSegment(position, path[i], q) ||
+                                                    pointOnSegment(escape(position), path[i], q),
+                                            ),
+                                    ),
+                            ) ||
+                            path.slice(1).some((q, i) =>
+                                intersects(labelBox, {
+                                    x: Math.min(q.x, path[i].x) - 0.1,
+                                    y: Math.min(q.y, path[i].y) - 0.1,
+                                    width: Math.abs(q.x - path[i].x) + 0.2,
+                                    height: Math.abs(q.y - path[i].y) + 0.2,
+                                }),
+                            ) ||
+                            this._generatedWires.some((w) =>
+                                intersects(labelBox, {
+                                    x: Math.min(w.p1.x, w.p2.x) - 0.1,
+                                    y: Math.min(w.p1.y, w.p2.y) - 0.1,
+                                    width: Math.abs(w.p1.x - w.p2.x) + 0.2,
+                                    height: Math.abs(w.p1.y - w.p2.y) + 0.2,
+                                }),
+                            ) ||
+                            path.slice(1).some((point, i) => {
+                                const prev = path[i];
+                                const futureEscapes = [...byNet]
+                                    .filter(([other]) => other !== net)
+                                    .flatMap(([other, pts]) =>
+                                        pts.map(({ position }) => ({
+                                            p1: position,
+                                            p2: escape(position),
+                                            netName: other.name,
+                                        })),
+                                    );
+                                const segmentBox = {
+                                    x: Math.min(point.x, prev.x) - 0.1,
+                                    y: Math.min(point.y, prev.y) - 0.1,
+                                    width: Math.abs(point.x - prev.x) + 0.2,
+                                    height: Math.abs(point.y - prev.y) + 0.2,
+                                };
+                                if (portKeepouts.some((box) => intersects(box, segmentBox)))
+                                    return true;
+                                return [...this._generatedWires, ...futureEscapes].some(
+                                    (w) =>
+                                        w.netName !== net.name &&
+                                        ((Math.abs(point.x - prev.x) < 0.001 &&
+                                            Math.abs(w.p1.x - w.p2.x) < 0.001 &&
+                                            Math.abs(point.x - w.p1.x) < 2 &&
+                                            Math.min(point.y, prev.y) < Math.max(w.p1.y, w.p2.y) &&
+                                            Math.min(w.p1.y, w.p2.y) < Math.max(point.y, prev.y)) ||
+                                            (Math.abs(point.y - prev.y) < 0.001 &&
+                                                Math.abs(w.p1.y - w.p2.y) < 0.001 &&
+                                                Math.abs(point.y - w.p1.y) < 2 &&
+                                                Math.min(point.x, prev.x) <
+                                                    Math.max(w.p1.x, w.p2.x) &&
+                                                Math.min(w.p1.x, w.p2.x) <
+                                                    Math.max(point.x, prev.x))),
+                                );
+                            });
+                        if (!blocked) {
+                            chain = path;
+                            break;
+                        }
+                    }
+                    if (!chain)
+                        throw new Error(
+                            `Unable to place upright power symbol for ${p.terminal} (${net.name}) without collisions.`,
+                        );
+                    const e = chain[chain.length - 1];
+                    this.portAnchors.push({ point: e, net: net.name });
+                    for (let i = 0; i < chain.length - 1; i++)
+                        if (
+                            Math.abs(chain[i].x - chain[i + 1].x) +
+                                Math.abs(chain[i].y - chain[i + 1].y) >
+                            0.001
+                        ) {
+                            output.push(this.createWire(chain[i], chain[i + 1], net.name));
+                            this._generatedWires.push({
+                                p1: chain[i],
+                                p2: chain[i + 1],
+                                netName: net.name,
+                            });
+                        }
                     if (this.snapshot.schematicRouting?.symbolClearance !== undefined) {
                         const width = net.name.length * 0.85 + 1.27;
                         portKeepouts.push({
                             net: net.name,
-                            x: inline
-                                ? glyphDx > 0
-                                    ? e.x + 3.81
-                                    : e.x - 3.81 - width
-                                : e.x - width / 2,
-                            y: inline ? e.y - 0.635 : e.y + (glyphDy > 0 ? 2.54 : -5.08),
+                            x: e.x - width / 2,
+                            y: e.y + (ground ? 2.54 : -5.08),
                             width,
-                            height: inline ? 1.27 : 2.54,
+                            height: 2.54,
                         });
                     }
                     portKeepouts.push({
                         net: `glyph:${net.name}`,
-                        x: inline ? (glyphDx > 0 ? e.x + 0.1 : e.x - 2.54) : e.x - 1.52,
-                        y: inline ? e.y - 1.52 : glyphDy > 0 ? e.y + 0.1 : e.y - 2.54,
-                        width: inline ? 2.44 : 3.04,
-                        height: inline ? 3.04 : 2.44,
+                        x: e.x - 1.52,
+                        y: ground ? e.y + 0.1 : e.y - 2.54,
+                        width: 3.04,
+                        height: 2.44,
                     });
                     output.push(
                         this.createPowerSymbol(
                             net.name,
                             e.x,
                             e.y,
-                            glyphRotation,
-                            { dx: glyphDx, dy: glyphDy },
+                            0,
+                            { dx: 0, dy },
                             '',
                             this.uuids.getOrGenerate(`local-power/${ownerRef}/${net.name}`),
                             powerSymbol,
-                            Boolean(inline),
+                            false,
                         ),
                     );
                 } else if (boundary) {
@@ -1770,6 +1953,7 @@ export class SchematicGenerator {
                     ...portKeepouts.filter((box) => box.net !== request.net),
                 ],
             })),
+            this._generatedWires.map((w) => ({ net: w.netName, points: [w.p1, w.p2] })),
         );
         paths.forEach((path, index) => {
             const { net, a, b } = endpoints[index];
@@ -2131,7 +2315,12 @@ export class SchematicGenerator {
                 }),
             };
         });
-        this.layoutReport = arrangeSchematicGroups(parts, options, this.snapshot.size);
+        this.layoutReport = arrangeSchematicGroups(
+            parts,
+            options,
+            this.snapshot.size,
+            this.placementFeedback,
+        );
         this.snapshot = {
             ...this.snapshot,
             size: this.layoutReport.paper as CircuitSnapshot['size'],

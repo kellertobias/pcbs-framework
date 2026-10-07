@@ -48,6 +48,7 @@ describe('automatic functional-group layout', () => {
         expect(Object.fromEntries(a.positions)).toEqual(Object.fromEntries(b.positions));
         expect(JSON.stringify(parts)).toBe(before);
         expect(a.frames).toHaveLength(1);
+        expect(a.paper).toBe('A4');
         for (const p of a.positions.values()) {
             expect(p.x / 2.54).toBeCloseTo(Math.round(p.x / 2.54));
             expect(p.y / 2.54).toBeCloseTo(Math.round(p.y / 2.54));

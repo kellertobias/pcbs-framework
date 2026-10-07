@@ -51,8 +51,28 @@ Groups are packed by height into a sheet, growing from the requested paper size
 through A0 if necessary. Every generated origin lies on the 2.54 mm grid;
 off-grid normalization would otherwise introduce native KiCad pin/wire gaps.
 The wire router stays inside group interiors and avoids the heading/note areas.
-Closely spaced power pins on the same device side share a glyph. Side-facing
-power pins use inline glyphs to keep labels out of neighbouring signal lanes.
+The default requested page is A4, consistent with `Schematic`. Automatic layout
+can grow to a larger sheet when the circuit and its notes cannot fit legibly;
+changing the default does not scale text down or clip large groups.
+Power glyphs remain upright: ground down, supplies up. Their orthogonal stubs
+search clear lanes around existing fields, foreign pins and boundary labels.
+Already drawn stubs participate in subsequent router spacing constraints.
+
+Circuit layout routes an initial placement, then tries two refinements using
+actual emitted net lengths. Candidates consider all connected placed terminals,
+not just the first connection, and try passive rotations. Decouplers share an
+aligned supply row. Test points are prioritized near connected devices in the
+compact trial. Each completed drawing is scored for wire length, foreign-net
+crossings and frame area. A trial is retained only if its cost improves without
+additional readability warnings; routing failures retain the previous result.
+`autoLayout.refine: false` disables refinement for a deterministic baseline.
+`layoutReport.refinement` records passes, accepted trials and initial/final costs.
+This bounded search is a heuristic, not a guarantee of the smallest drawing.
+
+With `compactFields`, resistor references and values sit outside opposite sides
+of the body. IC references and values sit above it with clearance. Generic
+symbols can pass `annotation` to a side pin to draw capability text beneath its
+plain electrical name; `addText` also supports left/right/center justification.
 
 The generator exposes `layoutReport`. Synthesis saves
 `<name>-schematic-layout.json`, containing group bounds, generated positions,

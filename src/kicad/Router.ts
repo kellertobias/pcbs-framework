@@ -34,7 +34,10 @@ export class Router {
     route(start: Point, end: Point, obstacles: Box[], waypoints: Point[] = []): Point[] {
         return this.routeMany([{ start, end, obstacles, waypoints }])[0];
     }
-    routeMany(requests: WireRoutingRequest[]): Point[][] {
+    routeMany(
+        requests: WireRoutingRequest[],
+        reserved: { net: string; points: Point[] }[] = [],
+    ): Point[][] {
         if (!requests.length) return [];
         const contains = (box: Box, point: Point) =>
             point.x >= box.x &&
@@ -53,7 +56,7 @@ export class Router {
                 throw new Error('Required schematic waypoint lies inside an obstacle.');
             return { ...request, obstacles };
         });
-        const paths = runRoutingLibrary<Point[][]>({ engine: 'libavoid', connections });
+        const paths = runRoutingLibrary<Point[][]>({ engine: 'libavoid', connections, reserved });
         return paths.map((path, index) => {
             const request = connections[index];
             if (
@@ -74,12 +77,12 @@ export class Router {
                         a.x === b.x
                             ? a.x > box.x + 1e-7 &&
                               a.x < box.x + box.width - 1e-7 &&
-                              Math.max(a.y, b.y) > box.y &&
-                              Math.min(a.y, b.y) < box.y + box.height
+                              Math.max(a.y, b.y) > box.y + 1e-7 &&
+                              Math.min(a.y, b.y) < box.y + box.height - 1e-7
                             : a.y > box.y + 1e-7 &&
                               a.y < box.y + box.height - 1e-7 &&
-                              Math.max(a.x, b.x) > box.x &&
-                              Math.min(a.x, b.x) < box.x + box.width;
+                              Math.max(a.x, b.x) > box.x + 1e-7 &&
+                              Math.min(a.x, b.x) < box.x + box.width - 1e-7;
                     if (intersects)
                         throw new Error(
                             `Schematic route ${request.net} crosses obstacle ${JSON.stringify(box)} at ${JSON.stringify(a)} -> ${JSON.stringify(b)}.`,
