@@ -143,6 +143,7 @@ export class KicadSymbol {
     public readonly value: string;
 
     private _pins: SymPin[] = [];
+    private _pinAnnotations = new Map<string, SymText>();
     private _rects: SymRect[] = [];
     private _texts: SymText[] = [];
     private _circles: SymCircle[] = [];
@@ -195,7 +196,48 @@ export class KicadSymbol {
                 fontSize: 0.8,
                 justify: left ? 'left' : 'right',
             });
+            this._pinAnnotations.set(options.number, this._texts[this._texts.length - 1]);
         }
+        return this;
+    }
+
+    /** Drawing-only ordered pin group; preserves electrical identities and annotations. */
+    public arrangePinGroup(options: {
+        side: 'left' | 'right';
+        pins: string[];
+        startY: number;
+        pitch?: number;
+    }): this {
+        const pitch = options.pitch ?? 7.62;
+        if (
+            !Number.isFinite(options.startY) ||
+            !Number.isFinite(pitch) ||
+            pitch < 5.08 ||
+            new Set(options.pins).size !== options.pins.length
+        )
+            throw new Error(
+                'Pin groups require unique pins, finite positions and at least 5.08 mm pitch.',
+            );
+        const selected = options.pins.map((number) => {
+            const pin = this._pins.find((p) => p.number === number);
+            if (!pin) throw new Error(`Unknown grouped pin ${number}`);
+            return pin;
+        });
+        const left = options.side === 'left';
+        const edge = left
+            ? Math.min(...this._pins.map((p) => p.x))
+            : Math.max(...this._pins.map((p) => p.x));
+        selected.forEach((pin, i) => {
+            pin.x = edge;
+            pin.y = options.startY - i * pitch;
+            pin.rotation = sideToAngle(options.side);
+            const annotation = this._pinAnnotations.get(pin.number);
+            if (annotation) {
+                annotation.x = pin.x + (left ? 1 : -1) * (pin.length + 0.635);
+                annotation.y = pin.y - 1.905;
+                annotation.justify = left ? 'left' : 'right';
+            }
+        });
         return this;
     }
 

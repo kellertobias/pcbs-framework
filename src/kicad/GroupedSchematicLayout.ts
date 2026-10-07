@@ -50,7 +50,8 @@ export interface GroupLayoutResult {
     };
 }
 type Box = { x: number; y: number; width: number; height: number };
-const grid = 2.54;
+// Native passive terminals commonly lie on the 50 mil grid (3.81 mm lead).
+const grid = 1.27;
 const snap = (x: number) => Math.round(x / grid) * grid;
 const rotate = (p: { x: number; y: number }, rotation: number) => {
     const rad = (rotation * Math.PI) / 180;
@@ -79,6 +80,7 @@ function envelope(
     position: SchematicPosition,
     compact = false,
     probeHost = false,
+    dense = false,
 ): Box {
     const r = position.rotation ?? 0;
     const corners = [
@@ -96,20 +98,26 @@ function envelope(
         part.value.length * 0.7 + 5.08,
         ...part.pins.map((p) => (p.net?.length ?? 0) * 0.7 + 6.35),
     );
-    const side = probeHost
-        ? 3.81
-        : part.pins.length > 2
-          ? label
-          : part.pins.length === 1
-            ? 7.62
-            : Math.max(10.16, part.value.length * 0.7 + 5.08);
-    const vertical = probeHost
-        ? 7.62
-        : compact && part.pins.every((p) => !p.power)
-          ? part.pins.length <= 2
+    const side =
+        dense && part.pins.length === 2
+            ? Math.max(7.62, part.value.length * 0.7 + 3.81)
+            : probeHost
+              ? 3.81
+              : part.pins.length > 2
+                ? label
+                : part.pins.length === 1
+                  ? 7.62
+                  : Math.max(10.16, part.value.length * 0.7 + 5.08);
+    const vertical =
+        dense && part.pins.length === 2
+            ? 3.81
+            : probeHost
               ? 7.62
-              : 12.7
-          : 12.7;
+              : compact && part.pins.every((p) => !p.power)
+                ? part.pins.length <= 2
+                    ? 7.62
+                    : 12.7
+                : 12.7;
     return {
         x: position.x + box.x - side,
         y: position.y + box.y - vertical,
@@ -154,8 +162,6 @@ export function arrangeSchematicGroups(
                 .map((p) => p.id)
                 .join(', ')}`,
         );
-    const partEnvelope = (part: LayoutPart, position: SchematicPosition) =>
-        envelope(part, position, (feedback?.pass ?? 0) > 1);
     const positions = new Map<string, SchematicPosition>(),
         frames: GroupFrame[] = [];
     const algorithm = options.algorithm ?? 'circuit';
@@ -164,12 +170,21 @@ export function arrangeSchematicGroups(
         const members = group.components.map((id) => byId.get(id)!);
         const occupied: Box[] = [],
             placed: LayoutPart[] = [];
+        const signalSides = new Map<string, number>();
         const connectivity = (a: LayoutPart, b: LayoutPart) =>
             a.pins.filter((p) => p.net && !p.power && b.pins.some((q) => q.net === p.net)).length;
         const root = [...members].sort(
             (a, b) => b.pins.length - a.pins.length || a.id.localeCompare(b.id),
         )[0];
         const remaining = members.filter((p) => p !== root);
+        const partEnvelope = (part: LayoutPart, position: SchematicPosition) =>
+            envelope(
+                part,
+                position,
+                (feedback?.pass ?? 0) > 1,
+                false,
+                (feedback?.pass ?? 0) >= 4 && root.pins.length > 8,
+            );
         const put = (part: LayoutPart, wanted: SchematicPosition, row = false) => {
             const motif = (feedback?.pass ?? 0) >= 3;
             const shunt = part.pins.length === 2 && part.pins.filter((p) => p.power).length === 1;
@@ -179,7 +194,7 @@ export function arrangeSchematicGroups(
                 feedback && !row && part.pins.length === 2 && !(motif && shunt)
                     ? [...new Set([wanted.rotation ?? 0, 0, 90, 180, 270])]
                     : [wanted.rotation ?? 0];
-            const step = grid * 2;
+            const step = 5.08;
             for (const rotation of rotations)
                 for (let dx = -24; dx <= 24; dx++)
                     for (let dy = row ? 0 : -16; dy <= (row ? 0 : 16); dy++) {
@@ -188,12 +203,22 @@ export function arrangeSchematicGroups(
                             y: snap(wanted.y + dy * step),
                             rotation,
                         };
+                        const side = signalSides.get(part.id);
+                        if (
+                            (feedback?.pass ?? 0) >= 4 &&
+                            side &&
+                            part.pins.length <= 2 &&
+                            side * (candidate.x - positions.get(root.id)!.x) <
+                                root.body.width / 2 + 10.16
+                        )
+                            continue;
                         if (
                             occupied.some((b, index) =>
                                 overlaps(
                                     partEnvelope(part, candidate),
                                     (feedback?.pass ?? 0) > 1 &&
-                                        part.pins.length === 1 &&
+                                        (part.pins.length === 1 ||
+                                            ((feedback?.pass ?? 0) >= 4 && shunt)) &&
                                         placed[index].pins.length > 2
                                         ? envelope(
                                               placed[index],
@@ -282,6 +307,16 @@ export function arrangeSchematicGroups(
                     b.owner.pins.length - a.owner.pins.length ||
                     a.anchor.number.localeCompare(b.anchor.number),
             )[0];
+            if (link) {
+                const host = absolute(link.anchor, positions.get(link.owner.id)!);
+                const side =
+                    link.owner.pins.length > 2 && [0, 180].includes(host.rotation)
+                        ? host.rotation === 0
+                            ? -1
+                            : 1
+                        : signalSides.get(link.owner.id);
+                if (side) signalSides.set(part.id, side);
+            }
             if ((feedback?.pass ?? 0) >= 3 && part.pins.length === 1 && link) {
                 // Zero-length probe pins are junction ornaments, not separate branches.
                 const host = absolute(link.anchor, positions.get(link.owner.id)!);
@@ -441,7 +476,7 @@ export function arrangeSchematicGroups(
                 .filter(
                     (box) =>
                         box.x + box.width <= sheet[1] - 15.24 &&
-                        box.y + box.height <= sheet[2] - 35.56 &&
+                        box.y + box.height <= sheet[2] - 55.88 &&
                         occupied.every(
                             (b) =>
                                 !overlaps(box, {
@@ -465,7 +500,7 @@ export function arrangeSchematicGroups(
             frames.every(
                 (f, i) =>
                     trial[i].x + f.width <= sheet[1] - 15.24 &&
-                    trial[i].y + f.height <= sheet[2] - 35.56,
+                    trial[i].y + f.height <= sheet[2] - 55.88,
             )
         ) {
             frames.forEach((frame, i) => Object.assign(frame, trial[i]));

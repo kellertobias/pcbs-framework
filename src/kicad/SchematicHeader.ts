@@ -10,10 +10,17 @@ export function schematicRevision(snapshot: CircuitSnapshot): string {
         throw new Error('schematicRevision must be a positive integer.');
     return `R${revision}`;
 }
-/** Header uses native KiCad text and an embedded PNG, so it survives native PDF export. */
+/** Logo uses an embedded native PNG in the worksheet logo block. */
 export function schematicHeader(snapshot: CircuitSnapshot, uuids: UuidManager): SExpr[] {
     const result: SExpr[] = [];
-    let x = 15.24;
+    const sizes: Record<string, [number, number]> = {
+        A4: [297, 210],
+        A3: [420, 297],
+        A2: [594, 420],
+        A1: [841, 594],
+        A0: [1189, 841],
+    };
+    const [widthMm, heightMm] = sizes[snapshot.size ?? 'A4'] ?? sizes.A4;
     const logo = snapshot.branding?.logo;
     if (logo) {
         const input = fs.readFileSync(logo);
@@ -36,42 +43,33 @@ export function schematicHeader(snapshot: CircuitSnapshot, uuids: UuidManager): 
             offset += length + 12;
         }
         const scale = Math.min(35.56 / ((width * 25.4) / dpi), 12.7 / ((height * 25.4) / dpi));
-        const mmWidth = ((width * 25.4) / dpi) * scale;
+
         result.push([
             'image',
-            ['at', String(x + mmWidth / 2), '18'],
+            ['at', String(widthMm - 30), String(heightMm - 30)],
             ['scale', String(scale)],
             ['uuid', JSON.stringify(uuids.getOrGenerate('header/logo'))],
             ['data', ...png.toString('base64').match(/.{1,76}/g)!],
         ]);
-        x += mmWidth + 5.08;
     }
-    const text = (value: string, y: number, size: number, key: string, bold = false): SExpr => [
-        'text',
-        JSON.stringify(value),
-        ['at', String(x), String(y), '0'],
-        [
-            'effects',
-            ['font', ['size', String(size), String(size)], ...(bold ? ['bold'] : [])],
-            ['justify', 'left', 'top'],
-        ],
-        ['uuid', JSON.stringify(uuids.getOrGenerate(`header/${key}`))],
-    ];
-    result.push(text(snapshot.projectName ?? snapshot.name, 11.43, 3, 'title', true));
-    const description = snapshot.description ?? '';
-    const words = description.split(/\s+/).filter(Boolean);
-    const lines: string[] = [];
-    for (const word of words) {
-        if (!lines.length || lines[lines.length - 1].length + word.length + 1 > 100)
-            lines.push(word);
-        else lines[lines.length - 1] += ` ${word}`;
-    }
-    if (lines.length > 3)
-        throw new Error(
-            'Schematic description exceeds the three-line header; use group decision notes for detailed explanations.',
-        );
-    lines.forEach((line, i) =>
-        result.push(text(line, 18.415 + i * 2.54, 1.27, `description/${i}`)),
-    );
     return result;
+}
+
+/** Native worksheet keeps project metadata in the actual bottom-right project box. */
+export function schematicWorksheet(): string {
+    return `(kicad_wks (version 20220228) (generator "tobias-media-pcb-framework")
+      (setup (textsize 1.1 1.1) (linewidth 0.15) (textlinewidth 0.15)
+        (left_margin 10) (right_margin 10) (top_margin 10) (bottom_margin 10))
+      (rect (start 0 0 ltcorner) (end 0 0 rbcorner))
+      (rect (start 180 40 rbcorner) (end 0 0 rbcorner))
+      (line (start 40 40 rbcorner) (end 40 0 rbcorner))
+      (line (start 180 29 rbcorner) (end 40 29 rbcorner))
+      (line (start 180 9 rbcorner) (end 40 9 rbcorner))
+      (tbtext "%T" (pos 177 35 rbcorner) (font (size 2 2) bold) (justify left))
+      (tbtext "%C1" (pos 177 25 rbcorner) (justify left))
+      (tbtext "%Y" (pos 177 20 rbcorner) (font bold) (justify left))
+      (tbtext "Date: %D     Revision: %R     Sheet: %S/%N" (pos 177 15 rbcorner) (justify left))
+      (tbtext "File: %F" (pos 177 11 rbcorner) (font (size 0.9 0.9)) (justify left))
+      (tbtext "%K / with support from Tobias Media PCB Framework" (pos 177 4 rbcorner) (font (size 0.9 0.9)) (justify left))
+    )`;
 }

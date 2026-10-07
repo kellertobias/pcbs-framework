@@ -166,6 +166,36 @@ describe('routing-informed schematic placement', () => {
         ).not.toThrow();
         expect(path.some((p) => Math.abs(p.y) > 2)).toBe(true);
     });
+    it('groups drawing pins without changing their names or physical numbers', () => {
+        const symbol = new KicadSymbol({ name: 'Generic', reference: 'U' });
+        symbol.addPin({
+            name: 'PA0',
+            number: '1',
+            x: -10,
+            y: 10,
+            side: 'left',
+            type: 'bidirectional',
+            annotation: 'ADC0',
+        });
+        symbol.addPin({
+            name: 'PB2',
+            number: '2',
+            x: 10,
+            y: 0,
+            side: 'right',
+            type: 'bidirectional',
+            annotation: 'UART_RX',
+        });
+        symbol.arrangePinGroup({ side: 'left', pins: ['1', '2'], startY: 10, pitch: 5.08 });
+        const drawing = symbol.serialize();
+        expect(drawing).toContain('(name "PB2"');
+        expect(drawing).toContain('(number "2"');
+        expect(drawing).toContain('(at -10 4.92 0)');
+        expect(drawing).toContain('UART_RX');
+        expect(() => symbol.arrangePinGroup({ side: 'left', pins: ['99'], startY: 0 })).toThrow(
+            'Unknown grouped pin',
+        );
+    });
     it('keeps capabilities as drawing text without changing electrical pin identity', () => {
         const symbol = new KicadSymbol({ name: 'Generic', reference: 'U' });
         symbol.addPin({

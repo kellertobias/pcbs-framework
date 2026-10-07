@@ -1,3 +1,4 @@
+import { schematicWorksheet } from './SchematicHeader';
 import { backupGeneratedFile } from '../project/OutputPaths';
 import { automaticallyRoute } from '../router/AutomaticRouting';
 import { serializeNativeBoard } from './KicadNetFormat';
@@ -225,6 +226,13 @@ export class KicadGenerator {
                 2,
             );
             this.writeAtomic(proPath, proContent);
+        }
+        if (snapshot.schematicRouting?.autoLayout) {
+            const worksheet = `${name}.kicad_wks`;
+            this.writeAtomic(path.join(outputDir, worksheet), schematicWorksheet());
+            const project = JSON.parse(fs.readFileSync(proPath, 'utf8'));
+            project.schematic = { ...project.schematic, page_layout_descr_file: worksheet };
+            this.writeAtomic(proPath, `${JSON.stringify(project, null, 2)}\n`);
         }
         if (snapshot.pcb?.netClasses?.length && pcbMode !== 'preserve') {
             this.syncProjectNetSettings(proPath, snapshot);

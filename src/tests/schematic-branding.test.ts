@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { schematicHeader, schematicRevision } from '../kicad/SchematicHeader';
+import { schematicHeader, schematicRevision, schematicWorksheet } from '../kicad/SchematicHeader';
 import { UuidManager } from '../kicad/UuidManager';
 import { loadProjectBranding } from '../synth/ProjectBranding';
 import type { CircuitSnapshot } from '../synth/types';
@@ -61,7 +61,9 @@ describe('project schematic branding', () => {
             expect(Buffer.from(data.slice(1).join(''), 'base64').subarray(0, 8)).toEqual(
                 Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
             );
-            expect(JSON.stringify(result)).toContain('Friendly Project');
+            expect(schematicWorksheet()).toContain('(tbtext "%T"');
+            expect(schematicWorksheet()).toContain('Tobias Media PCB Framework');
+            expect(JSON.stringify(image)).toContain('267');
             expect(schematicRevision(snapshot)).toBe('R18');
             expect(schematicRevision({ ...snapshot, schematicRevision: undefined })).toBe('R1');
             expect(() => schematicRevision({ ...snapshot, schematicRevision: 0 })).toThrow(

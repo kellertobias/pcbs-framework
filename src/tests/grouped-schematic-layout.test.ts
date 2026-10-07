@@ -50,8 +50,8 @@ describe('automatic functional-group layout', () => {
         expect(a.frames).toHaveLength(1);
         expect(a.paper).toBe('A4');
         for (const p of a.positions.values()) {
-            expect(p.x / 2.54).toBeCloseTo(Math.round(p.x / 2.54));
-            expect(p.y / 2.54).toBeCloseTo(Math.round(p.y / 2.54));
+            expect(p.x / 1.27).toBeCloseTo(Math.round(p.x / 1.27));
+            expect(p.y / 1.27).toBeCloseTo(Math.round(p.y / 1.27));
             expect(p.x).toBeGreaterThan(a.frames[0].x);
             expect(p.x).toBeLessThan(a.frames[0].x + a.frames[0].width);
         }

@@ -50,6 +50,17 @@ describe('native project PDF export', () => {
         );
     });
 
+    it('uses the generated native worksheet for schematic PDF export', () => {
+        const { base, output } = fixture();
+        fs.writeFileSync(`${base}.kicad_wks`, 'native project worksheet');
+        const calls: string[][] = [];
+        exportProjectPdfs(base, output, 'schematic', (args) => {
+            calls.push(args);
+            fs.writeFileSync(args[args.indexOf('--output') + 1], '%PDF-1.7\n');
+        });
+        expect(calls[0][calls[0].indexOf('--drawing-sheet') + 1]).toBe(`${base}.kicad_wks`);
+    });
+
     it('allows schematic-only export without a PCB, and checks all required sources before running', () => {
         const { base, output } = fixture();
         fs.unlinkSync(`${base}.kicad_pcb`);

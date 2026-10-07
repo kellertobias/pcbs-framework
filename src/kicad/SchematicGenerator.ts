@@ -1927,12 +1927,14 @@ export class SchematicGenerator {
                         motif && (principal || /Device:[RC]/.test(selected.pin.component.symbol));
                     const out = principal
                         ? -this.getDirectionVector(principal.position.rotation).dx
-                        : p.x <
-                            (this.layoutReport?.frames.find((f) => `group:${f.id}` === ownerRef)
-                                ?.x ?? p.x) +
-                                30
-                          ? -1
-                          : 1;
+                        : [0, 180].includes(p.rotation)
+                          ? -this.getDirectionVector(p.rotation).dx
+                          : p.x <
+                              (this.layoutReport?.frames.find((f) => `group:${f.id}` === ownerRef)
+                                  ?.x ?? p.x) +
+                                  30
+                            ? -1
+                            : 1;
                     const probe = motif && componentOf(selected.pin).allPins.size === 1;
                     const e = probe ? p : horizontal ? { x: p.x + out * 5.08, y: p.y } : escape(p);
                     const labelDirection = probe
@@ -2475,7 +2477,7 @@ export class SchematicGenerator {
         this.placementParts = parts;
         this.layoutReport = arrangeSchematicGroups(
             parts,
-            { ...options, topMargin: options.topMargin ?? 33.02 },
+            { ...options, topMargin: options.topMargin ?? 15.24 },
             this.snapshot.size,
             this.placementFeedback,
         );

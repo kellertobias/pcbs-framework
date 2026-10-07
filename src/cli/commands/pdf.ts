@@ -82,7 +82,16 @@ export function exportProjectPdfs(
     try {
         if (only !== 'pcb') {
             const output = path.join(temporary, `${name}-schematic.pdf`);
-            run(['sch', 'export', 'pdf', '--output', output, schematic]);
+            const worksheet = `${base}.kicad_wks`;
+            run([
+                'sch',
+                'export',
+                'pdf',
+                '--output',
+                output,
+                ...(fs.existsSync(worksheet) ? ['--drawing-sheet', worksheet] : []),
+                schematic,
+            ]);
             outputs.push(output);
         }
         if (only !== 'schematic') {

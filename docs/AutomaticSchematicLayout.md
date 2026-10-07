@@ -122,10 +122,10 @@ Place a `pcb.config.json` at the project root to reuse branding across circuits:
 The nearest configuration above the working directory wins. Logo paths are
 relative to that configuration. SVG and PNG logos are embedded in native KiCad
 schematics and survive PDF export. Per-circuit `branding` options override the
-project defaults. Use `projectName` for the visible heading, `description` for a
+project defaults. Use `projectName` for the project-box title, `description` for a
 short explanation, and `schematicRevision: 1` for the internal drawing revision
 (`R1`). The release `revision` remains independent. Automatic groups reserve a
-header strip and select the smallest supported sheet that contains their frames;
+bottom-right project box and select the smallest supported sheet that contains their frames;
 A4 is the starting default, not a promise that a large circuit fits on one A4.
 
 Placement refinements include compact resistor drawings, aligned supply shunts,
@@ -142,3 +142,15 @@ prevent a small reduction in wire length from selecting a less readable layout.
 Reported scores include the convention cost separately from wire length,
 crossings and frame area. Sheet packing fills free columns below short groups,
 while preserving explicit relative group relationships.
+
+The generated `.kicad_wks` worksheet places the title at the top of the
+project box, metadata below it, and a logo column at the right. It includes
+KiCad version attribution with support from Tobias Media PCB Framework.
+The project selects this worksheet in KiCad and the PDF command passes it
+explicitly to native KiCad export.
+
+Use `KicadSymbol.arrangePinGroup({ side: 'left', pins: ['1', '2'], startY: 20.32, pitch: 5.08 })`
+for a drawing-only pin-group hint. Electrical names and physical numbers stay
+unchanged; capability annotations move with their pins. The final placement
+trial propagates each IC pin's left/right signal side through passive chains,
+preventing feedback and filter networks from jumping across the device.
