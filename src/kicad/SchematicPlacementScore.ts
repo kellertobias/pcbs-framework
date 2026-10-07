@@ -69,7 +69,7 @@ export function placementRoutingScore(
                           5.08,
                   ) * 2
                 : Math.min(...hosts.map((h) => Math.abs(h.y - p.y))) * 2;
-        if (shunt) {
+        if (shunt && !layout.powerBanks?.some((bank) => bank.includes(part.id))) {
             const q = point(part, rail!);
             const ground = /gnd|vss/i.test(rail!.net ?? '');
             // A supply shunt reads vertically, with its signal terminal aligned

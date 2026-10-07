@@ -33,6 +33,8 @@ export interface GroupLayoutResult {
     paper: string;
     algorithm: 'circuit' | 'grid';
     estimatedWireLength: number;
+    /** Parallel pull resistors sharing one rail, ordered by their device rows. */
+    powerBanks?: string[][];
     refinement?: {
         passes: number;
         initialCost: number;
@@ -166,6 +168,7 @@ export function arrangeSchematicGroups(
         frames: GroupFrame[] = [];
     const algorithm = options.algorithm ?? 'circuit';
     let estimatedWireLength = 0;
+    const powerBanks: string[][] = [];
     for (const group of options.groups) {
         const members = group.components.map((id) => byId.get(id)!);
         const occupied: Box[] = [],
@@ -177,6 +180,45 @@ export function arrangeSchematicGroups(
             (a, b) => b.pins.length - a.pins.length || a.id.localeCompare(b.id),
         )[0];
         const remaining = members.filter((p) => p !== root);
+        const bankCandidates = new Map<string, LayoutPart[]>();
+        if ((feedback?.pass ?? 0) >= 4)
+            for (const part of remaining) {
+                const signal = part.pins.find((p) => !p.power && p.net),
+                    rail = part.pins.find((p) => p.power);
+                const host = root.pins.find(
+                    (p) => p.net === signal?.net && !p.power && [0, 180].includes(p.rotation),
+                );
+                if (
+                    !/^Device:R(?:_Small)?$/.test(part.symbol) ||
+                    part.pins.length !== 2 ||
+                    !signal ||
+                    !rail ||
+                    !host
+                )
+                    continue;
+                const key = `${rail.net}/${host.rotation}`;
+                bankCandidates.set(key, [...(bankCandidates.get(key) ?? []), part]);
+            }
+        const bankMembers = new Set<string>();
+        for (const candidates of bankCandidates.values()) {
+            const row = (part: LayoutPart) =>
+                root.pins.find((p) => p.net === part.pins.find((q) => !q.power)?.net)!.y;
+            const clusters: LayoutPart[][] = [];
+            for (const part of [...candidates].sort(
+                (a, b) => row(b) - row(a) || a.id.localeCompare(b.id),
+            )) {
+                const cluster = clusters[clusters.length - 1];
+                if (!cluster || Math.abs(row(cluster[cluster.length - 1]) - row(part)) > 15.24)
+                    clusters.push([part]);
+                else cluster.push(part);
+            }
+            for (const bank of clusters)
+                if (bank.length >= 3) {
+                    bank.forEach((p) => bankMembers.add(p.id));
+                    powerBanks.push(bank.map((p) => p.id));
+                }
+        }
+
         const partEnvelope = (part: LayoutPart, position: SchematicPosition) =>
             envelope(
                 part,
@@ -316,6 +358,23 @@ export function arrangeSchematicGroups(
                             : 1
                         : signalSides.get(link.owner.id);
                 if (side) signalSides.set(part.id, side);
+            }
+            if (link && bankMembers.has(part.id)) {
+                // A bank reads as parallel horizontal resistors ending on one
+                // shared supply column, rather than crossing adjacent GPIO rows.
+                const host = absolute(link.anchor, positions.get(link.owner.id)!);
+                const out = host.rotation === 0 ? -1 : 1;
+                const rotation = (host.rotation + 180 - link.pin.rotation + 360) % 360;
+                const local = rotate(link.pin, rotation);
+                const position = {
+                    x: snap(host.x + out * 35.56 - local.x),
+                    y: snap(host.y - local.y),
+                    rotation,
+                };
+                positions.set(part.id, position);
+                occupied.push(partEnvelope(part, position));
+                placed.push(part);
+                continue;
             }
             if ((feedback?.pass ?? 0) >= 3 && part.pins.length === 1 && link) {
                 // Zero-length probe pins are junction ornaments, not separate branches.
@@ -516,5 +575,5 @@ export function arrangeSchematicGroups(
             const p = positions.get(id)!;
             positions.set(id, { ...p, x: p.x + frame.x, y: p.y + frame.y });
         }
-    return { positions, frames, paper: selected[0], algorithm, estimatedWireLength };
+    return { positions, frames, paper: selected[0], algorithm, estimatedWireLength, powerBanks };
 }

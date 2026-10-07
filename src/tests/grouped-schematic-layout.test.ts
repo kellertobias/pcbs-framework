@@ -123,6 +123,35 @@ describe('automatic functional-group layout', () => {
         expect(result.positions.get('TP1')!.x - result.positions.get('U1')!.x).toBeCloseTo(12.7);
         expect(result.positions.get('TP1')!.y).toBe(result.positions.get('U1')!.y);
     });
+    it('recognizes a parallel pull-resistor bank and aligns each resistor to its GPIO row', () => {
+        const host: LayoutPart = {
+            ...root,
+            pins: [
+                { number: '1', x: -7.62, y: 15.24, rotation: 0, net: 'A' },
+                { number: '2', x: -7.62, y: 7.62, rotation: 0, net: 'B' },
+                { number: '3', x: -7.62, y: 0, rotation: 0, net: 'C' },
+                ...root.pins.filter((p) => p.power),
+            ],
+        };
+        const pulls = [
+            resistor('R1', 'A', 'VCC'),
+            resistor('R2', 'B', 'VCC'),
+            resistor('R3', 'C', 'VCC'),
+        ];
+        const result = arrangeSchematicGroups(
+            [host, ...pulls],
+            { groups: [{ id: 'inputs', title: 'Inputs', components: ['U1', 'R1', 'R2', 'R3'] }] },
+            'A4',
+            { wireLengths: new Map(), pass: 4 },
+        );
+        expect(result.powerBanks).toEqual([['R1', 'R2', 'R3']]);
+        const rows = pulls.map((p) => result.positions.get(p.id)!);
+        expect(new Set(rows.map((p) => p.x)).size).toBe(1);
+        rows.forEach((p, i) =>
+            expect(p.y).toBeCloseTo(result.positions.get('U1')!.y - [15.24, 7.62, 0][i]),
+        );
+        expect(rows.every((p) => p.rotation === 270)).toBe(true);
+    });
     it('rejects omissions and duplicate/unknown membership instead of falling back to manual placement', () => {
         expect(() => arrangeSchematicGroups(parts, { groups: [] })).toThrow(
             'must include every drawing',

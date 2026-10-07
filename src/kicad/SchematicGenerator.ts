@@ -994,11 +994,20 @@ export class SchematicGenerator {
                     }
                 } else if (comp.allPins.size > 2) {
                     textRot = (360 - rot) % 180;
-                    refX = valX = body.x + 1.27;
+                    refX = valX = body.x + body.width;
                     refY = body.y - 6.35;
                     valY = body.y - 3.81;
                     fieldJustify = [['justify', 'right']];
                 }
+            }
+            if (this.layoutReport?.powerBanks?.some((bank) => bank.includes(comp.ref)) && box) {
+                const body = this.getComponentBox(comp, 0, true)!;
+                // Tight parallel rows use one annotation row above each resistor,
+                // with reference and value on opposite sides of the body.
+                refX = body.x - 1.27;
+                valX = body.x + body.width + 1.27;
+                refY = valY = body.y - 1.27;
+                fieldJustify = [['justify', 'right']];
             }
             const fields =
                 this.snapshot.schematicRouting?.fields?.[`${comp.ref}/${unit}`] ??
@@ -1682,6 +1691,13 @@ export class SchematicGenerator {
                         localGroups.push({ net: net.name, pins: terminals });
                 }
             }
+            if (powerSymbol)
+                for (const bank of this.layoutReport?.powerBanks ?? []) {
+                    const terminals = points
+                        .filter(({ pin }) => bank.includes(pin.component.ref))
+                        .map(({ pin }) => `${pin.component.ref}.${pin.name}`);
+                    if (terminals.length >= 3) localGroups.push({ net: net.name, pins: terminals });
+                }
             const claimed = new Set<string>();
             for (const [index, local] of localGroups.entries()) {
                 for (const terminal of local.pins) {
@@ -1912,6 +1928,11 @@ export class SchematicGenerator {
                     );
                 } else if (boundary) {
                     const selected =
+                        (this.layoutReport?.powerBanks?.some((bank) =>
+                            group.some(({ pin }) => bank.includes(pin.component.ref)),
+                        )
+                            ? group.find(({ pin }) => componentOf(pin).allPins.size > 2)
+                            : undefined) ??
                         (motif
                             ? group.find(({ pin }) => componentOf(pin).allPins.size === 1)
                             : undefined) ??

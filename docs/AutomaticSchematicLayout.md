@@ -154,3 +154,11 @@ for a drawing-only pin-group hint. Electrical names and physical numbers stay
 unchanged; capability annotations move with their pins. The final placement
 trial propagates each IC pin's left/right signal side through passive chains,
 preventing feedback and filter networks from jumping across the device.
+
+Adjacent pull resistors on one side of a device, sharing a rail, are recognized
+as a bank when at least three device rows are neighbours (no gap above 15.24 mm).
+The compact trial aligns the resistors horizontally, puts the rail on a shared
+outside column, and keeps signal labels at the device side. Separated reset or
+other pull resistors retain their individual supply glyphs. Bank reference and
+value fields share a row above each resistor to avoid collisions at tight pin
+spacing. IC reference/value fields align with the right edge above the body.
