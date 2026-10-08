@@ -83,6 +83,7 @@ function envelope(
     compact = false,
     probeHost = false,
     dense = false,
+    compactSupply = false,
 ): Box {
     const r = position.rotation ?? 0;
     const corners = [
@@ -101,7 +102,7 @@ function envelope(
         ...part.pins.map((p) => (p.net?.length ?? 0) * 0.7 + 6.35),
     );
     const side =
-        dense && part.pins.length === 2
+        (dense || compactSupply) && part.pins.length === 2
             ? Math.max(7.62, part.value.length * 0.7 + 3.81)
             : probeHost
               ? 3.81
@@ -111,15 +112,17 @@ function envelope(
                   ? 7.62
                   : Math.max(10.16, part.value.length * 0.7 + 5.08);
     const vertical =
-        dense && part.pins.length === 2
-            ? 3.81
-            : probeHost
-              ? 7.62
-              : compact && part.pins.every((p) => !p.power)
-                ? part.pins.length <= 2
-                    ? 7.62
-                    : 12.7
-                : 12.7;
+        compactSupply && part.pins.length === 2
+            ? 7.62
+            : dense && part.pins.length === 2
+              ? 3.81
+              : probeHost
+                ? 7.62
+                : compact && part.pins.every((p) => !p.power)
+                  ? part.pins.length <= 2
+                      ? 7.62
+                      : 12.7
+                  : 12.7;
     return {
         x: position.x + box.x - side,
         y: position.y + box.y - vertical,
@@ -226,6 +229,7 @@ export function arrangeSchematicGroups(
                 (feedback?.pass ?? 0) > 1,
                 false,
                 (feedback?.pass ?? 0) >= 4 && root.pins.length > 8,
+                (feedback?.pass ?? 0) >= 4 && root.pins.length <= 8,
             );
         const put = (part: LayoutPart, wanted: SchematicPosition, row = false) => {
             const motif = (feedback?.pass ?? 0) >= 3;
@@ -389,6 +393,26 @@ export function arrangeSchematicGroups(
                 });
                 occupied.push(partEnvelope(part, positions.get(part.id)!));
                 placed.push(part);
+                continue;
+            }
+            if (
+                !link &&
+                (feedback?.pass ?? 0) >= 4 &&
+                members.every((p) => /^Connector/.test(p.symbol))
+            ) {
+                // Independent interface connectors form an upright column; a power-only
+                // connector is not a decoupling capacitor to scatter across the supply row.
+                const rootBox = partEnvelope(root, positions.get(root.id)!);
+                const localBox = partEnvelope(part, { x: 0, y: 0, rotation: 0 });
+                put(
+                    part,
+                    {
+                        x: positions.get(root.id)!.x,
+                        y: rootBox.y - 15.24 - localBox.y - localBox.height,
+                        rotation: 0,
+                    },
+                    true,
+                );
                 continue;
             }
             if (!link) {

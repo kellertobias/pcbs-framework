@@ -46,7 +46,7 @@ export function schematicHeader(snapshot: CircuitSnapshot, uuids: UuidManager): 
 
         result.push([
             'image',
-            ['at', String(widthMm - 30), String(heightMm - 30)],
+            ['at', String(widthMm - 30), String(heightMm - 40)],
             ['scale', String(scale)],
             ['uuid', JSON.stringify(uuids.getOrGenerate('header/logo'))],
             ['data', ...png.toString('base64').match(/.{1,76}/g)!],
@@ -61,15 +61,18 @@ export function schematicWorksheet(): string {
       (setup (textsize 1.1 1.1) (linewidth 0.15) (textlinewidth 0.15)
         (left_margin 10) (right_margin 10) (top_margin 10) (bottom_margin 10))
       (rect (start 0 0 ltcorner) (end 0 0 rbcorner))
-      (rect (start 180 40 rbcorner) (end 0 0 rbcorner))
+      (rect (start 160 40 rbcorner) (end 0 0 rbcorner))
       (line (start 40 40 rbcorner) (end 40 0 rbcorner))
-      (line (start 180 29 rbcorner) (end 40 29 rbcorner))
-      (line (start 180 9 rbcorner) (end 40 9 rbcorner))
-      (tbtext "%T" (pos 177 35 rbcorner) (font (size 2 2) bold) (justify left))
-      (tbtext "%C1" (pos 177 25 rbcorner) (justify left))
-      (tbtext "%Y" (pos 177 20 rbcorner) (font bold) (justify left))
-      (tbtext "Date: %D     Revision: %R     Sheet: %S/%N" (pos 177 15 rbcorner) (justify left))
-      (tbtext "File: %F" (pos 177 11 rbcorner) (font (size 0.9 0.9)) (justify left))
-      (tbtext "%K / with support from Tobias Media PCB Framework" (pos 177 4 rbcorner) (font (size 0.9 0.9)) (justify left))
+      (line (start 160 29 rbcorner) (end 40 29 rbcorner))
+      (line (start 160 12 rbcorner) (end 40 12 rbcorner))
+      (line (start 40 20 rbcorner) (end 0 20 rbcorner))
+      (tbtext "%T" (pos 157 35 rbcorner) (font (size 2.4 2.4) bold) (justify left))
+      (tbtext "File: %F" (pos 157 24 rbcorner) (font (size 0.9 0.9)) (justify left))
+      (tbtext "%C1" (pos 157 18 rbcorner) (justify left))
+      (tbtext "%Y" (pos 157 8 rbcorner) (font bold) (justify left))
+      (tbtext "Made with %K / Tobias Media PCB Framework" (pos 157 3.5 rbcorner) (font (size 0.9 0.9)) (justify left))
+      (tbtext "Date: %D" (pos 37 15 rbcorner) (justify left))
+      (tbtext "Revision: %R" (pos 37 10 rbcorner) (justify left))
+      (tbtext "Sheet: %S/%N" (pos 37 5 rbcorner) (justify left))
     )`;
 }
