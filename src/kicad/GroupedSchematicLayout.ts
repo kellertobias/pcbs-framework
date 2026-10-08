@@ -336,7 +336,18 @@ export function arrangeSchematicGroups(
             if (algorithm === 'grid') {
                 const index = placed.length,
                     columns = Math.ceil(Math.sqrt(members.length));
-                put(part, { x: (index % columns) * 76.2, y: Math.floor(index / columns) * 76.2 });
+                const rail =
+                    part.pins.find((pin) => pin.power && ground(pin.net)) ??
+                    part.pins.find((pin) => pin.power);
+                const rotation =
+                    part.pins.length === 2 && rail
+                        ? ((ground(rail.net) ? 90 : 270) - rail.rotation + 360) % 360
+                        : 0;
+                put(part, {
+                    x: (index % columns) * 76.2,
+                    y: Math.floor(index / columns) * 76.2,
+                    rotation,
+                });
                 continue;
             }
             const links = placed.flatMap((owner) =>

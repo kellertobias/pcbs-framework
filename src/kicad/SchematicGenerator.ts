@@ -992,12 +992,22 @@ export class SchematicGenerator {
                         valY = body.y + body.height + 1.27;
                         fieldJustify = [];
                     }
+                } else if (comp.symbol.startsWith('Mechanical:')) {
+                    refX = x;
+                    refY = body.y - 2.54;
+                    valX = x;
+                    valY = body.y + body.height + 2.54;
+                    fieldJustify = [];
                 } else if (comp.allPins.size > 2) {
                     textRot = (360 - rot) % 180;
                     refX = valX = body.x + body.width;
                     refY = body.y - 6.35;
                     valY = body.y - 3.81;
                     fieldJustify = [['justify', 'right']];
+                    if (comp.allPins.size <= 5) {
+                        refX = valX = body.x + body.width + 3.81;
+                        fieldJustify = [['justify', 'left']];
+                    }
                 }
             }
             if (this.layoutReport?.powerBanks?.some((bank) => bank.includes(comp.ref)) && box) {
@@ -1591,9 +1601,11 @@ export class SchematicGenerator {
                     (interfaceComponents?.includes(component.ref)
                         ? `interface:${component.ref}`
                         : undefined) ??
-                    this.groupOwners.get(component) ??
+                    (this.snapshot.schematicRouting?.autoLayout?.labelOnly
+                        ? undefined
+                        : this.groupOwners.get(component)) ??
                     this.routedSchematicOwner(component) ??
-                    (interfaceComponents
+                    (interfaceComponents && !this.snapshot.schematicRouting?.autoLayout?.labelOnly
                         ? interfaceComponents.includes(component.ref)
                             ? `interface:${component.ref}`
                             : 'circuit'
@@ -1734,7 +1746,9 @@ export class SchematicGenerator {
                     typeof owner !== 'string' &&
                     [...owner.allPins.values()].some((pin) => pin.net === net);
                 const boundary =
-                    groups.size > 1 || (interfaceNet && !net.name.startsWith(`${ownerRef}_`));
+                    groups.size > 1 ||
+                    this.snapshot.schematicRouting?.externalNets?.includes(net.name) ||
+                    (interfaceNet && !net.name.startsWith(`${ownerRef}_`));
                 if (powerSymbol) {
                     const p = group[0].position;
                     const lead = escape(p);
@@ -2226,7 +2240,40 @@ export class SchematicGenerator {
                 const uuid = this.uuids.getOrGenerate(
                     `direct_label_${comp.ref}_${pin.name}_${pin.net.name}`,
                 );
-                labels.push(this.createGlobalLabel(pin.net.name, pos.x, pos.y, outDirection, uuid));
+                const powerSymbol = this.snapshot.schematicRouting?.powerSymbols?.[pin.net.name];
+                if (
+                    this.snapshot.schematicRouting?.autoLayout?.labelOnly &&
+                    powerSymbol &&
+                    Math.abs(outDirection.dy) > 0.5 &&
+                    outDirection.dy === (powerSymbol === 'power:GND' ? 1 : -1)
+                ) {
+                    const end = { x: pos.x, y: pos.y + outDirection.dy * 7.62 };
+                    labels.push(this.createWire(pos, end, pin.net.name));
+                    labels.push(
+                        this.createPowerSymbol(
+                            pin.net.name,
+                            end.x,
+                            end.y,
+                            0,
+                            { dx: 0, dy: powerSymbol === 'power:GND' ? 1 : -1 },
+                            this.uuids.getOrGenerate('ROOT'),
+                            uuid,
+                            powerSymbol,
+                        ),
+                    );
+                } else if (
+                    this.snapshot.schematicRouting?.autoLayout?.labelOnly &&
+                    Math.abs(outDirection.dy) > 0.5
+                ) {
+                    const end = { x: pos.x, y: pos.y + outDirection.dy * 5.08 };
+                    labels.push(this.createWire(pos, end, pin.net.name));
+                    labels.push(
+                        this.createGlobalLabel(pin.net.name, end.x, end.y, { dx: 1, dy: 0 }, uuid),
+                    );
+                } else
+                    labels.push(
+                        this.createGlobalLabel(pin.net.name, pos.x, pos.y, outDirection, uuid),
+                    );
             }
         }
 

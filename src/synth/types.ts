@@ -437,6 +437,8 @@ export interface SchematicGroup {
     id: string;
     title: string;
     components: string[];
+    /** Optional connection convention for this group's native child sheet. */
+    connectionStyle?: SchematicConnectionStyle;
     notes?: Array<string | SchematicNote>;
     titleBold?: boolean;
     /** Relationship between functional boxes, not coordinates for individual symbols. */
@@ -458,6 +460,10 @@ export interface SchematicRoutingOptions {
     units?: Record<string, Array<{ unit: number; position?: SchematicPosition }>>;
     /** Arrange every drawing from functional group membership; no individual coordinates required. */
     autoLayout?: {
+        /** Generate one native child sheet per functional group, with an overview sheet. */
+        pages?: boolean;
+        /** Draw repeated groups with labels only; routed module internals remain wired. */
+        labelOnly?: boolean;
         algorithm?: 'circuit' | 'grid';
         /** Reserved header space; generation supplies this automatically. */
         topMargin?: number;
@@ -465,6 +471,8 @@ export interface SchematicRoutingOptions {
         refine?: boolean;
         groups: SchematicGroup[];
     };
+    /** Named signals leaving the current sheet; connected with native global labels. */
+    externalNets?: string[];
     /** Compact fields: references and values outside opposite sides of passives; IC names above the body. */
     compactFields?: boolean;
     /** Place a two-pin passive relative to an electrically connected terminal. Evaluated in order, so branches can form chains. */

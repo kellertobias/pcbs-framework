@@ -58,7 +58,12 @@ export function prepareProjectLibraries(output: string, workspace: string): stri
             .sort()
             .map(
                 (name) =>
-                    `(lib (name ${JSON.stringify(name)})(type "KiCad")(uri ${JSON.stringify(path.join(overlay, name + suffix))})(options "")(descr "Project and shared libraries"))`,
+                    `(lib (name ${JSON.stringify(name)})(type "KiCad")(uri ${JSON.stringify(
+                        path
+                            .relative(output, path.join(overlay, name + suffix))
+                            .split(path.sep)
+                            .join('/'),
+                    )})(options "")(descr "Project and shared libraries"))`,
             )
             .join('\n')}\n)\n`;
     fs.writeFileSync(

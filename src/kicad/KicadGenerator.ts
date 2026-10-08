@@ -1,4 +1,5 @@
 import { schematicWorksheet } from './SchematicHeader';
+import { generateSchematicPages } from './SchematicPages';
 import { backupGeneratedFile } from '../project/OutputPaths';
 import { automaticallyRoute } from '../router/AutomaticRouting';
 import { serializeNativeBoard } from './KicadNetFormat';
@@ -172,7 +173,24 @@ export class KicadGenerator {
         // Generate Schematic
         console.log(`  → Generating Schematic: ${schPath}...`);
         const schematicGen = new SchematicGenerator(snapshot, this.library, this.uuids, options);
-        const schematicContent = schematicGen.generate();
+        const paged = snapshot.schematicRouting?.autoLayout?.pages
+            ? generateSchematicPages(snapshot, this.library, this.uuids, options)
+            : undefined;
+        const schematicContent = paged?.content ?? schematicGen.generate();
+        if (paged) {
+            for (const page of paged.pages) {
+                this.writeAtomic(path.join(outputDir, page.file), page.content);
+                this.warnings.push(...page.warnings.map((warning) => `${page.id}: ${warning}`));
+            }
+            this.writeAtomic(
+                path.join(outputDir, `${name}-schematic-layout.json`),
+                `${JSON.stringify(
+                    paged.pages.map(({ content, ...page }) => page),
+                    null,
+                    2,
+                )}\n`,
+            );
+        }
         if (schematicGen.layoutReport) {
             const { positions, ...layout } = schematicGen.layoutReport;
             fs.writeFileSync(

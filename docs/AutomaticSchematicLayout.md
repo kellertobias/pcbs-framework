@@ -162,3 +162,27 @@ outside column, and keeps signal labels at the device side. Separated reset or
 other pull resistors retain their individual supply glyphs. Bank reference and
 value fields share a row above each resistor to avoid collisions at tight pin
 spacing. IC reference/value fields align with the right edge above the body.
+
+## Native functional pages
+
+Set `autoLayout.pages: true` to produce an overview and one native child sheet per
+functional group. All files stay in the board's `export/`, and native KiCad PDF
+export produces one multipage document. The framework automatically chooses an
+overview paper size that clears the title box, preserves physical component UUIDs
+and scopes drawing identities per child sheet. Named global nets connect sections;
+`externalNets` is inferred for each page so a one-terminal signal still reaches its
+other page. Native KiCad netlist verification must compare the complete hierarchy
+against the source circuit, including intentional no-connects.
+
+A group may select `connectionStyle: 'direct-labels'` for repeated matrices or
+interfaces. These use grid placement with supply-aware passive rotations, short
+vertical escapes, upright supply glyphs and horizontal signal labels. Routed
+sections can select `connectionStyle: 'routed'` and use the existing routing-informed
+circuit layout. Empty groups are omitted. Every physical component belongs to one
+group; split drawing units across pages are currently rejected explicitly.
+
+The PDF title shows the board name, while section headings and native sheet names
+identify individual functions. Generated library tables use paths relative to the
+project output directory, so moving the project between computers keeps the library
+links usable. Schematic page generation never requires changing PCB placement or
+saved copper.
