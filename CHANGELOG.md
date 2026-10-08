@@ -1,3 +1,22 @@
+# [2.4.0](https://github.com/kellertobias/pcbs-framework/compare/v2.3.0...v2.4.0) (2026-10-08)
+
+
+### Bug Fixes
+
+* load Three.js through its ESM entry point ([64cae59](https://github.com/kellertobias/pcbs-framework/commit/64cae599b8168be2b55f665ad5493c2389af177e))
+
+
+### Features
+
+* align pull-resistor banks and right-align IC fields ([c6ca80c](https://github.com/kellertobias/pcbs-framework/commit/c6ca80c2aa153d333638a75bd5690f633e136944))
+* centralize exports and circuit-driven layout rules ([0578ce2](https://github.com/kellertobias/pcbs-framework/commit/0578ce2a5ea80cc0d18d702e45afb9e18a17d560))
+* compact schematic groups and refine project title box ([a7a640d](https://github.com/kellertobias/pcbs-framework/commit/a7a640d6e6e286effa468b4bbbb8e5824a2dad94))
+* declare schematic groups on circuit methods ([f0ccd92](https://github.com/kellertobias/pcbs-framework/commit/f0ccd92a7d68b6914f63335d41c4a09fb78d1cb5))
+* generate functional schematic pages with native connectivity ([29767d0](https://github.com/kellertobias/pcbs-framework/commit/29767d053a0ef3f2f323842657ad58106beada15))
+* group schematic pins and compact same-side feedback layouts ([03b3816](https://github.com/kellertobias/pcbs-framework/commit/03b3816741151bda972d88fd6decde3cfa602133))
+* optimize schematic conventions and add project branding ([e715407](https://github.com/kellertobias/pcbs-framework/commit/e715407531b52b7f68b003e3b70ef36ef441f2ca))
+* refine schematic placement using generated routing ([daa6bf6](https://github.com/kellertobias/pcbs-framework/commit/daa6bf66f4d24b31c1bd280171c479da3a780678))
+
 # [2.3.0](https://github.com/kellertobias/pcbs-framework/compare/v2.2.0...v2.3.0) (2026-10-06)
 
 
