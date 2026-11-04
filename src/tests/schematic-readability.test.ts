@@ -101,6 +101,84 @@ function probeGenerator() {
     return { snapshot, gen: new SchematicGenerator(snapshot, library, new UuidManager()) };
 }
 describe('framework field placement', () => {
+    it.each([false, true])(
+        'keeps two-pin fields clear of bodies and wires (interface fields: %s)',
+        (interfaceFields) => {
+            const library = new SymbolLibrary([]);
+            for (const [name, width, height, verticalPins] of [
+                ['Tall', 2.54, 7.62, false],
+                ['Wide', 10.16, 5.08, false],
+                ['Plates', 6.35, 0.762, true],
+            ] as const) {
+                const drawing = new KicadSymbol({ name });
+                drawing.addRect({ x1: -width / 2, y1: height / 2, x2: width / 2, y2: -height / 2 });
+                drawing.addPin({
+                    name: '',
+                    number: '1',
+                    x: verticalPins ? 0 : -7.62,
+                    y: verticalPins ? 7.62 : 0,
+                    side: verticalPins ? 'top' : 'left',
+                    type: 'passive',
+                });
+                drawing.addPin({
+                    name: '',
+                    number: '2',
+                    x: verticalPins ? 0 : 7.62,
+                    y: verticalPins ? -7.62 : 0,
+                    side: verticalPins ? 'bottom' : 'right',
+                    type: 'passive',
+                });
+                library.registerSymbol(`Test:${name}`, drawing.serialize());
+            }
+            class BodyBoard extends Schematic {
+                generate() {
+                    for (const [ref, symbol, x] of [
+                        ['BT1', 'Tall', 50.8],
+                        ['D1', 'Wide', 101.6],
+                        ['BT2', 'Plates', 152.4],
+                    ] as const) {
+                        const part = new Component({
+                            ref,
+                            symbol: `Test:${symbol}`,
+                            footprint: 'DNC',
+                            value: 'Long value',
+                            schematicPosition: { x, y: 50.8, rotation: 0 },
+                        });
+                        part.pins[1].dnc();
+                        part.pins[2].dnc();
+                    }
+                }
+            }
+            const gen = new SchematicGenerator(
+                new BodyBoard({
+                    name: 'Bodies',
+                    placementAlgorithm: 'none',
+                    connectionStyle: 'direct-labels',
+                    schematicRouting: interfaceFields ? { interfaceComponents: [] } : undefined,
+                })._generateWithCapture(),
+                library,
+                new UuidManager(),
+            );
+            const content = gen.generate();
+            const root = Parser.parse(content)[0] as SExpr[];
+            const visibleFields = root
+                .filter((node): node is SExpr[] => Array.isArray(node) && node[0] === 'symbol')
+                .flatMap((node) =>
+                    node.filter(
+                        (field) =>
+                            Array.isArray(field) &&
+                            field[0] === 'property' &&
+                            ['"Reference"', '"Value"'].includes(String(field[1])),
+                    ),
+                );
+            expect(visibleFields).toHaveLength(6);
+            expect(
+                gen.warnings.filter((warning) =>
+                    warning.startsWith('SCHEMATIC_TEXT_SYMBOL_OVERLAP'),
+                ),
+            ).toEqual([]);
+        },
+    );
     it('places a hidden-value test-point reference outside its graphic rather than on its electrical anchor', () => {
         const { gen } = probeGenerator();
         const content = gen.generate();

@@ -895,7 +895,8 @@ export class SchematicGenerator {
             const rot = comp.absoluteSchematicPosition?.rotation || 0;
 
             const symName = comp.symbol;
-            const box = this.getComponentBox(comp, 0);
+            const pinBox = this.getComponentBox(comp, 0);
+            const box = (comp.allPins.size <= 2 && this.getComponentBox(comp, 0, true)) || pinBox;
             let textRot = 0;
             let valY = y + 2.54;
             let refY = y - 2.54;
@@ -905,12 +906,13 @@ export class SchematicGenerator {
             const fieldSize = this.routedSchematicOwner(comp) ? '1' : '1.27';
 
             if (box) {
-                if (box.height > box.width) {
-                    textRot = 90;
+                if ((pinBox ?? box).height > (pinBox ?? box).width) {
+                    textRot = rot % 180;
                     refX = box.x + box.width + 1.27;
                     refY = y - 1.27;
                     valX = box.x + box.width + 1.27;
                     valY = y + 1.27;
+                    fieldJustify = [['justify', 'left']];
                 } else {
                     refY = box.y - 1.27;
                     valY = box.y + box.height + 1.27;
@@ -936,7 +938,7 @@ export class SchematicGenerator {
             }
             if (this.snapshot.schematicRouting?.interfaceComponents && box) {
                 textRot = rot % 180;
-                if (box.height > box.width) {
+                if ((pinBox ?? box).height > (pinBox ?? box).width) {
                     refX = valX = x + 5.08;
                     refY = y - 1.27;
                     valY = y + 1.27;

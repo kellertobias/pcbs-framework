@@ -88,7 +88,7 @@ export function appendBoard(
             throw new Error(`Unsupported panel object '${entry[0]}'`);
         const node = structuredClone(entry);
         const footprint = node[0] === 'footprint';
-        const walk = (item: SExpr[], local: boolean): void => {
+        const walk = (item: SExpr[], local: boolean, owner?: string): void => {
             const key = String(item[0]);
             if (key === 'model' && placement.sourceDirectory) {
                 const model = value(item[1]);
@@ -125,11 +125,11 @@ export function appendBoard(
                 item[2] = String(point.y);
                 if (key === 'at' && node[0] !== 'via')
                     item[3] = String(Number(item[3] ?? 0) + (placement.rotation ?? 0));
-            } else if (local && key === 'at') {
+            } else if (local && key === 'at' && owner !== 'point') {
                 // KiCad pad orientations are absolute, unlike their local positions.
                 item[3] = String(Number(item[3] ?? 0) + (placement.rotation ?? 0));
             }
-            for (const sub of item.slice(1)) if (Array.isArray(sub)) walk(sub, local);
+            for (const sub of item.slice(1)) if (Array.isArray(sub)) walk(sub, local, key);
         };
         if (footprint) {
             for (const sub of node.slice(1))
