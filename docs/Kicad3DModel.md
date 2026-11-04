@@ -22,7 +22,7 @@ const pin = model.cylinder({ r: 0.5, h: 4 })
 model.union(body, pin);
 ```
 
-**Note:** You do not need to call `model.export()` manually in your module code. When you run `npx pcbs lib`, the framework automatically detects your `make3DModel()` method, generates the model files (VRML/STEP), and links them to the footprint.
+**Note:** You do not need to call `model.export()` manually in your module code. When you run `npx @tobisk/pcbs lib`, the framework automatically detects your `make3DModel()` method, generates the model files (VRML/STEP), and links them to the footprint.
 
 ## Linking External Models
 

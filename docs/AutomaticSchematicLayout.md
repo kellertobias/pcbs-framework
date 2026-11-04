@@ -186,3 +186,9 @@ identify individual functions. Generated library tables use paths relative to th
 project output directory, so moving the project between computers keeps the library
 links usable. Schematic page generation never requires changing PCB placement or
 saved copper.
+
+Same-net orthogonal wire crossings receive explicit native KiCad junctions even
+when collinear merging removes the original endpoints. Different-net crossings
+remain separate. When a generated sheet contains only part of a circuit, signals
+that reach components outside the sheet receive boundary ports. Local power
+connections for split symbol units stay within their functional groups.

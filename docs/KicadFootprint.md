@@ -137,7 +137,7 @@ new Component({
 });
 ```
 
-Run `npx pcbs frontpanel <schematic>` after synthesis to generate the panel.
+Run `npx @tobisk/pcbs frontpanel <schematic>` after synthesis to generate the panel.
 
 ### `addExternal3DModel(baseDir, relativePath, options?)`
 

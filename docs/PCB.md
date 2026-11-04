@@ -184,10 +184,10 @@ After routing in KiCad or with `pcb route`, capture the actual copper before
 changing placements or footprints:
 
 ```bash
-npx pcb capture-routing my_board
-npx pcb synth my_board --pcb sync
+npx @tobisk/pcbs capture-routing my_board
+npx @tobisk/pcbs synth my_board --pcb sync
 # Or regenerate from source and saved copper (the prior PCB is backed up):
-npx pcb synth my_board --pcb rebuild
+npx @tobisk/pcbs synth my_board --pcb rebuild
 ```
 
 `capture-routing` writes `routing.json` beside the board. Choose a different

@@ -14,9 +14,9 @@ step limit, and failure is reported rather than producing a straight-line fallba
 ## PCB
 
 ```bash
-npx pcb synth my_board --pcb sync
-npx pcb route my_board                 # capacity backend; all unrouted nets
-npx pcb capture-routing my_board       # persist actual copper in routing.json
+npx @tobisk/pcbs synth my_board --pcb sync
+npx @tobisk/pcbs route my_board                 # capacity backend; all unrouted nets
+npx @tobisk/pcbs capture-routing my_board       # persist actual copper in routing.json
 ```
 
 Existing copper and source-declared exact routes remain protected. Replacing

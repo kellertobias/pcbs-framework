@@ -1,52 +1,47 @@
-![@tobisk/pcbs](/docs/header.png)
+# PCB framework documentation
 
-# @tobisk/pcbs
+`@tobisk/pcbs` turns TypeScript circuit definitions into native KiCad schematics,
+PCB files and component libraries. It also provides mechanical models, assemblies,
+rendering and manufacturing exports.
 
-**The Code-First PCB Design Framework for Hobbyist Engineers.**
+Start with the [quick start](QuickStart.md), then use the [CLI reference](CLI.md)
+and [source/output workflow](OutputWorkflow.md) for generation and review.
 
-> **Note:** We no longer use `circuit-synth`, but this project is still deeply inspired by it.
+## Circuits and schematic drawings
 
-`@tobisk/pcbs` is a TypeScript framework that brings the power of modern software development to electronics engineering. It allows you to design circuits using code, ensuring type safety, modularity, and easy version control.
+- [Schematic](Schematic.md): circuit entry point and generation options.
+- [Component](Component.md), [Net](Net.md) and [Composable](Composable.md): parts,
+  electrical connections and reusable circuit blocks.
+- [Decorators](Decorators.md): assign functional groups beside circuit methods.
+- [Automatic schematic layout](AutomaticSchematicLayout.md): functional groups,
+  routing-informed placement, project branding and native multipage sheets.
+- [Schematic readability](SchematicReadability.md): field placement, passive
+  branches, inline probes and generation warnings.
 
-This application was developed and tested with the help of AI, and it is specifically designed to support **AI-assisted electronics development**. By defining circuits in code, you can leverage AI tools (like GitHub Copilot or Cursor) to generate schematics, suggest components, and even write library definitions for you.
+## Boards and fabrication
 
-## Features
+- [PCB placement and routing](PCB.md): outlines, physical placement, net classes,
+  saved copper and synchronization.
+- [Autorouting](Autorouting.md): backends, waypoints and forbidden regions.
+- [Board composition](BoardComposition.md): reusable placed and routed blocks.
+- [Projects and panels](ProjectsAndPanels.md): project-local libraries and panels.
+- [Front panels](FrontPanel.md): openings, artwork and layered DXF/SVG exports.
+- [Rendering](Rendering.md): named board views and model exports.
+- [Physical assemblies](Assembly.md): combine boards and mechanical models in the
+  local viewer and render named cameras.
 
-### 🔌 Schematic Generation
-Define your connections in TypeScript and generate native **KiCad Schematics (`.kicad_sch`)** and Netlists (`.net`). The framework handles the boring parts of netlist generation so you can focus on the logic.
+## Component libraries
 
-### 🔍 Parts Search
-Includes a simple command-line tool to search the **JLCPCB Parts Library**.
-*   Find available parts directly from your terminal.
-*   Designed to be easily used by AI agents and tools like Cursor to find the right component for your design.
+- [Module](Module.md): define reusable physical parts.
+- [Symbols](KicadSymbol.md), [footprints](KicadFootprint.md) and
+  [3D models](Kicad3DModel.md): generate library assets from code.
+- [Datasheets](Datasheets.md): component and footprint PDFs.
+- [Component cost](ComponentCost.md): supplier and assembly cost information.
 
-### 📚 Library Management
-Manage your component library with code.
-*   **Composable Subschematics**: Create reusable circuit blocks (e.g., a "5V Regulator" or "Microcontroller Minimal Setup") that can be instantiated multiple times.
-*   **Modules**: Define physical components including **Symbols**, **Footprints**, and **3D Models** programmatically. No more drawing boxes in a GUI!
+## Contributing
 
-### 🏭 Export for Fabrication
-One command to rule them all. The `export` tool generates everything you need for manufacturing at **JLCPCB**:
-*   Gerber & Drill Files
-*   BOM (Bill of Materials) with LCSC Part Numbers
-*   CPL (Component Placement List) for PCBA
-*   3D Renders of your board
-*   Zips it all up ready for upload.
+- [Framework and project boundary](ProjectBoundary.md): where reusable behavior belongs.
+- [Documentation site](Documentation.md): edit, validate and publish the guides.
 
-## Documentation
-
-Full documentation is available in the Wiki:
-
-*   **[Quick Start Guide](QuickStart.md)**: Build your first "Blinky" circuit in minutes.
-*   **[API Documentation](Schematic.md)**: Explore the detailed API reference.
-*   **[CLI Reference](CLI.md)**: Usage of `synth`, `parts`, `lib`, and `export`.
-
-## Installation
-
-```bash
-npm install @tobisk/pcbs
-```
-
-## License
-
-This project is licensed under the **MIT License**.
+Native KiCad review remains part of board release. Schematic readability warnings
+are drawing aids; they do not replace connectivity checks or filled-zone PCB DRC.

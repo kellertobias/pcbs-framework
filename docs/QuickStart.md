@@ -6,8 +6,8 @@ Welcome to **@tobisk/pcbs**! This guide will help you get started with creating 
 
 Before you begin, ensure you have the following installed:
 
-*   **Node.js** (v18 or later recommended)
-*   **KiCad** (v7 or v8 recommended)
+*   **Node.js 22 LTS**
+*   **KiCad 10**, including its symbol and footprint libraries
 *   **npm** (comes with Node.js)
 
 ## Installation
@@ -35,6 +35,7 @@ Before you begin, ensure you have the following installed:
       "compilerOptions": {
         "target": "ES2020",
         "module": "commonjs",
+        "experimentalDecorators": true,
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
@@ -115,10 +116,12 @@ Now that we have our schematic defined in code, let's generate the KiCad files.
     Run the `synth` command to generate the `.kicad_sch` and `.net` files.
 
     ```bash
-    npx pcbs synth src/schematics/Blinky.ts
+    npx @tobisk/pcbs synth src/schematics/Blinky.ts
     ```
 
-    You should see output indicating successful generation. A folder named `Blinky_Project` (based on the schematic name) will be created inside `src/schematics/`.
+    You should see output indicating successful generation. Generated files are written to `src/schematics/export/`, including
+    `Blinky_Project.kicad_sch`. Keep each board in its own source directory when
+    a project contains multiple boards.
 
 2.  **Open in KiCad**:
 
@@ -126,7 +129,10 @@ Now that we have our schematic defined in code, let's generate the KiCad files.
 
 3.  **Layout the PCB**:
 
-    Open the `.kicad_pcb` file (create one if it doesn't exist, or import the netlist from the schematic editor to the PCB editor). Place your components and route your tracks as usual in KiCad.
+    Declare your outline and physical placement using the [PCB guide](PCB.md).
+    Synthesis preserves a saved PCB by default. Use `--pcb sync` or `--pcb rebuild`
+    deliberately; disable `pcb.autoRoute` when maintaining manual copper.
+    Run native KiCad DRC with filled zones before fabrication.
 
 ## Next Steps
 

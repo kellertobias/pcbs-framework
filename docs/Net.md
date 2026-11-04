@@ -19,7 +19,7 @@ vcc.tie(r1.pins.VCC);
 ```typescript
 new Net(options: {
   name: string;
-  class?: "Power" | "Signal"; // Default: "Signal"
+  class?: string | NetClassDefinition; // Default: "Signal"
 })
 ```
 
@@ -44,3 +44,12 @@ Returns a read-only array of all `Pin` objects connected to this net.
 ## Power Nets
 
 Nets with `class: "Power"` are treated specially during schematic generation. They are rendered using power symbols (e.g., VCC, GND bars) instead of long wires across the page.
+
+## Circuit-owned physical rules
+
+Pass a definition from `defineNetClass` as the net's `class` to share trace width,
+clearance and via rules across named nets. Used definitions and assignments are
+collected into PCB rules and native project settings. Conflicting definitions
+or incompatible classified-net merges throw instead of silently discarding rules.
+See [circuit-owned net classes](OutputWorkflow.md#circuit-owned-net-classes) for
+an example and the supported legacy declarations.

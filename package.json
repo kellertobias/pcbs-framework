@@ -25,7 +25,11 @@
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
     "postinstall": "ts-node scripts/patch-opencascade.ts && ts-node -P tsconfig.json ./src/cli/cli.ts setup",
-    "kicad-diff": "ts-node scripts/kicad-diff.ts"
+    "kicad-diff": "ts-node scripts/kicad-diff.ts",
+    "typecheck": "tsc --noEmit",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "keywords": [
     "kicad",
@@ -35,6 +39,7 @@
   "author": "Tobias S. Keller",
   "license": "MIT",
   "devDependencies": {
+    "@biomejs/biome": "^2.6.4",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
@@ -44,12 +49,12 @@
     "@types/node": "^25.2.3",
     "@types/pdfkit": "^0.17.5",
     "@types/three": "^0.186.0",
-    "biome": "^0.3.3",
     "semantic-release": "^24.2.9",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3",
+    "vitepress": "^1.6.4",
     "vitest": "^4.0.18"
   },
   "dependencies": {
