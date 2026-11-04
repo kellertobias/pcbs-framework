@@ -1,3 +1,11 @@
+## [2.4.1](https://github.com/kellertobias/pcbs-framework/compare/v2.4.0...v2.4.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* complete documentation dependencies for npm 10 ([bb83762](https://github.com/kellertobias/pcbs-framework/commit/bb83762f3e93ace0198c124699ee1303f0e8feb7))
+* preserve schematic junctions and group boundaries ([feda610](https://github.com/kellertobias/pcbs-framework/commit/feda6104f431a91665743b148dc8bfb76e77d32b))
+
 # [2.4.0](https://github.com/kellertobias/pcbs-framework/compare/v2.3.0...v2.4.0) (2026-10-08)
 
 
