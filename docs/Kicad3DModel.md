@@ -1,6 +1,26 @@
+---
+aside: false
+---
+
 # Kicad3DModel
 
 The `Kicad3DModel` class provides a fluent API for creating parametric 3D models using OpenCascade.js. It allows you to build complex shapes by combining simple primitives (box, sphere, cylinder) with boolean operations (union, subtract, intersect).
+
+## Model code and exported geometry
+
+This executable example is part of [code and generated results](Examples.md),
+which includes the complete source, reproduction commands and downloadable CAD files.
+
+<div class="example-pair"><div>
+
+<<< ./examples/library/model.ts
+
+</div><figure>
+
+![Framework rendering of the actual WRL export; STEP and STL are included in the download.](./public/examples/model-isometric.png)
+
+<figcaption>Framework rendering of the actual WRL export; STEP and STL are included in the download.</figcaption>
+</figure></div>
 
 ## Usage
 

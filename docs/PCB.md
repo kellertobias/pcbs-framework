@@ -1,8 +1,27 @@
+---
+aside: false
+---
+
 # Declarative PCB generation
 
 PCB mechanics can be owned directly by the TypeScript schematic. Legacy
 rectangular/polygon boards can continue to use `outline`; new boards can use
 named contours and explicit primitives:
+
+See the [worked PCB example](Examples.md#placement-to-copper) for the full design and native DRC report.
+
+<div class="example-pair"><div>
+
+<<< ./examples/coin-cell-led/pcb-routing.ts
+
+</div><figure>
+
+![Native KiCad front copper plot of the generated LED board](./public/examples/indicator-front.png)
+
+<figcaption>Front copper and silkscreen from the same placement code, after native zone refill and DRC.</figcaption>
+</figure></div>
+
+## Geometry options
 
 ```ts
 pcb: {

@@ -134,6 +134,9 @@ Now that we have our schematic defined in code, let's generate the KiCad files.
     deliberately; disable `pcb.autoRoute` when maintaining manual copper.
     Run native KiCad DRC with filled zones before fabrication.
 
+See [code and generated results](Examples.md) for a complete circuit beside
+its generated schematic, routed PCB and populated 3D view.
+
 ## Next Steps
 
 *   Explore **[API Documentation](Schematic.md)** to learn about `Composable` blocks and `Modules`.

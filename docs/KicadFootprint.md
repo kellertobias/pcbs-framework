@@ -1,6 +1,26 @@
+---
+aside: false
+---
+
 # KicadFootprint
 
 The `KicadFootprint` class allows you to programmatically define KiCad footprints (`.kicad_mod`). It provides a fluent API to add pads, lines, arcs, text, and 3D models.
+
+## Footprint code and native plot
+
+This executable example is part of [code and generated results](Examples.md),
+which includes the complete source, reproduction commands and downloadable CAD files.
+
+<div class="example-pair"><div>
+
+<<< ./examples/library/footprint.ts
+
+</div><figure>
+
+![Native KiCad plot of the generated TeachingPads.kicad_mod.](./public/examples/footprint.png)
+
+<figcaption>Native KiCad plot of the generated TeachingPads.kicad_mod.</figcaption>
+</figure></div>
 
 ## Usage
 

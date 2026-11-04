@@ -38,6 +38,33 @@ For a new guide, add it to the grouped sidebar in `.vitepress/config.mts`, the
 so the overview has one source. Run the documentation build and preview the page
 at desktop and phone widths before committing.
 
+## Generate example images
+
+The [visual examples](Examples.md) use source files in `docs/examples/`. VitePress
+includes those files directly in code blocks; the displayed snippets and executed
+code therefore share one source. PNGs and a downloadable CAD archive are tracked
+under `docs/public/examples/`.
+
+With native KiCad 10 and its standard libraries installed, run:
+
+```sh
+npm run docs:examples:check
+npm run docs:examples
+npm run docs:examples -- --check
+```
+
+Generation builds the circuit through the framework, compares native schematic
+pin connections with the source circuit, and runs native PCB DRC with filled
+zones. It then exports schematic/footprint SVGs, PCB layer plots, the native 3D
+board view and WRL model previews. Only empty page margins are cropped from native
+SVG plots. Review the resulting images before committing them.
+
+The generation manifest records tool versions, DRC counts and hashes of the
+source, screenshots and download. The Documentation workflow type-checks the
+examples and rejects changed sources or assets that do not match the manifest.
+That check needs no native KiCad installation. To refresh an image, regenerate
+the whole set and review it; do not edit the PNG or generated KiCad files by hand.
+
 ## GitHub Pages deployment
 
 The Documentation workflow builds pull requests without deploying them. Pushes to

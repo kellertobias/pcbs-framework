@@ -1,6 +1,26 @@
+---
+aside: false
+---
+
 # Schematic
 
 The `Schematic` class is the core of your design. It represents a single PCB project and contains all the logic for wiring components together.
+
+## Circuit code and native schematic
+
+This executable example is part of [code and generated results](Examples.md),
+which includes the complete source, reproduction commands and downloadable CAD files.
+
+<div class="example-pair"><div>
+
+<<< ./examples/coin-cell-led/Indicator.ts#circuit
+
+</div><figure>
+
+![Native KiCad schematic exported from the generated Indicator.kicad_sch.](./public/examples/indicator-schematic.png)
+
+<figcaption>Native KiCad schematic exported from the generated Indicator.kicad_sch.</figcaption>
+</figure></div>
 
 ## Usage
 

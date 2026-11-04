@@ -7,6 +7,9 @@ rendering and manufacturing exports.
 Start with the [quick start](QuickStart.md), then use the [CLI reference](CLI.md)
 and [source/output workflow](OutputWorkflow.md) for generation and review.
 
+See [code and generated results](Examples.md) for executable examples beside
+native KiCad schematic, PCB and 3D renders, plus generated footprints and models.
+
 ## Circuits and schematic drawings
 
 - [Schematic](Schematic.md): circuit entry point and generation options.

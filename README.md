@@ -15,6 +15,8 @@ npx @tobisk/pcbs --help
 ```
 
 Follow the [quick start](docs/QuickStart.md) to create and synthesize a circuit.
+See [code and generated results](docs/Examples.md) for source beside real KiCad
+schematic, copper and 3D renders, including downloadable generated files.
 The installed executable is `pcb`; `npx @tobisk/pcbs` invokes the same CLI.
 
 ## Design workflow

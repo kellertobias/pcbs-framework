@@ -6,6 +6,7 @@ export const sidebar = [
         items: [
             { text: 'Overview', link: '/Home' },
             { text: 'Quick start', link: '/QuickStart' },
+            { text: 'Code and generated results', link: '/Examples' },
             { text: 'CLI reference', link: '/CLI' },
             { text: 'Source files and outputs', link: '/OutputWorkflow' },
         ],

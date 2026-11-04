@@ -29,7 +29,9 @@
     "typecheck": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "docs:examples": "ts-node --prefer-ts-exts -r tsconfig-paths/register scripts/render-doc-examples.ts",
+    "docs:examples:check": "tsc --noEmit -p tsconfig.examples.json"
   },
   "keywords": [
     "kicad",

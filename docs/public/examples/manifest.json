@@ -1,0 +1,24 @@
+{
+  "kicad": "10.0.0",
+  "framework": "2.4.1",
+  "sourceHash": "86461d37f96c9cdbfc4a1e9683aa0b4bbf2b7d902419f234d6eef65e408e606d",
+  "images": {
+    "footprint.png": "8f41418931e00b2d0d032ac7d3dcbbed5c53704a86504a435b4404f1639fdc4d",
+    "indicator-3d.png": "38940dc7dae36c6b4dcf4e6c6fb0296be6d7e203f3474e5a0508c0570be99c79",
+    "indicator-back.png": "ee5bfadd2d72c927a44d7474a378cceafb162d950a17c58072f503da85549350",
+    "indicator-front.png": "2d40aec25ad65bf739526c57dd82ea56dbaab2d923d5bb01d5b7a76751a2cecb",
+    "indicator-schematic.png": "95756ce27213821d2918e02c245d520ef4d4ce63a7889a10d2abe229336b02d1",
+    "model-isometric.png": "b92bf99cd5830e60aab28c2d029202ef5a1e3e8a65492f90d9621ef576cd1f5b",
+    "model-top.png": "33b4fec458cd9ba73ac6d6972d845174cae472659cc0a126a4aaacecfe58888d"
+  },
+  "archiveHash": "77d89275290072316a9c1207c977367d5393d2d93a6030980c92e804a629ae99",
+  "drc": {
+    "errors": 0,
+    "unconnected": 0,
+    "warnings": 2
+  },
+  "generationWarnings": [
+    "PCB_ZONES_REQUIRE_REFILL 2 managed zone outline(s) generated without transient filled-polygon caches."
+  ],
+  "nativeSchematicConnectivity": "Pin partitions match the TypeScript source."
+}

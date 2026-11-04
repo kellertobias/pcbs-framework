@@ -1,5 +1,6 @@
 - [Overview](Home.md)
 - [Quick start](QuickStart.md)
+- [Code and generated results](Examples.md)
 - [CLI reference](CLI.md)
 - [Source files and outputs](OutputWorkflow.md)
 - [Schematic](Schematic.md)

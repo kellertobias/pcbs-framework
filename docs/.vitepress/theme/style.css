@@ -26,6 +26,59 @@
     line-height: 1.25;
 }
 
+.example-pair {
+    display: grid;
+    gap: 24px;
+    align-items: start;
+    margin: 24px 0;
+}
+
+.example-pair > * {
+    min-width: 0;
+}
+
+.example-pair div[class*="language-"] {
+    margin: 0;
+}
+
+.vp-doc .example-pair div[class*="language-"] pre,
+.vp-doc .example-pair div[class*="language-"] code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    width: auto;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.example-pair figure {
+    margin: 0;
+    order: -1;
+}
+
+.example-pair img {
+    width: 100%;
+    background: white;
+}
+
+.example-pair figcaption {
+    margin: 10px 0 24px;
+    color: var(--vp-c-text-2);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+@media (min-width: 1280px) {
+    .example-pair {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .example-pair figure {
+        order: 0;
+        position: sticky;
+        top: 88px;
+    }
+}
+
 @media (max-width: 640px) {
     .vp-doc h1 {
         font-size: 24px;

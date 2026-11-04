@@ -29,7 +29,9 @@ tmp/
 **/schematics/**/jlcpcb/
 **/schematics/**/zip/
 *.zip
+!docs/public/examples/examples.zip
 .DS_Store
 .repoinfo
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+.cache/docs-examples/

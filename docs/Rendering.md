@@ -6,6 +6,11 @@ Rendering reads existing generated boards; it does not synthesize, route or fill
 zones. Generate and verify the boards first. KiCad must be installed; `KICAD_CLI`
 can select its executable.
 
+The [executable LED-board example](Examples.md#saved-board-to-3d-view) pairs
+a render-series definition with the following native KiCad result:
+
+![Native KiCad 3D render of the generated coin-cell LED board](./public/examples/indicator-3d.png)
+
 ```typescript
 import { defineRenderSeries } from '@tobisk/pcbs';
 
