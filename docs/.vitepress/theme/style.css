@@ -26,6 +26,39 @@
     line-height: 1.25;
 }
 
+.vp-doc h2 {
+    border-top: 0;
+}
+
+.vp-doc > div > p {
+    max-width: 60ch;
+}
+
+.VPDocFooter .prev-next {
+    border-top: 0;
+}
+
+.VPNavBar .divider-line {
+    display: none;
+}
+
+.Layout .VPLocalNav.has-sidebar {
+    border-bottom: 0;
+}
+
+.Layout .VPSidebar .nav .group + .group {
+    border-top: 0;
+}
+
+.visual-home .example-pair[data-example="board3d"] {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.visual-home .example-pair[data-example="board3d"] figure {
+    order: -1;
+    position: static;
+}
+
 .example-pair {
     display: grid;
     gap: 24px;

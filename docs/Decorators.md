@@ -2,6 +2,27 @@
 
 Decorators allow you to add metadata to your schematic generation logic, helping with organization and layout.
 
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### Functional groups
+
+<div class="example-pair" data-example="groups"><div>
+
+<<< ./examples/circuits/GroupedIndicator.ts#groups
+
+</div><figure>
+
+[![Functional groups](./public/examples/schematic-groups.png)](/examples/schematic-groups.png)
+
+<figcaption>Decorated methods create the BATTERY and INDICATOR groups. The framework places their symbols and routes each group.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
+
 ## `@schematicGroup(options)`
 
 Use `schematicGroup` to associate a functional box and its notes with the method
@@ -67,18 +88,18 @@ Assigns all components instantiated within the decorated method to a subschemati
 ### Usage
 
 ```typescript
-import { Schematic, subschematic } from "@tobisk/pcbs";
+import { Schematic, subschematic } from '@tobisk/pcbs';
 
 class MyBoard extends Schematic {
-  generate() {
-    this.createPowerSection();
-  }
+    generate() {
+        this.createPowerSection();
+    }
 
-  @subschematic({ name: "Power Supply" })
-  private createPowerSection() {
-    // Components here appear on the "Power Supply" page
-    // of the PDF schematic.
-  }
+    @subschematic({ name: 'Power Supply' })
+    private createPowerSection() {
+        // Components here appear on the "Power Supply" page
+        // of the PDF schematic.
+    }
 }
 ```
 

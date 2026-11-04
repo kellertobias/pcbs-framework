@@ -9,17 +9,18 @@ connector interfaces supply the cutouts and above/below name anchors.
 import { defineFrontPanel, type FrontPanels } from '@tobisk/pcbs';
 
 export const frontPanels: FrontPanels<MyBoard> = {
-  connectors: schematic => defineFrontPanel({
-    edge: 'bottom',
-    nameHeight: -3.5,
-    textStyle: { bold: true },
-    extends: { left: 2, right: 2, top: 35, bottom: 5 },
-    components: [
-      { component: schematic.getComponent('J1'), name: 'DMX IN', namePlacement: 'below' },
-      { component: schematic.getComponent('J2'), name: '6–24 V', namePlacement: 'below' },
-    ],
-  }),
-  // Add other independent panel callbacks here.
+    connectors: (schematic) =>
+        defineFrontPanel({
+            edge: 'bottom',
+            nameHeight: -3.5,
+            textStyle: { bold: true },
+            extends: { left: 2, right: 2, top: 35, bottom: 5 },
+            components: [
+                { component: schematic.getComponent('J1'), name: 'DMX IN', namePlacement: 'below' },
+                { component: schematic.getComponent('J2'), name: '6–24 V', namePlacement: 'below' },
+            ],
+        }),
+    // Add other independent panel callbacks here.
 };
 
 export default new MyBoard();
@@ -41,10 +42,31 @@ the destination. No project-specific script or npm task is required.
 import { exportSchematicFrontPanel } from '@tobisk/pcbs';
 
 exportSchematicFrontPanel(schematic, frontPanels, 'connectors', {
-  pcbFile: 'MyBoard.kicad_pcb',
-  outputDir: 'mechanical',
+    pcbFile: 'MyBoard.kicad_pcb',
+    outputDir: 'mechanical',
 });
 ```
+
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### A front-panel drawing
+
+<div class="example-pair" data-example="front-panel"><div>
+
+<<< ./examples/mechanical/front-panel.ts
+
+</div><figure>
+
+[![A front-panel drawing](./public/examples/front-panel.png)](/examples/front-panel.png)
+
+<figcaption>A mechanical interface fixture supplies three face openings and a label anchor. The named panel exports its outline, cutouts and label to SVG and DXF.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
 
 ## Connector interface in the 3D coordinate system
 
@@ -56,25 +78,26 @@ a face orthogonal to the PCB, aligned with the part's mounted 3D geometry:
 import { Module, KicadFootprint, type FrontPanelInterface } from '@tobisk/pcbs';
 
 class MyConnector extends Module<'1' | '2' | '3'> {
-  static frontPanelInterface: FrontPanelInterface = {
-    facing: 'bottom',
-    anchor: { x: 0, y: 2.7, z: 12.5 },
-    cutouts: [
-      { type: 'circle', diameter: 22 },
-      { type: 'circle', x: 9.9, y: 9.9, diameter: 3.2 },
-      { type: 'circle', x: -9.9, y: -9.9, diameter: 3.2 },
-    ],
-    labelAnchors: {
-      above: { x: 0, y: 18, fontSize: 2.5 },
-      below: { x: 0, y: -15, fontSize: 2.5 },
-    },
-  };
+    static frontPanelInterface: FrontPanelInterface = {
+        facing: 'bottom',
+        anchor: { x: 0, y: 2.7, z: 12.5 },
+        cutouts: [
+            { type: 'circle', diameter: 22 },
+            { type: 'circle', x: 9.9, y: 9.9, diameter: 3.2 },
+            { type: 'circle', x: -9.9, y: -9.9, diameter: 3.2 },
+        ],
+        labelAnchors: {
+            above: { x: 0, y: 18, fontSize: 2.5 },
+            below: { x: 0, y: -15, fontSize: 2.5 },
+        },
+    };
 
-  static makeFootprint() {
-    return new KicadFootprint({ name: 'MyConnector' })
-      .setFrontPanelInterface(MyConnector.frontPanelInterface);
-  }
-  // Usual constructor, electrical pads, and symbol definition omitted here.
+    static makeFootprint() {
+        return new KicadFootprint({ name: 'MyConnector' }).setFrontPanelInterface(
+            MyConnector.frontPanelInterface,
+        );
+    }
+    // Usual constructor, electrical pads, and symbol definition omitted here.
 }
 ```
 
@@ -98,7 +121,7 @@ font size and rotation. Missing requested anchors are errors. A selection's
 used when present. An unnamed selection still exports its openings.
 
 `nameHeight` optionally aligns every component name at one height relative to
- the PCB top surface, retaining the horizontal position from each component's
+the PCB top surface, retaining the horizontal position from each component's
 selected anchor. For example, `nameHeight: -3.5` places all names 3.5 mm below
 the PCB surface. Without it, the interface's individual name heights apply.
 
@@ -143,11 +166,11 @@ applied.
 
 Both formats separate manufacturing geometry and review information:
 
-| Layer | Contents |
-| --- | --- |
-| `OUTLINE` | Closed rectangular plate perimeter |
-| `ENGRAVING` | Editable component names at selected above/below anchors |
-| `CUTOUT` | Connector openings and mounting screw holes |
+| Layer         | Contents                                                                           |
+| ------------- | ---------------------------------------------------------------------------------- |
+| `OUTLINE`     | Closed rectangular plate perimeter                                                 |
+| `ENGRAVING`   | Editable component names at selected above/below anchors                           |
+| `CUTOUT`      | Connector openings and mounting screw holes                                        |
 | `ANNOTATIONS` | Centre crosses, circle diameter notes, and rectangular/polygon bounding dimensions |
 
 SVG groups use those four IDs. DXF declares four layers even if a layer has no

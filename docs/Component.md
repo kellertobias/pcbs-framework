@@ -2,32 +2,26 @@
 
 The `Component` class represents a single electronic component in your schematic.
 
-## Usage
+## Generated examples
 
-```typescript
-import { Component } from "@tobisk/pcbs";
+<!-- generated-examples:start -->
 
-const r1 = new Component({
-  symbol: "Device:R",
-  footprint: "Resistor_SMD:R_0603_1608Metric",
-  ref: "R1",
-  value: "10k",
-});
+### Circuit connections
 
-// Access pins by number
-r1.pins[1].tie(netA);
+<div class="example-pair" data-example="circuit"><div>
 
-// Access pins by name (using mapping)
-const u1 = new Component({
-  // ...
-  pins: (pin) => ({
-    VCC: pin(1),
-    GND: pin(2),
-  }),
-});
+<<< ./examples/coin-cell-led/Indicator.ts#circuit
 
-u1.pins.VCC.tie(netVCC);
-```
+</div><figure>
+
+[![Circuit connections](./public/examples/indicator-schematic.png)](/examples/indicator-schematic.png)
+
+<figcaption>The battery, resistor and LED are connected in TypeScript and plotted from the generated native KiCad schematic.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
 
 ## Constructor
 
@@ -45,12 +39,12 @@ new Component(options: {
 
 ## Properties
 
-*   `symbol`: KiCad symbol identifier.
-*   `footprint`: KiCad footprint identifier.
-*   `ref`: Reference designator.
-*   `value`: Component value.
-*   `description`: Description string.
-*   `partNo`: Manufacturer Part Number (MPN) or LCSC Part Number.
+-   `symbol`: KiCad symbol identifier.
+-   `footprint`: KiCad footprint identifier.
+-   `ref`: Reference designator.
+-   `value`: Component value.
+-   `description`: Description string.
+-   `partNo`: Manufacturer Part Number (MPN) or LCSC Part Number.
 
 ## Methods
 
@@ -58,8 +52,8 @@ new Component(options: {
 
 A proxy object that allows accessing pins by number or name.
 
-*   `component.pins[1]`: Returns the `Pin` object for pin 1.
-*   `component.pins.VCC`: Returns the `Pin` object for the mapped pin named "VCC".
+-   `component.pins[1]`: Returns the `Pin` object for pin 1.
+-   `component.pins.VCC`: Returns the `Pin` object for the mapped pin named "VCC".
 
 **`pin.tie(target)`**
 Connects the pin to a `Net` or another `Pin`.
@@ -69,7 +63,7 @@ Explicitly marks the pin as "Do Not Connect". This suppresses warnings about unc
 
 ```typescript
 // Mark pin 5 as unused
-u1.pins[5].dnc("Not used in this design");
+u1.pins[5].dnc('Not used in this design');
 ```
 
 ### `power(mapping)`
@@ -78,8 +72,8 @@ Helper to connect multiple power pins at once.
 
 ```typescript
 u1.power({
-  VCC: vccNet,
-  GND: gndNet,
+    VCC: vccNet,
+    GND: gndNet,
 });
 ```
 

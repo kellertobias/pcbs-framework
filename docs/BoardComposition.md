@@ -4,6 +4,27 @@ A `Schematic` can place independent source schematics on a panel. A `BoardModule
 can use a source schematic as one assembled component on a carrier. Both regenerate
 from framework source; generated KiCad files are outputs.
 
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### Repeated source boards
+
+<div class="example-pair" data-example="repeated"><div>
+
+<<< ./examples/boards/variants.ts#repeat
+
+</div><figure>
+
+[![Repeated source boards](./public/examples/board-composition.png)](/examples/board-composition.png)
+
+<figcaption>Two instances of the source board keep independent, namespaced nets and component references.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
+
 ## Arrange boards on a panel
 
 Call `addBoard()` inside `generate()`. Place and rotate boards in PCB millimetres.
@@ -14,12 +35,16 @@ Child circuits stay independent, including when the same schematic is used twice
 class FaderPanel extends Schematic {
     generate() {
         this.addBoard(singleFader, {
-            id: 'fader1', x: 10, y: 10,
+            id: 'fader1',
+            x: 10,
+            y: 10,
             origin: { x: 53, y: 8.5 },
             sourceDirectory: singleFaderProjectDirectory,
         });
         this.addBoard(singleFader, {
-            id: 'fader2', x: 10, y: 35,
+            id: 'fader2',
+            x: 10,
+            y: 35,
             origin: { x: 53, y: 8.5 },
             sourceDirectory: singleFaderProjectDirectory,
         });
@@ -94,7 +119,7 @@ class SingleFaderModule extends BoardModule<'VM' | 'GND' | 'SDA' | 'SCL'> {
             sourceDirectory: singleFaderProjectDirectory,
             pcbPosition,
             standoff: 13,
-            pins: pin => ({ VM: pin(1), GND: pin(2), SDA: pin(3), SCL: pin(4) }),
+            pins: (pin) => ({ VM: pin(1), GND: pin(2), SDA: pin(3), SCL: pin(4) }),
         });
     }
     // Define makeSymbol() using your usual KicadSymbol builder.

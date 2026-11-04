@@ -2,26 +2,47 @@
 
 Reusable components can attach a dated supplier quote with `ComponentOptions.cost`:
 
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### Quantity price selection
+
+<div class="example-pair" data-example="cost"><div>
+
+<<< ./examples/library/cost.ts
+
+</div><figure>
+
+[![Quantity price selection](./public/examples/cost-1.png)](/examples/cost-1.png)
+
+<figcaption>The generated PDF shows how the price-tier helper selects illustrative unit prices. These are example inputs, not supplier quotes.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
+
 ```ts
 new Component({
-  ref: "R1",
-  symbol: "Device:R",
-  footprint: "Resistor_SMD:R_0603_1608Metric",
-  partNo: "C25190",
-  value: "27",
-  cost: {
-    unitPrice: 0.0021,
-    currency: "USD",
-    supplier: "JLCPCB",
-    basisQuantity: 1,
-    checkedAt: "2026-10-02",
-    sourceUrl: "https://jlcpcb.com/partdetail/C25190",
-    assemblyClass: "Extended",
-    priceBreaks: [
-      { quantity: 1, unitPrice: 0.0021 },
-      { quantity: 1000, unitPrice: 0.0017 },
-    ],
-  },
+    ref: 'R1',
+    symbol: 'Device:R',
+    footprint: 'Resistor_SMD:R_0603_1608Metric',
+    partNo: 'C25190',
+    value: '27',
+    cost: {
+        unitPrice: 0.0021,
+        currency: 'USD',
+        supplier: 'JLCPCB',
+        basisQuantity: 1,
+        checkedAt: '2026-10-02',
+        sourceUrl: 'https://jlcpcb.com/partdetail/C25190',
+        assemblyClass: 'Extended',
+        priceBreaks: [
+            { quantity: 1, unitPrice: 0.0021 },
+            { quantity: 1000, unitPrice: 0.0017 },
+        ],
+    },
 });
 ```
 

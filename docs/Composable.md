@@ -2,36 +2,26 @@
 
 The `Composable` class allows you to create reusable sub-circuits (like functional blocks) that can be instantiated multiple times in your design.
 
-## Usage
+## Generated examples
 
-```typescript
-import { Composable, Component, Net, PinAssignable } from "@tobisk/pcbs";
+<!-- generated-examples:start -->
 
-// Define the interface types (pin names)
-type VoltageDividerPins = "IN" | "OUT" | "GND";
+### A reusable divider
 
-class VoltageDivider extends Composable<VoltageDividerPins> {
-  constructor(options: { ref: string; ratio: number }) {
-    super({ ref: options.ref, description: "Resistor Divider" });
-    // Use options.ratio here...
-  }
+<div class="example-pair" data-example="divider"><div>
 
-  protected defineInterface(): Record<VoltageDividerPins, PinAssignable> {
-    const r1 = new Component({ ... });
-    const r2 = new Component({ ... });
-    const mid = new Net();
+<<< ./examples/circuits/Divider.ts#block
 
-    mid.tie(r1.pins[2]);
-    mid.tie(r2.pins[1]);
+</div><figure>
 
-    return {
-      IN: r1.pins[1],
-      OUT: mid, // Can return a Net (creates a bridge pin)
-      GND: r2.pins[2]
-    };
-  }
-}
-```
+[![A reusable divider](./public/examples/schematic-divider.png)](/examples/schematic-divider.png)
+
+<figcaption>A Composable exposes supply, midpoint and ground pins. The complete example connects it to a local battery.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
 
 ## Constructor
 
@@ -51,22 +41,22 @@ new Composable(options: {
 
 **Returns:**
 An object mapping each interface pin name (defined in your generic type) to either:
-*   `Pin`: The interface pin is a direct alias for this internal component pin.
-*   `Net`: The interface pin is bridged to this internal net.
+-   `Pin`: The interface pin is a direct alias for this internal component pin.
+-   `Net`: The interface pin is bridged to this internal net.
 
 ### `makeSubschematic(options)`
 
 Marks this composable to be rendered as a separate page (hierarchical sheet) in the generated schematic PDF.
 
 **Options:**
-*   `name`: Name of the subschematic page (optional, defaults to class name).
+-   `name`: Name of the subschematic page (optional, defaults to class name).
 
 ### `pins` (Property)
 
 A proxy object allowing access to the interface pins defined in `defineInterface()`.
 
 ```typescript
-const vd = new VoltageDivider({ ref: "VD1", ratio: 0.5 });
+const vd = new VoltageDivider({ ref: 'VD1', ratio: 0.5 });
 vd.pins.IN.tie(vcc);
 vd.pins.GND.tie(gnd);
 ```
@@ -84,19 +74,19 @@ block can be used in schematic-only contexts.
 
 ```typescript
 const controller = new Component({
-  parent: this,
-  ref: `U_${this.ref}`,
-  symbol: "Example:Controller",
-  footprint: "Example:Controller",
-  pcbPosition: this.at(0, 0),
+    parent: this,
+    ref: `U_${this.ref}`,
+    symbol: 'Example:Controller',
+    footprint: 'Example:Controller',
+    pcbPosition: this.at(0, 0),
 });
 
 const decoupling = new Component({
-  parent: this,
-  ref: `C_${this.ref}`,
-  symbol: "Device:C",
-  footprint: "Capacitor_SMD:C_0603_1608Metric",
-  pcbPosition: this.at(4, 0),
+    parent: this,
+    ref: `C_${this.ref}`,
+    symbol: 'Device:C',
+    footprint: 'Capacitor_SMD:C_0603_1608Metric',
+    pcbPosition: this.at(4, 0),
 });
 ```
 
@@ -104,7 +94,7 @@ Pass `side` or `rotation` to override inherited placement properties. Pass
 `relativeTo` to offset from a specifically overridden child position:
 
 ```typescript
-this.at(4, -2, { relativeTo: customControllerPosition, side: "back" });
+this.at(4, -2, { relativeTo: customControllerPosition, side: 'back' });
 ```
 
 ### `absoluteSchematicPosition` / `absolutePcbPosition` (Getters)

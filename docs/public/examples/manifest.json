@@ -1,17 +1,41 @@
 {
   "kicad": "10.0.0",
   "framework": "2.4.1",
-  "sourceHash": "f28dd46fab5745784b148e1002c57db01198c787ab0e11b6fa0ba83176d21e78",
+  "sourceHash": "fae4a58e48078c928c737560f414d2caa651eb8523344d621409f10e580763e0",
   "images": {
+    "assembly-isometric.png": "2dd026d99fc305564249922e4e55d6bc7d6543e9c422f911e2d36ee888c3ae46",
+    "assembly-top.png": "0417032853ce2c8deed6c823713690359401c9f7ad5e84e69eb8e09bbdaa3fe8",
+    "assembly-tray.png": "6c6fb1037a2c36eccf91de100f54c5fae3a141b48809a885f89d6580743692e7",
+    "board-composition.png": "762ca8b707437eac10f8147435318800a334229adaa0380f5a45489b1bbc81f9",
+    "board-no-pour.png": "6aa9ae45a63248d72fa9e51eec5e5645d780e5959c97ff5749bf61c39bbcf225",
+    "board-production.png": "9c45b7233d9afb97b3ebf7933b68704e3bd75732e93838aee6d02350f8cf64b7",
+    "cost-1.png": "e59c897de23670ded18dbfd1b6b6052066c8bf0baabea0c9baf3b16ed3965b8b",
+    "datasheet-1.png": "bc8e6fbaf047c9aea976ef07e01b801af0e564de2d43a88740e431b592671a86",
+    "datasheet-2.png": "d1c47a1a192c3637ec9e9278e49fbf59680c190e7882a96425b5cfb2f811a72a",
+    "datasheet-3.png": "768ca52ccc3418d0c37dc6537999f81961357e153b2d1375f87702af2ae8f644",
+    "footprint-slot.png": "3bc7802978e0296cc23671cb2b989731ee3d3c0476bfbdfa1831085ede698815",
+    "footprint-through-hole.png": "e9a0cfe2be0f92f27abdd9ee545d905f34c303e816882d8f044784d929dd6078",
     "footprint.png": "8f41418931e00b2d0d032ac7d3dcbbed5c53704a86504a435b4404f1639fdc4d",
-    "indicator-3d.png": "8599828080320184a6df76fa0ad09e0e33cee0310bc8a4b78e0e2117c2f01561",
+    "front-panel.png": "73cedcb8f4985045fe488e936aeacbec7423ac05c592b03f39238f095500b5af",
+    "indicator-3d.png": "fb3d3f15c887213995b8f68e7ef4b5fdd79faae7bb058bc836714ca8c8bf39b9",
     "indicator-back.png": "ee5bfadd2d72c927a44d7474a378cceafb162d950a17c58072f503da85549350",
     "indicator-front.png": "2d40aec25ad65bf739526c57dd82ea56dbaab2d923d5bb01d5b7a76751a2cecb",
     "indicator-schematic.png": "95756ce27213821d2918e02c245d520ef4d4ce63a7889a10d2abe229336b02d1",
+    "model-bored.png": "972eb543eae49b0e4942cd182c7b14335e3dbb19e6be98780ef5c58c0727bde9",
+    "model-cylinder.png": "5c438a355bea3439becb6f61b979ef2f21c6310b1a7c041b57ec2c05540593c9",
     "model-isometric.png": "b92bf99cd5830e60aab28c2d029202ef5a1e3e8a65492f90d9621ef576cd1f5b",
-    "model-top.png": "33b4fec458cd9ba73ac6d6972d845174cae472659cc0a126a4aaacecfe58888d"
+    "model-solid.png": "99700769eaee06bbf12f6cebfaa1c02e7ae792adfb60857ad6012670e7565e0c",
+    "model-top.png": "33b4fec458cd9ba73ac6d6972d845174cae472659cc0a126a4aaacecfe58888d",
+    "schematic-divider.png": "7b5f3d65dda7876b9779a45c91054056e2bdd5b114da9f5718c7a8f8cd91b27e",
+    "schematic-grid.png": "2dee7479b4455446afd6e71f35be84c6f93b0727f0a1b3ea449b524dc0836748",
+    "schematic-groups.png": "69cd2e6deb97c5b52267b2262b509332d694b7c8359bdf0da64efa0e0d4e32ab",
+    "schematic-labels.png": "0023c2beee815c794532b828fd34987af1ac14281ac067d535bde4cd9c05a13a",
+    "schematic-pages-BATTERY.png": "625645d969809dfa276dc8b024a4887d6a84bd47833388a7e1107b246ad616de",
+    "schematic-pages-INDICATOR.png": "4f99118a02425b97aad1bedcd2a1abea8d770406d16a7ab5cf67779cabec02d4",
+    "schematic-pages.png": "7090935d974982eb6ccdd2baa8d1c369f1a3e5abc4a44a45f426868727cabb6f",
+    "symbol.png": "c2763bbf369b62639bd834c6602aafb5a9f16c4b870b91ac3bab9c5c36f2bb9f"
   },
-  "archiveHash": "3a8834f545351775e43a877848367875d0ae92833cc9dcb65d519ffecc8031b9",
+  "archiveHash": "6503ef0fefa616a8fe679883cd7440abaaae19cea89dbe450898c02dff23f5e4",
   "drc": {
     "errors": 0,
     "unconnected": 0,
@@ -20,5 +44,52 @@
   "generationWarnings": [
     "PCB_ZONES_REQUIRE_REFILL 2 managed zone outline(s) generated without transient filled-polygon caches."
   ],
+  "galleryValidation": {
+    "schematic-labels": {
+      "nativePinPartitions": 3,
+      "warnings": []
+    },
+    "schematic-groups": {
+      "nativePinPartitions": 3,
+      "warnings": []
+    },
+    "schematic-grid": {
+      "nativePinPartitions": 3,
+      "warnings": []
+    },
+    "schematic-pages": {
+      "nativePinPartitions": 3,
+      "warnings": []
+    },
+    "schematic-divider": {
+      "nativePinPartitions": 3,
+      "warnings": []
+    },
+    "board-no-pour": {
+      "errors": 0,
+      "unconnected": 0,
+      "warnings": 2
+    },
+    "board-composition": {
+      "errors": 0,
+      "unconnected": 0,
+      "warnings": 6
+    },
+    "board-production": {
+      "errors": 0,
+      "unconnected": 0,
+      "warnings": 7
+    },
+    "panel-fixture": {
+      "errors": 0,
+      "unconnected": 0,
+      "warnings": 0
+    }
+  },
+  "coverage": {
+    "examples": 28,
+    "guides": 21,
+    "images": 31
+  },
   "nativeSchematicConnectivity": "Pin partitions match the TypeScript source."
 }

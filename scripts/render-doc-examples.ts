@@ -10,6 +10,8 @@ import { makeModel } from '../docs/examples/library/model';
 import { KicadGenerator } from '../src/kicad/KicadGenerator';
 import { cmdRenderSeries } from '../src/cli/commands/render-series';
 import { renderModel } from '../src/datasheet/ModelRenderer';
+import { generateGallery } from './docs/gallery';
+import { syncExampleDocumentation } from './docs/catalog';
 
 const root = path.resolve(__dirname, '..');
 const work = path.join(root, '.cache/docs-examples');
@@ -207,6 +209,8 @@ async function main() {
         );
     }
 
+    const galleryValidation = await generateGallery({ root, work, assets, native, plotPng });
+    const coverage = syncExampleDocumentation(false);
     const sources = archiveFiles(path.join(root, 'docs/examples'), 'source/');
     const downloads: Record<string, Uint8Array> = { ...sources };
     for (const name of [
@@ -225,6 +229,7 @@ async function main() {
         downloads,
         archiveFiles(library, 'kicad/Documentation.pretty/'),
         archiveFiles(path.join(work, 'models'), 'models/'),
+        archiveFiles(path.join(work, 'gallery'), 'gallery/'),
     );
     fs.writeFileSync(path.join(assets, 'examples.zip'), zipSync(downloads));
     const images = fs
@@ -251,6 +256,8 @@ async function main() {
                     ).length,
                 },
                 generationWarnings: generated.warnings,
+                galleryValidation,
+                coverage,
                 nativeSchematicConnectivity: 'Pin partitions match the TypeScript source.',
             },
             null,
@@ -270,6 +277,7 @@ function exampleSourceHash() {
     const digest = createHash('sha256');
     const sources = archiveFiles(path.join(root, 'docs/examples'), 'source/');
     sources['scripts/render-doc-examples.ts'] = fs.readFileSync(__filename);
+    Object.assign(sources, archiveFiles(path.join(root, 'scripts/docs'), 'scripts/docs/'));
     for (const [name, content] of Object.entries(sources).sort(([a], [b]) => a.localeCompare(b)))
         digest.update(name).update(content);
     return digest.digest('hex');
@@ -278,6 +286,7 @@ function exampleSourceHash() {
 async function run() {
     if (!process.argv.includes('--check')) return main();
     const manifest = JSON.parse(fs.readFileSync(path.join(assets, 'manifest.json'), 'utf8'));
+    syncExampleDocumentation(true);
     if (manifest.sourceHash !== exampleSourceHash())
         throw new Error('Example source changed. Run npm run docs:examples and review its images.');
     for (const [name, expected] of Object.entries(manifest.images)) {

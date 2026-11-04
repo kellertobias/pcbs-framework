@@ -10,16 +10,42 @@ named contours and explicit primitives:
 
 See the [worked PCB example](Examples.md#placement-to-copper) for the full design and native DRC report.
 
-<div class="example-pair"><div>
+
+
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### Placement and front copper
+
+<div class="example-pair" data-example="copper"><div>
 
 <<< ./examples/coin-cell-led/pcb-routing.ts
 
 </div><figure>
 
-![Native KiCad front copper plot of the generated LED board](./public/examples/indicator-front.png)
+[![Placement and front copper](./public/examples/indicator-front.png)](/examples/indicator-front.png)
 
-<figcaption>Front copper and silkscreen from the same placement code, after native zone refill and DRC.</figcaption>
+<figcaption>The 50 × 44 mm PCB has explicit component placement, routed traces and a filled front ground zone.</figcaption>
+
 </figure></div>
+
+### Back copper
+
+<div class="example-pair" data-example="back"><div>
+
+<<< ./examples/coin-cell-led/pcb-routing.ts
+
+</div><figure>
+
+[![Back copper](./public/examples/indicator-back.png)](/examples/indicator-back.png)
+
+<figcaption>The mirrored back plot shows the filled ground zone on the same saved board.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
 
 ## Geometry options
 
@@ -220,17 +246,21 @@ Each file is tied to a board name and schema version:
 {
   "version": 1,
   "board": "MyBoard",
-  "routes": [{
-    "id": "status",
-    "net": "STATUS",
-    "segments": [{
-      "id": "to-led",
-      "start": { "ref": "R1", "pad": "2" },
-      "end": { "ref": "D1", "pad": "1" },
-      "layer": "F.Cu",
-      "width": 0.25
-    }]
-  }]
+  "routes": [
+    {
+      "id": "status",
+      "net": "STATUS",
+      "segments": [
+        {
+          "id": "to-led",
+          "start": { "ref": "R1", "pad": "2" },
+          "end": { "ref": "D1", "pad": "1" },
+          "layer": "F.Cu",
+          "width": 0.25
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -269,62 +299,91 @@ translates, rotates, and mirrors with its PCB origin; copper layers flip when
 placed on the back. Existing `Composable` placement semantics remain available.
 
 ```typescript
-import {
-  Component, Net, RoutedComposable, ModuleRouting,
-} from "@tobisk/pcbs";
+import { Component, Net, RoutedComposable, ModuleRouting } from '@tobisk/pcbs';
 
-class Divider extends RoutedComposable<"IN" | "OUT" | "GND"> {
-  private top!: Component;
-  private bottom!: Component;
+class Divider extends RoutedComposable<'IN' | 'OUT' | 'GND'> {
+    private top!: Component;
+    private bottom!: Component;
 
-  protected defineInterface() {
-    this.top = new Component({
-      ref: `${this.ref}R1`, symbol: "Device:R",
-      footprint: "Resistor_SMD:R_0603_1608Metric", value: "10k",
-      pcbPosition: { x: 4, y: 4 },
-    });
-    this.bottom = new Component({
-      ref: `${this.ref}R2`, symbol: "Device:R",
-      footprint: "Resistor_SMD:R_0603_1608Metric", value: "10k",
-      pcbPosition: { x: 4, y: 10 },
-    });
-    this.top.pins[2].tie(this.bottom.pins[1]);
-    return {
-      IN: this.top.pins[1], OUT: this.top.pins[2], GND: this.bottom.pins[2],
-    };
-  }
+    protected defineInterface() {
+        this.top = new Component({
+            ref: `${this.ref}R1`,
+            symbol: 'Device:R',
+            footprint: 'Resistor_SMD:R_0603_1608Metric',
+            value: '10k',
+            pcbPosition: { x: 4, y: 4 },
+        });
+        this.bottom = new Component({
+            ref: `${this.ref}R2`,
+            symbol: 'Device:R',
+            footprint: 'Resistor_SMD:R_0603_1608Metric',
+            value: '10k',
+            pcbPosition: { x: 4, y: 10 },
+        });
+        this.top.pins[2].tie(this.bottom.pins[1]);
+        return {
+            IN: this.top.pins[1],
+            OUT: this.top.pins[2],
+            GND: this.bottom.pins[2],
+        };
+    }
 
-  protected defineRouting(): ModuleRouting<"IN" | "OUT" | "GND"> {
-    return {
-      routes: [{
-        id: "input", net: this.top.pins[1],
-        segments: [{ start: { ref: this.top.ref, pad: "1" },
-          end: { x: 0, y: 4 }, layer: "F.Cu" }],
-      }, {
-        id: "divider-output", net: this.top.pins[2],
-        segments: [{ start: { ref: this.top.ref, pad: "2" },
-          end: { ref: this.bottom.ref, pad: "1" }, layer: "F.Cu" },
-          { start: { ref: this.top.ref, pad: "2" },
-            end: { x: 8, y: 7 }, layer: "F.Cu" }],
-      }, {
-        id: "ground", net: this.bottom.pins[2],
-        segments: [{ start: { ref: this.bottom.ref, pad: "2" },
-          end: { x: 0, y: 10 }, layer: "F.Cu" }],
-      }],
-      handoffs: {
-        IN: { at: { x: 0, y: 4 }, layer: "F.Cu" },
-        OUT: { at: { x: 8, y: 7 }, layer: "F.Cu" },
-        GND: { at: { x: 0, y: 10 }, layer: "F.Cu" },
-      },
-    };
-  }
+    protected defineRouting(): ModuleRouting<'IN' | 'OUT' | 'GND'> {
+        return {
+            routes: [
+                {
+                    id: 'input',
+                    net: this.top.pins[1],
+                    segments: [
+                        {
+                            start: { ref: this.top.ref, pad: '1' },
+                            end: { x: 0, y: 4 },
+                            layer: 'F.Cu',
+                        },
+                    ],
+                },
+                {
+                    id: 'divider-output',
+                    net: this.top.pins[2],
+                    segments: [
+                        {
+                            start: { ref: this.top.ref, pad: '2' },
+                            end: { ref: this.bottom.ref, pad: '1' },
+                            layer: 'F.Cu',
+                        },
+                        {
+                            start: { ref: this.top.ref, pad: '2' },
+                            end: { x: 8, y: 7 },
+                            layer: 'F.Cu',
+                        },
+                    ],
+                },
+                {
+                    id: 'ground',
+                    net: this.bottom.pins[2],
+                    segments: [
+                        {
+                            start: { ref: this.bottom.ref, pad: '2' },
+                            end: { x: 0, y: 10 },
+                            layer: 'F.Cu',
+                        },
+                    ],
+                },
+            ],
+            handoffs: {
+                IN: { at: { x: 0, y: 4 }, layer: 'F.Cu' },
+                OUT: { at: { x: 8, y: 7 }, layer: 'F.Cu' },
+                GND: { at: { x: 0, y: 10 }, layer: 'F.Cu' },
+            },
+        };
+    }
 }
 
 // Inside Schematic.generate():
-const divider = new Divider({ ref: "DIV1", pcbPosition: { x: 30, y: 20, rotation: 90 } });
-new Net({ name: "INPUT" }).tie(divider.pins.IN);
-new Net({ name: "ADC_INPUT" }).tie(divider.pins.OUT);
-new Net({ name: "GND" }).tie(divider.pins.GND);
+const divider = new Divider({ ref: 'DIV1', pcbPosition: { x: 30, y: 20, rotation: 90 } });
+new Net({ name: 'INPUT' }).tie(divider.pins.IN);
+new Net({ name: 'ADC_INPUT' }).tie(divider.pins.OUT);
+new Net({ name: 'GND' }).tie(divider.pins.GND);
 ```
 
 An external exact route can start or end at

@@ -4,28 +4,45 @@
 millimetre, Z-up scene. It does not merge circuits, generate a manufacturing
 panel, synthesize schematics or change source PCB files.
 
-```ts
-import { Assembly, Kicad3DModel } from '@tobisk/pcbs';
 
-const assembly = new Assembly({ name: 'Controller in enclosure' });
-assembly.addBoard({
-    id: 'controller',
-    file: '../controller/Controller.ts',
-    origin: [0, 0],
-    position: [10, 20, 8],
-});
-assembly.addModel({ id: 'enclosure', file: './enclosure.3mf' });
-assembly.addGenerated({
-    id: 'bracket',
-    position: [20, 20, 0],
-    model: async () => {
-        const model = await new Kicad3DModel().init();
-        model.box({ x: 20, y: 10, z: 3 });
-        return model;
-    },
-});
-export default assembly;
-```
+
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### Board and mechanical assembly
+
+<div class="example-pair" data-example="assembly"><div>
+
+<<< ./examples/mechanical/assembly.ts#parts
+
+</div><figure>
+
+[![Board and mechanical assembly](./public/examples/assembly-isometric.png)](/examples/assembly-isometric.png)
+
+<figcaption>The saved board sits above a generated tray in the framework assembly viewer. This is a mechanical preview.</figcaption>
+
+</figure></div>
+
+### Named assembly views
+
+<div class="example-pair" data-example="cameras"><div>
+
+<<< ./examples/mechanical/assembly.ts
+
+</div><figure>
+
+[![Named assembly views](./public/examples/assembly-top.png)](/examples/assembly-top.png)
+
+<figcaption>An orthographic top camera shows the board relative to the tray. The tray-only camera selects visibleParts.</figcaption>
+
+[![Tray-only assembly view](./public/examples/assembly-tray.png)](/examples/assembly-tray.png)
+
+<figcaption>The same assembly with only the tray visible.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
 
 Run from the consumer project:
 
@@ -56,6 +73,9 @@ For preparation without a viewer, use
 `--prepare-only --output ./review`. This creates a fresh session subdirectory
 containing `assembly.json` and exported/copied assets, preserving prior output.
 
+
+
+
 ## Board sources
 
 `addBoard` accepts an existing `.kicad_pcb`, a `.kicad_sch` with a sibling PCB,
@@ -84,14 +104,14 @@ assembly entry. Imported local source dependencies are tracked automatically.
 
 File paths are relative to the assembly entry. Defaults:
 
-| Format | Units | Up axis |
-| --- | --- | --- |
-| WRL | KiCad tenths of an inch (2.54 mm) | Z |
-| STL / OBJ | mm | Z |
-| GLTF / GLB | metres | Y |
-| 3MF | archive's declared units, converted to mm | Z |
-| Generated framework WRL | KiCad tenths of an inch | Z |
-| Native PCB export | mm | Z |
+| Format                  | Units                                     | Up axis |
+| ----------------------- | ----------------------------------------- | ------- |
+| WRL                     | KiCad tenths of an inch (2.54 mm)         | Z       |
+| STL / OBJ               | mm                                        | Z       |
+| GLTF / GLB              | metres                                    | Y       |
+| 3MF                     | archive's declared units, converted to mm | Z       |
+| Generated framework WRL | KiCad tenths of an inch                   | Z       |
+| Native PCB export       | mm                                        | Z       |
 
 Override file model units with `unit: 'mm' | 'm' | 'tenths'` and axis with
 `upAxis: 'y' | 'z'`. This keeps placement and measurements in millimetres.
@@ -147,7 +167,12 @@ cutout JSON. They do not modify the source PCBs.
 assembly.addFrontPanel({
     id: 'controls-panel',
     sources: ['controller', { part: 'buttons', references: ['SW1', 'SW2'] }],
-    outline: [[0, 0], [200, 0], [200, 100], [0, 100]],
+    outline: [
+        [0, 0],
+        [200, 0],
+        [200, 100],
+        [0, 100],
+    ],
     position: [0, 0, 20],
     rotation: [15, 0, 0],
     offset: 5,
@@ -173,12 +198,18 @@ Define reproducible cameras in the Assembly constructor:
 ```ts
 const assembly = new Assembly({
     name: 'Controller',
-    views: [{
-        id: 'top', name: 'Top', projection: 'orthographic',
-        position: [100, 50, 1000], target: [100, 50, 0],
-        up: [0, 1, 0], span: 180,
-        visibleParts: ['controller', 'controls-panel'],
-    }],
+    views: [
+        {
+            id: 'top',
+            name: 'Top',
+            projection: 'orthographic',
+            position: [100, 50, 1000],
+            target: [100, 50, 0],
+            up: [0, 1, 0],
+            span: 180,
+            visibleParts: ['controller', 'controls-panel'],
+        },
+    ],
 });
 ```
 
@@ -214,10 +245,29 @@ ID to any part (including another group) to make its placement relative:
 assembly.addGroup({ id: 'controls', position: [0, 0, 100], rotation: [7, 0, 0] });
 assembly.addBoard({ id: 'wing', group: 'controls', file: './wing.kicad_pcb' });
 assembly.addFrontPanel({
-    id: 'plate', group: 'controls', sources: ['wing'], offset: 8, thickness: 2,
-    outline: [[0, 0], [300, 0], [300, 200], [0, 200]],
-    folds: [{ name: 'Rear return', insideRadius: 2,
-        path: [[200, 9], [203, 9], [203, -30], [180, -30]] }],
+    id: 'plate',
+    group: 'controls',
+    sources: ['wing'],
+    offset: 8,
+    thickness: 2,
+    outline: [
+        [0, 0],
+        [300, 0],
+        [300, 200],
+        [0, 200],
+    ],
+    folds: [
+        {
+            name: 'Rear return',
+            insideRadius: 2,
+            path: [
+                [200, 9],
+                [203, 9],
+                [203, -30],
+                [180, -30],
+            ],
+        },
+    ],
 });
 ```
 

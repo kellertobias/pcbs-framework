@@ -1,0 +1,457 @@
+[
+  {
+    "id": "circuit",
+    "title": "Circuit connections",
+    "source": "coin-cell-led/Indicator.ts",
+    "region": "circuit",
+    "images": [
+      {
+        "file": "indicator-schematic.png",
+        "alt": "Circuit connections",
+        "caption": "The battery, resistor and LED are connected in TypeScript and plotted from the generated native KiCad schematic."
+      }
+    ],
+    "description": "The battery, resistor and LED are connected in TypeScript and plotted from the generated native KiCad schematic.",
+    "guides": ["Schematic", "Component", "QuickStart"]
+  },
+  {
+    "id": "drawing",
+    "title": "Schematic placement",
+    "source": "coin-cell-led/schematic-routing.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "indicator-schematic.png",
+        "alt": "Schematic placement",
+        "caption": "The same circuit with explicit symbol positions, upright ground symbols and custom LED fields."
+      }
+    ],
+    "description": "The same circuit with explicit symbol positions, upright ground symbols and custom LED fields.",
+    "guides": ["SchematicReadability"]
+  },
+  {
+    "id": "labels",
+    "title": "Named net labels",
+    "source": "circuits/variants.ts",
+    "region": "labels",
+    "images": [
+      {
+        "file": "schematic-labels.png",
+        "alt": "Named net labels",
+        "caption": "Direct labels show the same electrical connections without routed wires. Native KiCad netlist export checks the pin connections."
+      }
+    ],
+    "description": "Direct labels show the same electrical connections without routed wires. Native KiCad netlist export checks the pin connections.",
+    "guides": ["Net"]
+  },
+  {
+    "id": "groups",
+    "title": "Functional groups",
+    "source": "circuits/GroupedIndicator.ts",
+    "region": "groups",
+    "images": [
+      {
+        "file": "schematic-groups.png",
+        "alt": "Functional groups",
+        "caption": "Decorated methods create the BATTERY and INDICATOR groups. The framework places their symbols and routes each group."
+      }
+    ],
+    "description": "Decorated methods create the BATTERY and INDICATOR groups. The framework places their symbols and routes each group.",
+    "guides": ["Decorators"]
+  },
+  {
+    "id": "automatic",
+    "title": "Automatic grid placement",
+    "source": "circuits/variants.ts",
+    "region": "automatic",
+    "images": [
+      {
+        "file": "schematic-grid.png",
+        "alt": "Automatic grid placement",
+        "caption": "The grid algorithm arranges the same two groups without authored symbol coordinates."
+      }
+    ],
+    "description": "The grid algorithm arranges the same two groups without authored symbol coordinates.",
+    "guides": ["AutomaticSchematicLayout"]
+  },
+  {
+    "id": "pages",
+    "title": "Native schematic pages",
+    "source": "circuits/variants.ts",
+    "region": "pages",
+    "images": [
+      {
+        "file": "schematic-pages.png",
+        "alt": "Native schematic pages",
+        "caption": "The overview links two native child sheets. Both child drawings keep the source circuit connections."
+      },
+      {
+        "file": "schematic-pages-BATTERY.png",
+        "alt": "Battery child sheet",
+        "caption": "Native BATTERY child sheet."
+      },
+      {
+        "file": "schematic-pages-INDICATOR.png",
+        "alt": "Indicator child sheet",
+        "caption": "Native INDICATOR child sheet."
+      }
+    ],
+    "description": "The overview links two native child sheets. Both child drawings keep the source circuit connections.",
+    "guides": ["AutomaticSchematicLayout"]
+  },
+  {
+    "id": "divider",
+    "title": "A reusable divider",
+    "source": "circuits/Divider.ts",
+    "region": "block",
+    "images": [
+      {
+        "file": "schematic-divider.png",
+        "alt": "A reusable divider",
+        "caption": "A Composable exposes supply, midpoint and ground pins. The complete example connects it to a local battery."
+      }
+    ],
+    "description": "A Composable exposes supply, midpoint and ground pins. The complete example connects it to a local battery.",
+    "guides": ["Composable"]
+  },
+  {
+    "id": "divider-nets",
+    "title": "Connecting a circuit block",
+    "source": "circuits/Divider.ts",
+    "region": "connections",
+    "images": [
+      {
+        "file": "schematic-divider.png",
+        "alt": "Connecting a circuit block",
+        "caption": "Two 10k resistors form a divider across the battery; MIDPOINT names their shared connection."
+      }
+    ],
+    "description": "Two 10k resistors form a divider across the battery; MIDPOINT names their shared connection.",
+    "guides": ["Net"]
+  },
+  {
+    "id": "copper",
+    "title": "Placement and front copper",
+    "source": "coin-cell-led/pcb-routing.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "indicator-front.png",
+        "alt": "Placement and front copper",
+        "caption": "The 50 \u00d7 44 mm PCB has explicit component placement, routed traces and a filled front ground zone."
+      }
+    ],
+    "description": "The 50 \u00d7 44 mm PCB has explicit component placement, routed traces and a filled front ground zone.",
+    "guides": ["PCB"]
+  },
+  {
+    "id": "back",
+    "title": "Back copper",
+    "source": "coin-cell-led/pcb-routing.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "indicator-back.png",
+        "alt": "Back copper",
+        "caption": "The mirrored back plot shows the filled ground zone on the same saved board."
+      }
+    ],
+    "description": "The mirrored back plot shows the filled ground zone on the same saved board.",
+    "guides": ["PCB"]
+  },
+  {
+    "id": "routing",
+    "title": "Routing without copper pours",
+    "source": "boards/variants.ts",
+    "region": "no-pour",
+    "images": [
+      {
+        "file": "board-no-pour.png",
+        "alt": "Routing without copper pours",
+        "caption": "The same placement with ground zones disabled exposes the autorouted traces."
+      }
+    ],
+    "description": "The same placement with ground zones disabled exposes the autorouted traces.",
+    "guides": ["Autorouting"]
+  },
+  {
+    "id": "repeated",
+    "title": "Repeated source boards",
+    "source": "boards/variants.ts",
+    "region": "repeat",
+    "images": [
+      {
+        "file": "board-composition.png",
+        "alt": "Repeated source boards",
+        "caption": "Two instances of the source board keep independent, namespaced nets and component references."
+      }
+    ],
+    "description": "Two instances of the source board keep independent, namespaced nets and component references.",
+    "guides": ["BoardComposition"]
+  },
+  {
+    "id": "production",
+    "title": "A project panel",
+    "source": "boards/Production.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "board-production.png",
+        "alt": "A project panel",
+        "caption": "A PcbPanel copies the saved source board twice and adds a fiducial. This example does not add breakaway tabs or rails."
+      }
+    ],
+    "description": "A PcbPanel copies the saved source board twice and adds a fiducial. This example does not add breakaway tabs or rails.",
+    "guides": ["ProjectsAndPanels"]
+  },
+  {
+    "id": "board3d",
+    "title": "Populated board rendering",
+    "source": "coin-cell-led/renders.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "indicator-3d.png",
+        "alt": "Populated board rendering",
+        "caption": "Native KiCad renders the saved board with its coin-cell holder, resistor and LED models."
+      }
+    ],
+    "description": "Native KiCad renders the saved board with its coin-cell holder, resistor and LED models.",
+    "guides": ["Rendering"]
+  },
+  {
+    "id": "symbol",
+    "title": "A custom symbol",
+    "source": "library/symbol.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "symbol.png",
+        "alt": "A custom symbol",
+        "caption": "A generated native KiCad symbol with a rectangular body and two numbered passive pins."
+      }
+    ],
+    "description": "A generated native KiCad symbol with a rectangular body and two numbered passive pins.",
+    "guides": ["KicadSymbol"]
+  },
+  {
+    "id": "module",
+    "title": "A reusable physical part",
+    "source": "library/TeachingResistor.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "symbol.png",
+        "alt": "A reusable physical part",
+        "caption": "The module maps descriptive pins to physical pad numbers and supplies the symbol and footprint factories."
+      },
+      {
+        "file": "footprint.png",
+        "alt": "Footprint supplied by the teaching module",
+        "caption": "The matching two-pad footprint returned by makeFootprint()."
+      }
+    ],
+    "description": "The module maps descriptive pins to physical pad numbers and supplies the symbol and footprint factories.",
+    "guides": ["Module"]
+  },
+  {
+    "id": "smd",
+    "title": "Rounded SMD pads",
+    "source": "library/footprint.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "footprint.png",
+        "alt": "Rounded SMD pads",
+        "caption": "Native KiCad plot of the two rounded pads and their silkscreen outline."
+      }
+    ],
+    "description": "Native KiCad plot of the two rounded pads and their silkscreen outline.",
+    "guides": ["KicadFootprint"]
+  },
+  {
+    "id": "through-hole",
+    "title": "Through-hole pads",
+    "source": "library/pad-variants.ts",
+    "region": "through-hole",
+    "images": [
+      {
+        "file": "footprint-through-hole.png",
+        "alt": "Through-hole pads",
+        "caption": "Pad 1 is rectangular; pad 2 is round. Both have 1 mm drills."
+      }
+    ],
+    "description": "Pad 1 is rectangular; pad 2 is round. Both have 1 mm drills.",
+    "guides": ["KicadFootprint"]
+  },
+  {
+    "id": "slot",
+    "title": "An oval drilled pad",
+    "source": "library/pad-variants.ts",
+    "region": "slot",
+    "images": [
+      {
+        "file": "footprint-slot.png",
+        "alt": "An oval drilled pad",
+        "caption": "A 5 \u00d7 3 mm oval copper pad surrounds a 3 \u00d7 1 mm oval drill."
+      }
+    ],
+    "description": "A 5 \u00d7 3 mm oval copper pad surrounds a 3 \u00d7 1 mm oval drill.",
+    "guides": ["KicadFootprint"]
+  },
+  {
+    "id": "solid",
+    "title": "A solid plate",
+    "source": "mechanical/model-steps.ts",
+    "region": "box",
+    "images": [
+      {
+        "file": "model-solid.png",
+        "alt": "A solid plate",
+        "caption": "A 30 \u00d7 22 \u00d7 3 mm box exported as actual WRL geometry and rendered by the framework."
+      }
+    ],
+    "description": "A 30 \u00d7 22 \u00d7 3 mm box exported as actual WRL geometry and rendered by the framework.",
+    "guides": ["Kicad3DModel"]
+  },
+  {
+    "id": "cylinder",
+    "title": "A cylindrical solid",
+    "source": "mechanical/model-steps.ts",
+    "region": "cylinder",
+    "images": [
+      {
+        "file": "model-cylinder.png",
+        "alt": "A cylindrical solid",
+        "caption": "A cylinder with radius 8 mm and height 12 mm."
+      }
+    ],
+    "description": "A cylinder with radius 8 mm and height 12 mm.",
+    "guides": ["Kicad3DModel"]
+  },
+  {
+    "id": "boolean",
+    "title": "A Boolean cut",
+    "source": "mechanical/model-steps.ts",
+    "region": "boolean",
+    "images": [
+      {
+        "file": "model-bored.png",
+        "alt": "A Boolean cut",
+        "caption": "Subtracting a cylinder creates the central through opening."
+      }
+    ],
+    "description": "Subtracting a cylinder creates the central through opening.",
+    "guides": ["Kicad3DModel"]
+  },
+  {
+    "id": "model",
+    "title": "A mounting plate",
+    "source": "library/model.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "model-isometric.png",
+        "alt": "A mounting plate",
+        "caption": "The completed plate adds four mounting holes and exports to WRL, STL and 3MF."
+      },
+      {
+        "file": "model-top.png",
+        "alt": "Mounting plate viewed from above",
+        "caption": "Top view of the same exported model."
+      }
+    ],
+    "description": "The completed plate adds four mounting holes and exports to WRL, STL and 3MF.",
+    "guides": ["Kicad3DModel"]
+  },
+  {
+    "id": "front-panel",
+    "title": "A front-panel drawing",
+    "source": "mechanical/front-panel.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "front-panel.png",
+        "alt": "A front-panel drawing",
+        "caption": "A mechanical interface fixture supplies three face openings and a label anchor. The named panel exports its outline, cutouts and label to SVG and DXF."
+      }
+    ],
+    "description": "A mechanical interface fixture supplies three face openings and a label anchor. The named panel exports its outline, cutouts and label to SVG and DXF.",
+    "guides": ["FrontPanel"]
+  },
+  {
+    "id": "assembly",
+    "title": "Board and mechanical assembly",
+    "source": "mechanical/assembly.ts",
+    "region": "parts",
+    "images": [
+      {
+        "file": "assembly-isometric.png",
+        "alt": "Board and mechanical assembly",
+        "caption": "The saved board sits above a generated tray in the framework assembly viewer. This is a mechanical preview."
+      }
+    ],
+    "description": "The saved board sits above a generated tray in the framework assembly viewer. This is a mechanical preview.",
+    "guides": ["Assembly"]
+  },
+  {
+    "id": "cameras",
+    "title": "Named assembly views",
+    "source": "mechanical/assembly.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "assembly-top.png",
+        "alt": "Named assembly views",
+        "caption": "An orthographic top camera shows the board relative to the tray. The tray-only camera selects visibleParts."
+      },
+      {
+        "file": "assembly-tray.png",
+        "alt": "Tray-only assembly view",
+        "caption": "The same assembly with only the tray visible."
+      }
+    ],
+    "description": "An orthographic top camera shows the board relative to the tray. The tray-only camera selects visibleParts.",
+    "guides": ["Assembly"]
+  },
+  {
+    "id": "datasheet",
+    "title": "A generated datasheet",
+    "source": "library/datasheet.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "datasheet-1.png",
+        "alt": "A generated datasheet",
+        "caption": "The PDF contains source-supplied metadata, footprint drawings and pad-centre tables."
+      },
+      {
+        "file": "datasheet-2.png",
+        "alt": "Pad-centre table in generated PDF",
+        "caption": "A second page from the same generated PDF."
+      },
+      {
+        "file": "datasheet-3.png",
+        "alt": "Through-hole footprint in generated PDF",
+        "caption": "A third page from the same generated PDF."
+      }
+    ],
+    "description": "The PDF contains source-supplied metadata, footprint drawings and pad-centre tables.",
+    "guides": ["Datasheets"]
+  },
+  {
+    "id": "cost",
+    "title": "Quantity price selection",
+    "source": "library/cost.ts",
+    "region": null,
+    "images": [
+      {
+        "file": "cost-1.png",
+        "alt": "Quantity price selection",
+        "caption": "The generated PDF shows how the price-tier helper selects illustrative unit prices. These are example inputs, not supplier quotes."
+      }
+    ],
+    "description": "The generated PDF shows how the price-tier helper selects illustrative unit prices. These are example inputs, not supplier quotes.",
+    "guides": ["ComponentCost"]
+  }
+]

@@ -2,33 +2,26 @@
 
 The `KicadSymbol` class allows you to programmatically define KiCad schematic symbols (`.kicad_sym`).
 
-## Usage
+## Generated examples
 
-```typescript
-import { KicadSymbol } from "@tobisk/pcbs";
+<!-- generated-examples:start -->
 
-const sym = new KicadSymbol({
-  name: "My_Custom_Symbol",
-  reference: "U",
-  footprint: "Project_Footprints:My_Custom_Symbol"
-});
+### A custom symbol
 
-// Add graphics
-sym.addRect({ x1: -5.08, y1: 5.08, x2: 5.08, y2: -5.08 });
+<div class="example-pair" data-example="symbol"><div>
 
-// Add pins
-sym.addPin({
-  name: "VCC",
-  number: "1",
-  x: 0,
-  y: 7.62,
-  side: "top",
-  type: "power_in"
-});
+<<< ./examples/library/symbol.ts
 
-// Serialize to string
-const content = sym.serialize();
-```
+</div><figure>
+
+[![A custom symbol](./public/examples/symbol.png)](/examples/symbol.png)
+
+<figcaption>A generated native KiCad symbol with a rectangular body and two numbered passive pins.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
 
 ## Constructor
 
@@ -49,32 +42,32 @@ new KicadSymbol(options: {
 Adds a pin to the symbol.
 
 **Options:**
-*   `name`: Pin name (e.g., "VCC").
-*   `number`: Pin number (e.g., "1").
-*   `x`, `y`: Position coordinates (mm).
-*   `side`: `"left" | "right" | "top" | "bottom"`.
-*   `type`: `"input" | "output" | "power_in" | "power_out" | "bidirectional" | "passive" | "unconnected"`.
-*   `style`: `"line" | "inverted" | "clock" | "inverted_clock"` (optional).
-*   `length`: Pin length (optional, defaults to 2.54mm).
+-   `name`: Pin name (e.g., "VCC").
+-   `number`: Pin number (e.g., "1").
+-   `x`, `y`: Position coordinates (mm).
+-   `side`: `"left" | "right" | "top" | "bottom"`.
+-   `type`: `"input" | "output" | "power_in" | "power_out" | "bidirectional" | "passive" | "unconnected"`.
+-   `style`: `"line" | "inverted" | "clock" | "inverted_clock"` (optional).
+-   `length`: Pin length (optional, defaults to 2.54mm).
 
 ### `addRect(options)`
 
 Adds a rectangle to the symbol's graphics.
 
 **Options:**
-*   `x1`, `y1`: Top-left corner.
-*   `x2`, `y2`: Bottom-right corner.
-*   `fill`: `"none" | "background"` (optional).
-*   `strokeWidth`: Line width (optional).
+-   `x1`, `y1`: Top-left corner.
+-   `x2`, `y2`: Bottom-right corner.
+-   `fill`: `"none" | "background"` (optional).
+-   `strokeWidth`: Line width (optional).
 
 ### `addText(options)`
 
 Adds text to the symbol's graphics.
 
 **Options:**
-*   `text`: The string to display.
-*   `x`, `y`: Position.
-*   `fontSize`: Font size (default: 1.27mm).
+-   `text`: The string to display.
+-   `x`, `y`: Position.
+-   `fontSize`: Font size (default: 1.27mm).
 
 ### `serialize()`
 

@@ -6,41 +6,72 @@ aside: false
 
 The `Kicad3DModel` class provides a fluent API for creating parametric 3D models using OpenCascade.js. It allows you to build complex shapes by combining simple primitives (box, sphere, cylinder) with boolean operations (union, subtract, intersect).
 
-## Model code and exported geometry
+## Generated examples
 
-This executable example is part of [code and generated results](Examples.md),
-which includes the complete source, reproduction commands and downloadable CAD files.
+<!-- generated-examples:start -->
 
-<div class="example-pair"><div>
+### A solid plate
+
+<div class="example-pair" data-example="solid"><div>
+
+<<< ./examples/mechanical/model-steps.ts#box
+
+</div><figure>
+
+[![A solid plate](./public/examples/model-solid.png)](/examples/model-solid.png)
+
+<figcaption>A 30 × 22 × 3 mm box exported as actual WRL geometry and rendered by the framework.</figcaption>
+
+</figure></div>
+
+### A cylindrical solid
+
+<div class="example-pair" data-example="cylinder"><div>
+
+<<< ./examples/mechanical/model-steps.ts#cylinder
+
+</div><figure>
+
+[![A cylindrical solid](./public/examples/model-cylinder.png)](/examples/model-cylinder.png)
+
+<figcaption>A cylinder with radius 8 mm and height 12 mm.</figcaption>
+
+</figure></div>
+
+### A Boolean cut
+
+<div class="example-pair" data-example="boolean"><div>
+
+<<< ./examples/mechanical/model-steps.ts#boolean
+
+</div><figure>
+
+[![A Boolean cut](./public/examples/model-bored.png)](/examples/model-bored.png)
+
+<figcaption>Subtracting a cylinder creates the central through opening.</figcaption>
+
+</figure></div>
+
+### A mounting plate
+
+<div class="example-pair" data-example="model"><div>
 
 <<< ./examples/library/model.ts
 
 </div><figure>
 
-![Framework rendering of the actual WRL export; STL and 3MF are included in the download.](./public/examples/model-isometric.png)
+[![A mounting plate](./public/examples/model-isometric.png)](/examples/model-isometric.png)
 
-<figcaption>Framework rendering of the actual WRL export; STL and 3MF are included in the download.</figcaption>
+<figcaption>The completed plate adds four mounting holes and exports to WRL, STL and 3MF.</figcaption>
+
+[![Mounting plate viewed from above](./public/examples/model-top.png)](/examples/model-top.png)
+
+<figcaption>Top view of the same exported model.</figcaption>
+
 </figure></div>
 
-## Usage
+<!-- generated-examples:end -->
 
-```typescript
-import { Kicad3DModel } from "@tobisk/pcbs";
-
-const model = new Kicad3DModel({ unit: "mm" });
-
-// Create a box
-const body = model.box({ x: 10, y: 15, z: 2, center: true })
-  .color("#1f4fa3"); // Blue
-
-// Create a cylinder
-const pin = model.cylinder({ r: 0.5, h: 4 })
-  .translate({ x: 0, y: 0, z: -2 })
-  .color("#ffd700"); // Gold
-
-// Combine them
-model.union(body, pin);
-```
 
 **Note:** You do not need to call `model.export()` manually in your module code. When you run `npx @tobisk/pcbs lib`, the framework automatically detects your `make3DModel()` method, generates VRML and any available STEP export, and links them to the footprint.
 
@@ -50,14 +81,14 @@ If you have an existing STEP or VRML file (e.g., downloaded from a manufacturer)
 
 ```typescript
 // Inside your Module's makeFootprint method:
-const fp = new KicadFootprint({ name: "MyModule" });
+const fp = new KicadFootprint({ name: 'MyModule' });
 // ... define pads ...
 
 // Link to a file relative to this source file
-fp.addExternal3DModel(__dirname, "./models/connector.step", {
-  scale: { x: 1, y: 1, z: 1 },
-  rotate: { x: 90, y: 0, z: 0 },
-  offset: { x: 0, y: 0, z: 0 }
+fp.addExternal3DModel(__dirname, './models/connector.step', {
+    scale: { x: 1, y: 1, z: 1 },
+    rotate: { x: 90, y: 0, z: 0 },
+    offset: { x: 0, y: 0, z: 0 },
 });
 ```
 
@@ -79,35 +110,35 @@ new Kicad3DModel(options: {
 Creates a box primitive.
 
 **Options:**
-*   `x`, `y`, `z`: Dimensions.
-*   `center`: Boolean (true: centered at origin, false: corner at origin).
+-   `x`, `y`, `z`: Dimensions.
+-   `center`: Boolean (true: centered at origin, false: corner at origin).
 
 ### `sphere(options)`
 
 Creates a sphere primitive.
 
 **Options:**
-*   `r`: Radius.
-*   `center`: Boolean (default true).
+-   `r`: Radius.
+-   `center`: Boolean (default true).
 
 ### `cylinder(options)`
 
 Creates a cylinder primitive.
 
 **Options:**
-*   `r`: Radius.
-*   `h`: Height.
-*   `center`: Boolean (default true).
+-   `r`: Radius.
+-   `h`: Height.
+-   `center`: Boolean (default true).
 
 ### `pipe(options)`
 
 Creates a pipe (hollow cylinder).
 
 **Options:**
-*   `r`: Outer radius.
-*   `wallThickness`: Thickness of the pipe wall.
-*   `h`: Height.
-*   `center`: Boolean.
+-   `r`: Outer radius.
+-   `wallThickness`: Thickness of the pipe wall.
+-   `h`: Height.
+-   `center`: Boolean.
 
 ### `union(a, b)`
 
@@ -126,9 +157,9 @@ Intersects solid `a` and solid `b`. Modifies `a` in place to be the common volum
 Exports the model to disk. Usually handled automatically by the CLI.
 
 **Options:**
-*   `outDir`: Output directory path.
-*   `baseName`: Base filename (without extension).
-*   `formats`: Array of formats (`"wrl"`, `"step"`, `"stl"`, `"3mf"`). STL uses millimetres directly and returns `stlPath`; it supports solid and supplied triangle geometry. Collapsed seam triangles are omitted from binary STL output.
+-   `outDir`: Output directory path.
+-   `baseName`: Base filename (without extension).
+-   `formats`: Array of formats (`"wrl"`, `"step"`, `"stl"`, `"3mf"`). STL uses millimetres directly and returns `stlPath`; it supports solid and supplied triangle geometry. Collapsed seam triangles are omitted from binary STL output.
 
 STEP export depends on the OpenCascade build. Check the returned `stepPath`
 and that the file exists before passing it to another tool; an unavailable STEP
@@ -158,8 +189,8 @@ Sets the color of the solid (e.g., `"#ff0000"`).
 ### `.fillet({ radius, edges? })`
 
 Applies a fillet (rounded edge) to the solid.
-*   `radius`: Fillet radius.
-*   `edges`: `"all"` (default) or an array of edge indices.
+-   `radius`: Fillet radius.
+-   `edges`: `"all"` (default) or an array of edge indices.
 
 ### `.name(string)`
 
@@ -183,7 +214,11 @@ indexed triangles in millimetres without re-tessellation:
 const model = new Kicad3DModel({ unit: 'mm' });
 model.mesh({
     name: 'measured_part',
-    vertices: [{ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { x: 0, y: 10, z: 0 }],
+    vertices: [
+        { x: 0, y: 0, z: 0 },
+        { x: 10, y: 0, z: 0 },
+        { x: 0, y: 10, z: 0 },
+    ],
     triangles: [[0, 1, 2]],
     color: { r: 0.5, g: 0.5, b: 0.5 },
 });

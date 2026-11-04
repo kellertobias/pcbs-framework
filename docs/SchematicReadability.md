@@ -22,6 +22,27 @@ not an ERC/DRC result or a guarantee of visual quality. Intentional wire
 crossings are allowed. Native KiCad export and pin-to-pin netlist checks remain
 necessary when changing routing.
 
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### Schematic placement
+
+<div class="example-pair" data-example="drawing"><div>
+
+<<< ./examples/coin-cell-led/schematic-routing.ts
+
+</div><figure>
+
+[![Schematic placement](./public/examples/indicator-schematic.png)](/examples/indicator-schematic.png)
+
+<figcaption>The same circuit with explicit symbol positions, upright ground symbols and custom LED fields.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
+
 ## Connected passive placement and compact fields
 
 Start by anchoring the functional blocks (ICs, interfaces, connectors). Use

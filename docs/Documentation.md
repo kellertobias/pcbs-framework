@@ -45,9 +45,11 @@ includes those files directly in code blocks; the displayed snippets and execute
 code therefore share one source. PNGs and a downloadable CAD archive are tracked
 under `docs/public/examples/`.
 
-With native KiCad 10 and its standard libraries installed, run:
+Install native KiCad 10 with its standard libraries, Chrome/Chromium and Poppler
+(`pdftoppm`). Build the bundled assembly viewer, then generate the examples:
 
 ```sh
+npm run build
 npm run docs:examples:check
 npm run docs:examples
 npm run docs:examples -- --check
@@ -56,12 +58,21 @@ npm run docs:examples -- --check
 Generation builds the circuit through the framework, compares native schematic
 pin connections with the source circuit, and runs native PCB DRC with filled
 zones. It then exports schematic/footprint SVGs, PCB layer plots, the native 3D
-board view and WRL model previews. Only empty page margins are cropped from native
-SVG plots. Review the resulting images before committing them.
+board view, WRL model previews, assembly views and PDF page previews. Only empty
+page margins are cropped from native SVG plots. Review the resulting images before
+committing them.
+
+`docs/examples/catalog.json` pairs each executable source or source region with
+its images and guide pages. Generation updates the marked example sections on
+the homepage, gallery and guides. Add a catalog entry for every new teaching
+example, then regenerate. Keep API signatures and option descriptions outside
+these generated sections. Images link to their full-resolution PNGs.
 
 The generation manifest records tool versions, DRC counts and hashes of the
 source, screenshots and download. The Documentation workflow type-checks the
 examples and rejects changed sources or assets that do not match the manifest.
+It also rejects missing images, missing source regions and removed or changed
+code/image pairs on the homepage, gallery or guides.
 That check needs no native KiCad installation. To refresh an image, regenerate
 the whole set and review it; do not edit the PNG or generated KiCad files by hand.
 

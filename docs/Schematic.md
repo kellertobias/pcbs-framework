@@ -6,45 +6,50 @@ aside: false
 
 The `Schematic` class is the core of your design. It represents a single PCB project and contains all the logic for wiring components together.
 
-## Circuit code and native schematic
+## Generated examples
 
-This executable example is part of [code and generated results](Examples.md),
-which includes the complete source, reproduction commands and downloadable CAD files.
+<!-- generated-examples:start -->
 
-<div class="example-pair"><div>
+### Circuit connections
+
+<div class="example-pair" data-example="circuit"><div>
 
 <<< ./examples/coin-cell-led/Indicator.ts#circuit
 
 </div><figure>
 
-![Native KiCad schematic exported from the generated Indicator.kicad_sch.](./public/examples/indicator-schematic.png)
+[![Circuit connections](./public/examples/indicator-schematic.png)](/examples/indicator-schematic.png)
 
-<figcaption>Native KiCad schematic exported from the generated Indicator.kicad_sch.</figcaption>
+<figcaption>The battery, resistor and LED are connected in TypeScript and plotted from the generated native KiCad schematic.</figcaption>
+
 </figure></div>
+
+<!-- generated-examples:end -->
+
 
 ## Usage
 
 Extend the `Schematic` class and implement the `generate()` method.
 
 ```typescript
-import { Schematic } from "@tobisk/pcbs";
+import { Schematic } from '@tobisk/pcbs';
 
 class MyBoard extends Schematic {
-  constructor() {
-    super({
-      name: "My_Board",
-      size: "A4",
-      author: "Your Name",
-      revision: "v1.0"
-    });
-  }
+    constructor() {
+        super({
+            name: 'My_Board',
+            size: 'A4',
+            author: 'Your Name',
+            revision: 'v1.0',
+        });
+    }
 
-  generate() {
-    // Define your circuit here
-    const vcc = new Net({ name: "VCC", class: "Power" });
-    const gnd = new Net({ name: "GND", class: "Power" });
-    // ...
-  }
+    generate() {
+        // Define your circuit here
+        const vcc = new Net({ name: 'VCC', class: 'Power' });
+        const gnd = new Net({ name: 'GND', class: 'Power' });
+        // ...
+    }
 }
 
 export default new MyBoard();
@@ -77,12 +82,12 @@ Used by the CLI to execute the `generate()` method while capturing all registere
 
 ## Properties
 
-*   `name`: The name of the project.
-*   `size`: Paper size.
-*   `author`: Author name.
-*   `company`: Company name.
-*   `revision`: Revision string.
-*   `description`: Description string.
+-   `name`: The name of the project.
+-   `size`: Paper size.
+-   `author`: Author name.
+-   `company`: Company name.
+-   `revision`: Revision string.
+-   `description`: Description string.
 
 ## Automatic wire routing
 

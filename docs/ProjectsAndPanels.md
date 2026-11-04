@@ -35,6 +35,27 @@ Legacy schematic entry paths/names continue to work. Named project schematics
 and panels appear in the existing interactive selector. Assembly commands resolve
 project assembly keys separately.
 
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### A project panel
+
+<div class="example-pair" data-example="production"><div>
+
+<<< ./examples/boards/Production.ts
+
+</div><figure>
+
+[![A project panel](./public/examples/board-production.png)](/examples/board-production.png)
+
+<figcaption>A PcbPanel copies the saved source board twice and adds a fiducial. This example does not add breakaway tabs or rails.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
+
 ## Panel source
 
 A panel is a dedicated `PcbPanel`, not a `Schematic` subclass. It has an owning
@@ -45,18 +66,20 @@ import path from 'node:path';
 import { PcbPanel, PcbProject } from '@tobisk/pcbs';
 
 export default new PcbPanel({
-  name: 'Production',
-  project: new PcbProject(path.resolve(__dirname, '../..')),
-  pcb: {
-    outline: [
-      { x: 0, y: 0 }, { x: 100, y: 0 },
-      { x: 100, y: 100 }, { x: 0, y: 100 },
+    name: 'Production',
+    project: new PcbProject(path.resolve(__dirname, '../..')),
+    pcb: {
+        outline: [
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+            { x: 100, y: 100 },
+            { x: 0, y: 100 },
+        ],
+    },
+    boards: [
+        { id: 'left', schematic: 'keys', x: 5, y: 5 },
+        { id: 'right', schematic: 'keys', x: 70, y: 30, rotation: 90 },
     ],
-  },
-  boards: [
-    { id: 'left', schematic: 'keys', x: 5, y: 5 },
-    { id: 'right', schematic: 'keys', x: 70, y: 30, rotation: 90 },
-  ],
 });
 ```
 

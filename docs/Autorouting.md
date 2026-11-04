@@ -11,6 +11,27 @@ The dependencies are pinned. An isolated Node worker loads their ESM/WASM code;
 no routing request is sent to a cloud service. Worker execution has a time and
 step limit, and failure is reported rather than producing a straight-line fallback.
 
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### Routing without copper pours
+
+<div class="example-pair" data-example="routing"><div>
+
+<<< ./examples/boards/variants.ts#no-pour
+
+</div><figure>
+
+[![Routing without copper pours](./public/examples/board-no-pour.png)](/examples/board-no-pour.png)
+
+<figcaption>The same placement with ground zones disabled exposes the autorouted traces.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
+
 ## PCB
 
 ```bash

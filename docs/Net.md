@@ -1,18 +1,42 @@
 # Net
 
-The `Net` class represents an electrical connection (wire) in your schematic.
+The `Net` class represents an electrical connection in your schematic. The
+examples below use a local battery and a two-resistor divider.
 
-## Usage
+## Generated examples
 
-```typescript
-import { Net } from "@tobisk/pcbs";
+<!-- generated-examples:start -->
 
-const vcc = new Net({ name: "+5V", class: "Power" });
+### Named net labels
 
-// Tie pins to net
-vcc.tie(u1.pins[1]);
-vcc.tie(r1.pins.VCC);
-```
+<div class="example-pair" data-example="labels"><div>
+
+<<< ./examples/circuits/variants.ts#labels
+
+</div><figure>
+
+[![Named net labels](./public/examples/schematic-labels.png)](/examples/schematic-labels.png)
+
+<figcaption>Direct labels show the same electrical connections without routed wires. Native KiCad netlist export checks the pin connections.</figcaption>
+
+</figure></div>
+
+### Connecting a circuit block
+
+<div class="example-pair" data-example="divider-nets"><div>
+
+<<< ./examples/circuits/Divider.ts#connections
+
+</div><figure>
+
+[![Connecting a circuit block](./public/examples/schematic-divider.png)](/examples/schematic-divider.png)
+
+<figcaption>Two 10k resistors form a divider across the battery; MIDPOINT names their shared connection.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
 
 ## Constructor
 
@@ -30,12 +54,12 @@ new Net(options: {
 Connects a `Pin` or another `Net` to this net.
 
 **Behavior:**
-*   If passed a `Pin`: Adds the pin to this net's connections.
-*   If passed a `Net`: Merges the two nets. All pins connected to the other net are transferred to this one.
+-   If passed a `Pin`: Adds the pin to this net's connections.
+-   If passed a `Net`: Merges the two nets. All pins connected to the other net are transferred to this one.
 
 **Checks:**
-*   Throws error if merging incompatible DNC (Do Not Connect) nets.
-*   Throws error if connecting a DNC pin to a functional net with other functional connections.
+-   Throws error if merging incompatible DNC (Do Not Connect) nets.
+-   Throws error if connecting a DNC pin to a functional net with other functional connections.
 
 ### `pins` (Getter)
 

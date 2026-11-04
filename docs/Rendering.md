@@ -6,38 +6,31 @@ Rendering reads existing generated boards; it does not synthesize, route or fill
 zones. Generate and verify the boards first. KiCad must be installed; `KICAD_CLI`
 can select its executable.
 
-The [executable LED-board example](Examples.md#saved-board-to-3d-view) pairs
-a render-series definition with the following native KiCad result:
 
-![Native KiCad 3D render of the generated coin-cell LED board](./public/examples/indicator-3d.png)
 
-```typescript
-import { defineRenderSeries } from '@tobisk/pcbs';
+## Generated examples
 
-export default defineRenderSeries({
-    board: './Controller.kicad_pcb',
-    outputDirectory: './review',
-    renders: [
-        { name: 'model', kind: 'model', origin: [53, 8.5] },
-        {
-            name: 'bottom-copper', kind: 'layers', side: 'bottom',
-            layers: ['B.Cu', 'B.SilkS', 'Edge.Cuts'],
-        },
-        {
-            name: 'oblique', kind: '3d', side: 'bottom',
-            rotate: [-35, 0, 25], zoom: 0.55,
-        },
-        {
-            name: 'panel', kind: '3d', board: '../panel/Panel.kicad_pcb',
-            side: 'top', rotate: [0, 0, 0],
-        },
-    ],
-});
-```
+<!-- generated-examples:start -->
+
+### Populated board rendering
+
+<div class="example-pair" data-example="board3d"><div>
+
+<<< ./examples/coin-cell-led/renders.ts
+
+</div><figure>
+
+[![Populated board rendering](./public/examples/indicator-3d.png)](/examples/indicator-3d.png)
+
+<figcaption>Native KiCad renders the saved board with its coin-cell holder, resistor and LED models.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
 
 ```sh
 npx @tobisk/pcbs renders path/to/renders.ts
-npx @tobisk/pcbs renders path/to/renders.ts --only bottom-copper,oblique
+npx @tobisk/pcbs renders path/to/renders.ts --only indicator-back,indicator-3d
 npx @tobisk/pcbs renders path/to/renders.ts --output-dir ./review
 ```
 
@@ -57,6 +50,9 @@ rejected. A native failure stops the series and names the failed job; outputs fr
 already completed jobs remain available. Each native render verifies that its
 source board's bytes remain unchanged.
 
+
+
+
 ## Options
 
 - All kinds: `name`, optional `board` override, optional `output` filename.
@@ -68,4 +64,4 @@ source board's bytes remain unchanged.
 Rotation vectors are `[x, y, z]` in degrees. Camera vectors are passed through to
 KiCad; its pivot is relative to the board center in centimeters. Zoom defaults to
 1. The framework's existing native render defaults remain in effect for unspecified
-options. Use ordinary TypeScript constants/spreads to share settings across views.
+   options. Use ordinary TypeScript constants/spreads to share settings across views.

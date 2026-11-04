@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress';
+import examples from '../examples/catalog.json';
 
 export const sidebar = [
     {
@@ -62,6 +63,15 @@ export default defineConfig({
     base: '/pcbs-framework/',
     srcExclude: ['_Sidebar.md'],
     lastUpdated: false,
+    transformPageData(page) {
+        const visualPages = ['Home', 'index', ...examples.flatMap((example) => example.guides)];
+        if (visualPages.some((name) => page.relativePath === `${name}.md`)) {
+            page.frontmatter.aside = false;
+        }
+        if (['Home.md', 'index.md'].includes(page.relativePath)) {
+            page.frontmatter.pageClass = 'visual-home';
+        }
+    },
     sitemap: { hostname: 'https://kellertobias.github.io/pcbs-framework/' },
     themeConfig: {
         nav: [

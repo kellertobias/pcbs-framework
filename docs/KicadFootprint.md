@@ -6,46 +6,54 @@ aside: false
 
 The `KicadFootprint` class allows you to programmatically define KiCad footprints (`.kicad_mod`). It provides a fluent API to add pads, lines, arcs, text, and 3D models.
 
-## Footprint code and native plot
+## Generated examples
 
-This executable example is part of [code and generated results](Examples.md),
-which includes the complete source, reproduction commands and downloadable CAD files.
+<!-- generated-examples:start -->
 
-<div class="example-pair"><div>
+### Rounded SMD pads
+
+<div class="example-pair" data-example="smd"><div>
 
 <<< ./examples/library/footprint.ts
 
 </div><figure>
 
-![Native KiCad plot of the generated TeachingPads.kicad_mod.](./public/examples/footprint.png)
+[![Rounded SMD pads](./public/examples/footprint.png)](/examples/footprint.png)
 
-<figcaption>Native KiCad plot of the generated TeachingPads.kicad_mod.</figcaption>
+<figcaption>Native KiCad plot of the two rounded pads and their silkscreen outline.</figcaption>
+
 </figure></div>
 
-## Usage
+### Through-hole pads
 
-```typescript
-import { KicadFootprint } from "@tobisk/pcbs";
+<div class="example-pair" data-example="through-hole"><div>
 
-const fp = new KicadFootprint({ name: "My_Custom_Footprint", attr: "smd" });
+<<< ./examples/library/pad-variants.ts#through-hole
 
-// Add pads
-fp.addPad({
-  number: "1",
-  type: "smd",
-  shape: "roundrect",
-  x: -1.27,
-  y: 0,
-  width: 1.5,
-  height: 2.0
-});
+</div><figure>
 
-// Add graphics
-fp.addLine({ x1: -2, y1: -2, x2: 2, y2: -2, layer: "F.SilkS" });
+[![Through-hole pads](./public/examples/footprint-through-hole.png)](/examples/footprint-through-hole.png)
 
-// Serialize to string
-const content = fp.serialize();
-```
+<figcaption>Pad 1 is rectangular; pad 2 is round. Both have 1 mm drills.</figcaption>
+
+</figure></div>
+
+### An oval drilled pad
+
+<div class="example-pair" data-example="slot"><div>
+
+<<< ./examples/library/pad-variants.ts#slot
+
+</div><figure>
+
+[![An oval drilled pad](./public/examples/footprint-slot.png)](/examples/footprint-slot.png)
+
+<figcaption>A 5 × 3 mm oval copper pad surrounds a 3 × 1 mm oval drill.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
 
 ## Constructor
 
@@ -64,67 +72,67 @@ new KicadFootprint(options: {
 Adds a pad to the footprint.
 
 **Options:**
-*   `number`: Pin number (string).
-*   `type`: `"smd" | "thru_hole" | "np_thru_hole"`.
-*   `shape`: `"roundrect" | "circle" | "rect" | "oval"`.
-*   `x`, `y`: Position coordinates (mm).
-*   `width`, `height`: Pad size (mm).
-*   `layers`: Array of layer names (optional, defaults based on type).
-*   `drill`: Drill diameter (number) or oval dimensions (`{x, y}`).
-*   `roundrectRatio`: Corner radius ratio (0-1) for roundrect pads.
+-   `number`: Pin number (string).
+-   `type`: `"smd" | "thru_hole" | "np_thru_hole"`.
+-   `shape`: `"roundrect" | "circle" | "rect" | "oval"`.
+-   `x`, `y`: Position coordinates (mm).
+-   `width`, `height`: Pad size (mm).
+-   `layers`: Array of layer names (optional, defaults based on type).
+-   `drill`: Drill diameter (number) or oval dimensions (`{x, y}`).
+-   `roundrectRatio`: Corner radius ratio (0-1) for roundrect pads.
 
 ### `addLine(options)`
 
 Adds a line segment.
 
 **Options:**
-*   `x1`, `y1`: Start coordinates.
-*   `x2`, `y2`: End coordinates.
-*   `layer`: Layer name (default: "F.SilkS").
-*   `width`: Line width (default: 0.15).
+-   `x1`, `y1`: Start coordinates.
+-   `x2`, `y2`: End coordinates.
+-   `layer`: Layer name (default: "F.SilkS").
+-   `width`: Line width (default: 0.15).
 
 ### `addRect(options)`
 
 Adds a rectangle (rendered as 4 lines).
 
 **Options:**
-*   `x1`, `y1`: Top-left corner.
-*   `x2`, `y2`: Bottom-right corner.
-*   `layer`: Layer name (default: "F.SilkS").
-*   `width`: Line width (default: 0.15).
+-   `x1`, `y1`: Top-left corner.
+-   `x2`, `y2`: Bottom-right corner.
+-   `layer`: Layer name (default: "F.SilkS").
+-   `width`: Line width (default: 0.15).
 
 ### `addArc(options)`
 
 Adds an arc.
 
 **Options:**
-*   `start`: `{x, y}` coordinates.
-*   `mid`: `{x, y}` coordinates.
-*   `end`: `{x, y}` coordinates.
-*   `layer`: Layer name.
-*   `width`: Line width.
+-   `start`: `{x, y}` coordinates.
+-   `mid`: `{x, y}` coordinates.
+-   `end`: `{x, y}` coordinates.
+-   `layer`: Layer name.
+-   `width`: Line width.
 
 ### `addText(options)`
 
 Adds text to the footprint.
 
 **Options:**
-*   `text`: The string to display.
-*   `x`, `y`: Position.
-*   `layer`: Layer name.
-*   `fontSize`: Font size (default: 1).
-*   `thickness`: Font thickness (default: 0.1).
-*   `justify`: Text justification (`"left" | "right" | "top" | "bottom"`).
+-   `text`: The string to display.
+-   `x`, `y`: Position.
+-   `layer`: Layer name.
+-   `fontSize`: Font size (default: 1).
+-   `thickness`: Font thickness (default: 0.1).
+-   `justify`: Text justification (`"left" | "right" | "top" | "bottom"`).
 
 ### `set3DModel(link)` / `add3DModel(link)`
 
 Links a 3D model file (VRML/STEP) to the footprint.
 
 **Options (`link`):**
-*   `path`: Relative path to the 3D model file.
-*   `offset`: `{x, y, z}` offset.
-*   `scale`: `{x, y, z}` scale.
-*   `rotate`: `{x, y, z}` rotation (degrees).
+-   `path`: Relative path to the 3D model file.
+-   `offset`: `{x, y, z}` offset.
+-   `scale`: `{x, y, z}` scale.
+-   `rotate`: `{x, y, z}` rotation (degrees).
 
 ### `addFrontPanelCutout(cutout)`
 
@@ -133,12 +141,12 @@ types are circles, rounded rectangles, and arbitrary polygons.
 
 ```typescript
 fp.addFrontPanelCutout({
-  type: "roundedRect",
-  x: 0,
-  y: 0,
-  width: 14,
-  height: 14,
-  radius: 0.5,
+    type: 'roundedRect',
+    x: 0,
+    y: 0,
+    width: 14,
+    height: 14,
+    radius: 0.5,
 });
 ```
 
@@ -150,10 +158,10 @@ Defines where optional component text is placed relative to the footprint.
 fp.setFrontPanelLabelAnchor({ x: 0, y: 10, fontSize: 3 });
 
 new Component({
-  symbol: "Switch:SW_Push",
-  footprint: "Project_Footprints:My_Button",
-  ref: "SW1",
-  frontPanelLabel: "GO",
+    symbol: 'Switch:SW_Push',
+    footprint: 'Project_Footprints:My_Button',
+    ref: 'SW1',
+    frontPanelLabel: 'GO',
 });
 ```
 

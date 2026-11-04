@@ -1,0 +1,5 @@
+{
+  "name": "Documentation examples",
+  "schematics": { "indicator": "coin-cell-led/Indicator.ts" },
+  "panels": { "production": "boards/Production.ts" }
+}

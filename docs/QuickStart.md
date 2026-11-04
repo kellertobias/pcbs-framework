@@ -1,143 +1,74 @@
-# Quick Start Guide
+# Quick start
 
-Welcome to **@tobisk/pcbs**! This guide will help you get started with creating your first PCB design using our code-first framework.
+Build a coin-cell LED circuit and compare the generated schematic, routed PCB
+and populated 3D view. The circuit uses a local battery, a current-limiting
+resistor and a red LED.
 
-## Prerequisites
+## Install
 
-Before you begin, ensure you have the following installed:
+Install Node.js 22 and KiCad 10 with its symbol, footprint and model libraries.
+Create a project and install the framework:
 
-*   **Node.js 22 LTS**
-*   **KiCad 10**, including its symbol and footprint libraries
-*   **npm** (comes with Node.js)
+```sh
+mkdir my-pcb-project
+cd my-pcb-project
+npm init -y
+npm install @tobisk/pcbs typescript ts-node
+```
 
-## Installation
+Create `tsconfig.json`:
 
-1.  **Initialize a new project**:
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "experimentalDecorators": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}
+```
 
-    ```bash
-    mkdir my-pcb-project
-    cd my-pcb-project
-    npm init -y
-    ```
+## Circuit and result
 
-2.  **Install the framework**:
+[Download the examples](/examples/examples.zip) and copy `source/coin-cell-led/`
+into your project. Keep `Indicator.ts`, `schematic-routing.ts`, `pcb-routing.ts`
+and `renders.ts` together. The main file defines the circuit; the two routing
+files define its drawing and physical layout.
 
-    ```bash
-    npm install @tobisk/pcbs typescript ts-node
-    ```
+<!-- generated-examples:start -->
 
-3.  **Initialize TypeScript configuration**:
+### Circuit connections
 
-    Create a `tsconfig.json` file:
+<div class="example-pair" data-example="circuit"><div>
 
-    ```json
-    {
-      "compilerOptions": {
-        "target": "ES2020",
-        "module": "commonjs",
-        "experimentalDecorators": true,
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
-      }
-    }
-    ```
+<<< ./examples/coin-cell-led/Indicator.ts#circuit
 
-## Your First Circuit: Blinky
+</div><figure>
 
-Let's create a simple LED circuit.
+[![Circuit connections](./public/examples/indicator-schematic.png)](/examples/indicator-schematic.png)
 
-1.  **Create the project structure**:
+<figcaption>The battery, resistor and LED are connected in TypeScript and plotted from the generated native KiCad schematic.</figcaption>
 
-    ```bash
-    mkdir -p src/schematics
-    ```
+</figure></div>
 
-2.  **Create a schematic file**:
+<!-- generated-examples:end -->
 
-    Create `src/schematics/Blinky.ts`:
+## Generate native KiCad files
 
-    ```typescript
-    import { Schematic, Net, Component } from "@tobisk/pcbs";
+```sh
+npx @tobisk/pcbs synth coin-cell-led/Indicator.ts --pcb rebuild
+```
 
-    export class BlinkySchematic extends Schematic {
-      constructor() {
-        super({ name: "Blinky_Project", size: "A4" });
-      }
+Open `coin-cell-led/export/Indicator.kicad_pro` in KiCad. The generated output
+includes the schematic, PCB, netlist and native project. The [PCB guide](PCB.md)
+shows the placement and copper declaration beside the front and back layer plots.
 
-      generate() {
-        // Define Nets
-        const vcc = new Net({ name: "+5V", class: "Power" });
-        const gnd = new Net({ name: "GND", class: "Power" });
+Synthesis preserves a saved PCB by default. Use `--pcb sync` or `--pcb rebuild`
+when you intend to change the board. Before fabrication, run native KiCad DRC
+with filled zones and review the component specifications.
 
-        // Define Components
-        const resistor = new Component({
-          symbol: "Device:R",
-          footprint: "Resistor_SMD:R_0603_1608Metric",
-          ref: "R1",
-          value: "330",
-        });
-
-        const led = new Component({
-          symbol: "Device:LED",
-          footprint: "LED_SMD:LED_0603_1608Metric",
-          ref: "D1",
-          value: "Green",
-        });
-
-        const connector = new Component({
-          symbol: "Connector:Conn_01x02_Male",
-          footprint: "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
-          ref: "J1",
-        });
-
-        // Wire them up
-        // Connect Connector to Power Rails
-        connector.pins[1].tie(vcc);
-        connector.pins[2].tie(gnd);
-
-        // Connect Resistor and LED
-        resistor.pins[1].tie(vcc);
-        resistor.pins[2].tie(led.pins[1]); // Series connection
-        led.pins[2].tie(gnd);
-      }
-    }
-
-    export default new BlinkySchematic();
-    ```
-
-## Generating Files
-
-Now that we have our schematic defined in code, let's generate the KiCad files.
-
-1.  **Synthesize the Schematic**:
-
-    Run the `synth` command to generate the `.kicad_sch` and `.net` files.
-
-    ```bash
-    npx @tobisk/pcbs synth src/schematics/Blinky.ts
-    ```
-
-    You should see output indicating successful generation. Generated files are written to `src/schematics/export/`, including
-    `Blinky_Project.kicad_sch`. Keep each board in its own source directory when
-    a project contains multiple boards.
-
-2.  **Open in KiCad**:
-
-    Open the generated `.kicad_sch` file in KiCad. You will see your components placed and wired up!
-
-3.  **Layout the PCB**:
-
-    Declare your outline and physical placement using the [PCB guide](PCB.md).
-    Synthesis preserves a saved PCB by default. Use `--pcb sync` or `--pcb rebuild`
-    deliberately; disable `pcb.autoRoute` when maintaining manual copper.
-    Run native KiCad DRC with filled zones before fabrication.
-
-See [code and generated results](Examples.md) for a complete circuit beside
-its generated schematic, routed PCB and populated 3D view.
-
-## Next Steps
-
-*   Explore **[API Documentation](Schematic.md)** to learn about `Composable` blocks and `Modules`.
-*   Check out **[CLI Documentation](CLI.md)** for advanced usage like exporting fabrication files.
+Continue with [all code and generated results](Examples.md), the
+[CLI reference](CLI.md) and the [source/output workflow](OutputWorkflow.md).

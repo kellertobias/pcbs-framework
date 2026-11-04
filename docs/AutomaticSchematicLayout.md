@@ -37,6 +37,49 @@ Connector interfaces keep their labels. Internal group networks remain wired;
 only connections crossing a functional boundary receive labels. Native KiCad
 netlist export must verify the resulting electrical partitions.
 
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### Automatic grid placement
+
+<div class="example-pair" data-example="automatic"><div>
+
+<<< ./examples/circuits/variants.ts#automatic
+
+</div><figure>
+
+[![Automatic grid placement](./public/examples/schematic-grid.png)](/examples/schematic-grid.png)
+
+<figcaption>The grid algorithm arranges the same two groups without authored symbol coordinates.</figcaption>
+
+</figure></div>
+
+### Native schematic pages
+
+<div class="example-pair" data-example="pages"><div>
+
+<<< ./examples/circuits/variants.ts#pages
+
+</div><figure>
+
+[![Native schematic pages](./public/examples/schematic-pages.png)](/examples/schematic-pages.png)
+
+<figcaption>The overview links two native child sheets. Both child drawings keep the source circuit connections.</figcaption>
+
+[![Battery child sheet](./public/examples/schematic-pages-BATTERY.png)](/examples/schematic-pages-BATTERY.png)
+
+<figcaption>Native BATTERY child sheet.</figcaption>
+
+[![Indicator child sheet](./public/examples/schematic-pages-INDICATOR.png)](/examples/schematic-pages-INDICATOR.png)
+
+<figcaption>Native INDICATOR child sheet.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
+
+
 ## Implementations
 
 `grid` is a deterministic baseline. `circuit` places the most connected/high-pin

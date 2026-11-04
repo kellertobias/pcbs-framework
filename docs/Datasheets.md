@@ -6,23 +6,35 @@ resvg; no KiCad executable, browser, Python, or external image converter is
 needed. Model input is the IndexedFaceSet WRL written by `Kicad3DModel` (KiCad
 units, 2.54mm/unit). Arbitrary VRML transforms are rejected.
 
-```ts
-import { renderFootprint, renderModel, exportDatasheet } from '@tobisk/pcbs';
-import * as fs from 'fs';
-const fp = MyModule.makeFootprint();
-fs.writeFileSync('footprint.png', renderFootprint(fp).png);
-const wrl = fs.readFileSync('model.wrl', 'utf8');
-fs.writeFileSync('underside.png', renderModel(wrl, {
-  view: 'bottom', footprint: fp, measurements: true,
-}).png);
-await exportDatasheet({
-  title: 'My component', output: 'datasheet.pdf',
-  technicalDetails: [{parameter:'Travel', value:'60mm', source:'Manufacturer'}],
-  electricalDetails: [{parameter:'Resistance', value:'10kohm +/-20%'}],
-  footprints: [{name:'Wired', footprint:fp}], modelWrl:wrl,
-  notes: ['Unspecified dimensions are estimates.'],
-});
-```
+
+
+## Generated examples
+
+<!-- generated-examples:start -->
+
+### A generated datasheet
+
+<div class="example-pair" data-example="datasheet"><div>
+
+<<< ./examples/library/datasheet.ts
+
+</div><figure>
+
+[![A generated datasheet](./public/examples/datasheet-1.png)](/examples/datasheet-1.png)
+
+<figcaption>The PDF contains source-supplied metadata, footprint drawings and pad-centre tables.</figcaption>
+
+[![Pad-centre table in generated PDF](./public/examples/datasheet-2.png)](/examples/datasheet-2.png)
+
+<figcaption>A second page from the same generated PDF.</figcaption>
+
+[![Through-hole footprint in generated PDF](./public/examples/datasheet-3.png)](/examples/datasheet-3.png)
+
+<figcaption>A third page from the same generated PDF.</figcaption>
+
+</figure></div>
+
+<!-- generated-examples:end -->
 
 `renderFootprint` accepts a `KicadFootprint` or serialized `.kicad_mod`. It
 supports rectangular, circular, oval and rounded pads, round/oval offset drills,
@@ -63,6 +75,9 @@ Manifest paths are relative to the JSON file. Required fields are `title` and
 `value`, and optional `source`. Output paths provided through CLI flags are
 relative to the calling directory. All input metadata must be supplied by the
 component library; the exporter does not infer electrical ratings from shapes.
+
+
+
 
 ## Automatic library datasheets
 
