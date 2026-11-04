@@ -17,9 +17,9 @@ which includes the complete source, reproduction commands and downloadable CAD f
 
 </div><figure>
 
-![Framework rendering of the actual WRL export; STEP and STL are included in the download.](./public/examples/model-isometric.png)
+![Framework rendering of the actual WRL export; STL and 3MF are included in the download.](./public/examples/model-isometric.png)
 
-<figcaption>Framework rendering of the actual WRL export; STEP and STL are included in the download.</figcaption>
+<figcaption>Framework rendering of the actual WRL export; STL and 3MF are included in the download.</figcaption>
 </figure></div>
 
 ## Usage
@@ -42,7 +42,7 @@ const pin = model.cylinder({ r: 0.5, h: 4 })
 model.union(body, pin);
 ```
 
-**Note:** You do not need to call `model.export()` manually in your module code. When you run `npx @tobisk/pcbs lib`, the framework automatically detects your `make3DModel()` method, generates the model files (VRML/STEP), and links them to the footprint.
+**Note:** You do not need to call `model.export()` manually in your module code. When you run `npx @tobisk/pcbs lib`, the framework automatically detects your `make3DModel()` method, generates VRML and any available STEP export, and links them to the footprint.
 
 ## Linking External Models
 
@@ -129,6 +129,11 @@ Exports the model to disk. Usually handled automatically by the CLI.
 *   `outDir`: Output directory path.
 *   `baseName`: Base filename (without extension).
 *   `formats`: Array of formats (`"wrl"`, `"step"`, `"stl"`, `"3mf"`). STL uses millimetres directly and returns `stlPath`; it supports solid and supplied triangle geometry. Collapsed seam triangles are omitted from binary STL output.
+
+STEP export depends on the OpenCascade build. Check the returned `stepPath`
+and that the file exists before passing it to another tool; an unavailable STEP
+writer can return without producing a file. The executable example verifies WRL,
+STL and 3MF outputs and includes those formats in its download.
 
 ## SolidBuilder API
 

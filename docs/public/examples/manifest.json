@@ -1,17 +1,17 @@
 {
   "kicad": "10.0.0",
   "framework": "2.4.1",
-  "sourceHash": "86461d37f96c9cdbfc4a1e9683aa0b4bbf2b7d902419f234d6eef65e408e606d",
+  "sourceHash": "f28dd46fab5745784b148e1002c57db01198c787ab0e11b6fa0ba83176d21e78",
   "images": {
     "footprint.png": "8f41418931e00b2d0d032ac7d3dcbbed5c53704a86504a435b4404f1639fdc4d",
-    "indicator-3d.png": "38940dc7dae36c6b4dcf4e6c6fb0296be6d7e203f3474e5a0508c0570be99c79",
+    "indicator-3d.png": "8599828080320184a6df76fa0ad09e0e33cee0310bc8a4b78e0e2117c2f01561",
     "indicator-back.png": "ee5bfadd2d72c927a44d7474a378cceafb162d950a17c58072f503da85549350",
     "indicator-front.png": "2d40aec25ad65bf739526c57dd82ea56dbaab2d923d5bb01d5b7a76751a2cecb",
     "indicator-schematic.png": "95756ce27213821d2918e02c245d520ef4d4ce63a7889a10d2abe229336b02d1",
     "model-isometric.png": "b92bf99cd5830e60aab28c2d029202ef5a1e3e8a65492f90d9621ef576cd1f5b",
     "model-top.png": "33b4fec458cd9ba73ac6d6972d845174cae472659cc0a126a4aaacecfe58888d"
   },
-  "archiveHash": "77d89275290072316a9c1207c977367d5393d2d93a6030980c92e804a629ae99",
+  "archiveHash": "3a8834f545351775e43a877848367875d0ae92833cc9dcb65d519ffecc8031b9",
   "drc": {
     "errors": 0,
     "unconnected": 0,

@@ -186,8 +186,13 @@ async function main() {
     const exported = await model.export({
         outDir: path.join(work, 'models'),
         baseName: 'MountingPlate',
-        formats: ['wrl', 'step', 'stl'],
+        formats: ['wrl', 'stl', '3mf'],
     });
+    for (const file of [exported.wrlPath, exported.stlPath, exported.threeMfPath]) {
+        if (!file || !fs.existsSync(file) || fs.statSync(file).size === 0) {
+            throw new Error('A required example model export is missing.');
+        }
+    }
     const wrl = fs.readFileSync(exported.wrlPath!, 'utf8');
     for (const view of ['isometric', 'top'] as const) {
         fs.writeFileSync(

@@ -105,7 +105,7 @@ The download includes the generated footprint in a `.pretty` library.
 ## Code to mechanical model
 
 The plate starts as a 30 × 22 × 3 mm solid. Boolean subtraction cuts a central
-opening and four mounting holes. One model exports to WRL, STEP and STL.
+opening and four mounting holes. One model exports to WRL, STL and 3MF.
 
 <div class="example-pair"><div>
 
