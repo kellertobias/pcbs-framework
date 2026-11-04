@@ -52,7 +52,7 @@ The `Kicad3DModel` class provides a fluent API for creating parametric 3D models
 
 </figure></div>
 
-### A mounting plate
+### Build and export 3D models
 
 <div class="example-pair" data-example="model"><div>
 
@@ -60,13 +60,13 @@ The `Kicad3DModel` class provides a fluent API for creating parametric 3D models
 
 </div><figure>
 
-[![A mounting plate](./public/examples/model-isometric.png)](/examples/model-isometric.png)
+[![3D preview of a mechanical model built and exported from TypeScript](./public/examples/model-isometric.png)](/examples/model-isometric.png)
 
-<figcaption>The completed plate adds four mounting holes and exports to WRL, STL and 3MF.</figcaption>
+<figcaption>Define solids and cuts in TypeScript to generate a 3D model. Export the same geometry as WRL, STL or 3MF for PCB and mechanical design.</figcaption>
 
-[![Mounting plate viewed from above](./public/examples/model-top.png)](/examples/model-top.png)
+[![Top view of the same model generated from TypeScript](./public/examples/model-top.png)](/examples/model-top.png)
 
-<figcaption>Top view of the same exported model.</figcaption>
+<figcaption>Another view of the generated geometry lets you compare the openings and mounting holes with their definitions in code.</figcaption>
 
 </figure></div>
 

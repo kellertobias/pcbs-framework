@@ -10,7 +10,7 @@ The `KicadFootprint` class allows you to programmatically define KiCad footprint
 
 <!-- generated-examples:start -->
 
-### Rounded SMD pads
+### Generate KiCad footprints
 
 <div class="example-pair" data-example="smd"><div>
 
@@ -18,9 +18,9 @@ The `KicadFootprint` class allows you to programmatically define KiCad footprint
 
 </div><figure>
 
-[![Rounded SMD pads](./public/examples/footprint.png)](/examples/footprint.png)
+[![KiCad footprint generated from TypeScript pad and silkscreen geometry](./public/examples/footprint.png)](/examples/footprint.png)
 
-<figcaption>Native KiCad plot of the two rounded pads and their silkscreen outline.</figcaption>
+<figcaption>Build pad geometry and silkscreen in TypeScript, then generate a native KiCad footprint for your component library. The preview comes from that generated footprint.</figcaption>
 
 </figure></div>
 

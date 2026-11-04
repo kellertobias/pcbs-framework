@@ -51,7 +51,7 @@ exportSchematicFrontPanel(schematic, frontPanels, 'connectors', {
 
 <!-- generated-examples:start -->
 
-### A front-panel drawing
+### Export front panels from code
 
 <div class="example-pair" data-example="front-panel"><div>
 
@@ -59,9 +59,9 @@ exportSchematicFrontPanel(schematic, frontPanels, 'connectors', {
 
 </div><figure>
 
-[![A front-panel drawing](./public/examples/front-panel.png)](/examples/front-panel.png)
+[![Front-panel outline, cutouts and engraving exported from a code definition](./public/examples/front-panel.png)](/examples/front-panel.png)
 
-<figcaption>A mechanical interface fixture supplies three face openings and a label anchor. The named panel exports its outline, cutouts and label to SVG and DXF.</figcaption>
+<figcaption>Define a mechanical interface and select it in a named panel definition. The framework exports the panel outline, openings and labels as SVG and DXF files.</figcaption>
 
 </figure></div>
 

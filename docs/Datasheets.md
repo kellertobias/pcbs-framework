@@ -12,7 +12,7 @@ units, 2.54mm/unit). Arbitrary VRML transforms are rejected.
 
 <!-- generated-examples:start -->
 
-### A generated datasheet
+### Generate component datasheets
 
 <div class="example-pair" data-example="datasheet"><div>
 
@@ -20,17 +20,17 @@ units, 2.54mm/unit). Arbitrary VRML transforms are rejected.
 
 </div><figure>
 
-[![A generated datasheet](./public/examples/datasheet-1.png)](/examples/datasheet-1.png)
+[![PDF generated from footprint definitions and supplied component specifications](./public/examples/datasheet-1.png)](/examples/datasheet-1.png)
 
-<figcaption>The PDF contains source-supplied metadata, footprint drawings and pad-centre tables.</figcaption>
+<figcaption>Generate component PDFs from the same footprint definitions used in your KiCad library. The framework includes the supplied specifications, footprint drawings and pad-centre tables.</figcaption>
 
-[![Pad-centre table in generated PDF](./public/examples/datasheet-2.png)](/examples/datasheet-2.png)
+[![Generated PDF footprint drawing and pad-coordinate table](./public/examples/datasheet-2.png)](/examples/datasheet-2.png)
 
-<figcaption>A second page from the same generated PDF.</figcaption>
+<figcaption>The generated PDF pairs the footprint drawing with a table of pad coordinates from the same definition.</figcaption>
 
-[![Through-hole footprint in generated PDF](./public/examples/datasheet-3.png)](/examples/datasheet-3.png)
+[![Generated PDF drawing and pad-coordinate table for a second footprint](./public/examples/datasheet-3.png)](/examples/datasheet-3.png)
 
-<figcaption>A third page from the same generated PDF.</figcaption>
+<figcaption>A second footprint definition produces its own drawing and pad-centre table in the same PDF.</figcaption>
 
 </figure></div>
 

@@ -12,7 +12,7 @@ can select its executable.
 
 <!-- generated-examples:start -->
 
-### Populated board rendering
+### Render the PCB built in code
 
 <div class="example-pair" data-example="board3d"><div>
 
@@ -20,9 +20,9 @@ can select its executable.
 
 </div><figure>
 
-[![Populated board rendering](./public/examples/indicator-3d.png)](/examples/indicator-3d.png)
+[![3D render of a KiCad PCB generated from TypeScript definitions](./public/examples/indicator-3d.png)](/examples/indicator-3d.png)
 
-<figcaption>Native KiCad renders the saved board with its coin-cell holder, resistor and LED models.</figcaption>
+<figcaption>The framework generates this PCB from TypeScript circuit and layout definitions. Rendering the generated KiCad board lets you review the physical result before exporting manufacturing files.</figcaption>
 
 </figure></div>
 

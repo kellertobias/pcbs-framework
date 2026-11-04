@@ -10,7 +10,7 @@ panel, synthesize schematics or change source PCB files.
 
 <!-- generated-examples:start -->
 
-### Board and mechanical assembly
+### Review boards and parts together
 
 <div class="example-pair" data-example="assembly"><div>
 
@@ -18,9 +18,9 @@ panel, synthesize schematics or change source PCB files.
 
 </div><figure>
 
-[![Board and mechanical assembly](./public/examples/assembly-isometric.png)](/examples/assembly-isometric.png)
+[![Generated PCB and mechanical models rendered in a code-defined assembly](./public/examples/assembly-isometric.png)](/examples/assembly-isometric.png)
 
-<figcaption>The saved board sits above a generated tray in the framework assembly viewer. This is a mechanical preview.</figcaption>
+<figcaption>Combine a generated PCB with mechanical models using assembly positions defined in code. The framework renders the assembled geometry so you can inspect how the parts sit together.</figcaption>
 
 </figure></div>
 

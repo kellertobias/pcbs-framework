@@ -1,17 +1,17 @@
 [
   {
     "id": "circuit",
-    "title": "Circuit connections",
+    "title": "Generate a KiCad schematic",
     "source": "coin-cell-led/Indicator.ts",
     "region": "circuit",
     "images": [
       {
         "file": "indicator-schematic.png",
-        "alt": "Circuit connections",
-        "caption": "The battery, resistor and LED are connected in TypeScript and plotted from the generated native KiCad schematic."
+        "alt": "KiCad schematic generated from a TypeScript circuit definition",
+        "caption": "Define components and connect their pins in TypeScript. The framework turns those connections into a native KiCad schematic, shown here with routed wires."
       }
     ],
-    "description": "The battery, resistor and LED are connected in TypeScript and plotted from the generated native KiCad schematic.",
+    "description": "Define components and connect their pins in TypeScript. The framework turns those connections into a native KiCad schematic, shown here with routed wires.",
     "guides": ["Schematic", "Component", "QuickStart"]
   },
   {
@@ -46,17 +46,17 @@
   },
   {
     "id": "groups",
-    "title": "Functional groups",
+    "title": "Lay out schematics by function",
     "source": "circuits/GroupedIndicator.ts",
     "region": "groups",
     "images": [
       {
         "file": "schematic-groups.png",
-        "alt": "Functional groups",
-        "caption": "Decorated methods create the BATTERY and INDICATOR groups. The framework places their symbols and routes each group."
+        "alt": "Generated schematic with functional groups defined by decorators",
+        "caption": "Group circuit-building methods in code with decorators. The framework uses those groups to place symbols, route connections and label the generated schematic."
       }
     ],
-    "description": "Decorated methods create the BATTERY and INDICATOR groups. The framework places their symbols and routes each group.",
+    "description": "Group circuit-building methods in code with decorators. The framework uses those groups to place symbols, route connections and label the generated schematic.",
     "guides": ["Decorators"]
   },
   {
@@ -131,17 +131,17 @@
   },
   {
     "id": "copper",
-    "title": "Placement and front copper",
+    "title": "Generate the PCB layout",
     "source": "coin-cell-led/pcb-routing.ts",
     "region": null,
     "images": [
       {
         "file": "indicator-front.png",
-        "alt": "Placement and front copper",
-        "caption": "The 50 \u00d7 44 mm PCB has explicit component placement, routed traces and a filled front ground zone."
+        "alt": "Front copper of a PCB generated from TypeScript layout and routing definitions",
+        "caption": "Declare the board outline, component positions and copper rules in TypeScript. The framework generates the KiCad PCB and routes its connections; this front-copper view shows the result."
       }
     ],
-    "description": "The 50 \u00d7 44 mm PCB has explicit component placement, routed traces and a filled front ground zone.",
+    "description": "Declare the board outline, component positions and copper rules in TypeScript. The framework generates the KiCad PCB and routes its connections; this front-copper view shows the result.",
     "guides": ["PCB"]
   },
   {
@@ -206,17 +206,17 @@
   },
   {
     "id": "board3d",
-    "title": "Populated board rendering",
+    "title": "Render the PCB built in code",
     "source": "coin-cell-led/renders.ts",
     "region": null,
     "images": [
       {
         "file": "indicator-3d.png",
-        "alt": "Populated board rendering",
-        "caption": "Native KiCad renders the saved board with its coin-cell holder, resistor and LED models."
+        "alt": "3D render of a KiCad PCB generated from TypeScript definitions",
+        "caption": "The framework generates this PCB from TypeScript circuit and layout definitions. Rendering the generated KiCad board lets you review the physical result before exporting manufacturing files."
       }
     ],
-    "description": "Native KiCad renders the saved board with its coin-cell holder, resistor and LED models.",
+    "description": "The framework generates this PCB from TypeScript circuit and layout definitions. Rendering the generated KiCad board lets you review the physical result before exporting manufacturing files.",
     "guides": ["Rendering"]
   },
   {
@@ -256,17 +256,17 @@
   },
   {
     "id": "smd",
-    "title": "Rounded SMD pads",
+    "title": "Generate KiCad footprints",
     "source": "library/footprint.ts",
     "region": null,
     "images": [
       {
         "file": "footprint.png",
-        "alt": "Rounded SMD pads",
-        "caption": "Native KiCad plot of the two rounded pads and their silkscreen outline."
+        "alt": "KiCad footprint generated from TypeScript pad and silkscreen geometry",
+        "caption": "Build pad geometry and silkscreen in TypeScript, then generate a native KiCad footprint for your component library. The preview comes from that generated footprint."
       }
     ],
-    "description": "Native KiCad plot of the two rounded pads and their silkscreen outline.",
+    "description": "Build pad geometry and silkscreen in TypeScript, then generate a native KiCad footprint for your component library. The preview comes from that generated footprint.",
     "guides": ["KicadFootprint"]
   },
   {
@@ -293,10 +293,10 @@
       {
         "file": "footprint-slot.png",
         "alt": "An oval drilled pad",
-        "caption": "A 5 \u00d7 3 mm oval copper pad surrounds a 3 \u00d7 1 mm oval drill."
+        "caption": "A 5 × 3 mm oval copper pad surrounds a 3 × 1 mm oval drill."
       }
     ],
-    "description": "A 5 \u00d7 3 mm oval copper pad surrounds a 3 \u00d7 1 mm oval drill.",
+    "description": "A 5 × 3 mm oval copper pad surrounds a 3 × 1 mm oval drill.",
     "guides": ["KicadFootprint"]
   },
   {
@@ -308,10 +308,10 @@
       {
         "file": "model-solid.png",
         "alt": "A solid plate",
-        "caption": "A 30 \u00d7 22 \u00d7 3 mm box exported as actual WRL geometry and rendered by the framework."
+        "caption": "A 30 × 22 × 3 mm box exported as actual WRL geometry and rendered by the framework."
       }
     ],
-    "description": "A 30 \u00d7 22 \u00d7 3 mm box exported as actual WRL geometry and rendered by the framework.",
+    "description": "A 30 × 22 × 3 mm box exported as actual WRL geometry and rendered by the framework.",
     "guides": ["Kicad3DModel"]
   },
   {
@@ -346,52 +346,52 @@
   },
   {
     "id": "model",
-    "title": "A mounting plate",
+    "title": "Build and export 3D models",
     "source": "library/model.ts",
     "region": null,
     "images": [
       {
         "file": "model-isometric.png",
-        "alt": "A mounting plate",
-        "caption": "The completed plate adds four mounting holes and exports to WRL, STL and 3MF."
+        "alt": "3D preview of a mechanical model built and exported from TypeScript",
+        "caption": "Define solids and cuts in TypeScript to generate a 3D model. Export the same geometry as WRL, STL or 3MF for PCB and mechanical design."
       },
       {
         "file": "model-top.png",
-        "alt": "Mounting plate viewed from above",
-        "caption": "Top view of the same exported model."
+        "alt": "Top view of the same model generated from TypeScript",
+        "caption": "Another view of the generated geometry lets you compare the openings and mounting holes with their definitions in code."
       }
     ],
-    "description": "The completed plate adds four mounting holes and exports to WRL, STL and 3MF.",
+    "description": "Define solids and cuts in TypeScript to generate a 3D model. Export the same geometry as WRL, STL or 3MF for PCB and mechanical design.",
     "guides": ["Kicad3DModel"]
   },
   {
     "id": "front-panel",
-    "title": "A front-panel drawing",
+    "title": "Export front panels from code",
     "source": "mechanical/front-panel.ts",
     "region": null,
     "images": [
       {
         "file": "front-panel.png",
-        "alt": "A front-panel drawing",
-        "caption": "A mechanical interface fixture supplies three face openings and a label anchor. The named panel exports its outline, cutouts and label to SVG and DXF."
+        "alt": "Front-panel outline, cutouts and engraving exported from a code definition",
+        "caption": "Define a mechanical interface and select it in a named panel definition. The framework exports the panel outline, openings and labels as SVG and DXF files."
       }
     ],
-    "description": "A mechanical interface fixture supplies three face openings and a label anchor. The named panel exports its outline, cutouts and label to SVG and DXF.",
+    "description": "Define a mechanical interface and select it in a named panel definition. The framework exports the panel outline, openings and labels as SVG and DXF files.",
     "guides": ["FrontPanel"]
   },
   {
     "id": "assembly",
-    "title": "Board and mechanical assembly",
+    "title": "Review boards and parts together",
     "source": "mechanical/assembly.ts",
     "region": "parts",
     "images": [
       {
         "file": "assembly-isometric.png",
-        "alt": "Board and mechanical assembly",
-        "caption": "The saved board sits above a generated tray in the framework assembly viewer. This is a mechanical preview."
+        "alt": "Generated PCB and mechanical models rendered in a code-defined assembly",
+        "caption": "Combine a generated PCB with mechanical models using assembly positions defined in code. The framework renders the assembled geometry so you can inspect how the parts sit together."
       }
     ],
-    "description": "The saved board sits above a generated tray in the framework assembly viewer. This is a mechanical preview.",
+    "description": "Combine a generated PCB with mechanical models using assembly positions defined in code. The framework renders the assembled geometry so you can inspect how the parts sit together.",
     "guides": ["Assembly"]
   },
   {
@@ -416,27 +416,27 @@
   },
   {
     "id": "datasheet",
-    "title": "A generated datasheet",
+    "title": "Generate component datasheets",
     "source": "library/datasheet.ts",
     "region": null,
     "images": [
       {
         "file": "datasheet-1.png",
-        "alt": "A generated datasheet",
-        "caption": "The PDF contains source-supplied metadata, footprint drawings and pad-centre tables."
+        "alt": "PDF generated from footprint definitions and supplied component specifications",
+        "caption": "Generate component PDFs from the same footprint definitions used in your KiCad library. The framework includes the supplied specifications, footprint drawings and pad-centre tables."
       },
       {
         "file": "datasheet-2.png",
-        "alt": "Pad-centre table in generated PDF",
-        "caption": "A second page from the same generated PDF."
+        "alt": "Generated PDF footprint drawing and pad-coordinate table",
+        "caption": "The generated PDF pairs the footprint drawing with a table of pad coordinates from the same definition."
       },
       {
         "file": "datasheet-3.png",
-        "alt": "Through-hole footprint in generated PDF",
-        "caption": "A third page from the same generated PDF."
+        "alt": "Generated PDF drawing and pad-coordinate table for a second footprint",
+        "caption": "A second footprint definition produces its own drawing and pad-centre table in the same PDF."
       }
     ],
-    "description": "The PDF contains source-supplied metadata, footprint drawings and pad-centre tables.",
+    "description": "Generate component PDFs from the same footprint definitions used in your KiCad library. The framework includes the supplied specifications, footprint drawings and pad-centre tables.",
     "guides": ["Datasheets"]
   },
   {

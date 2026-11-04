@@ -40,7 +40,7 @@ files define its drawing and physical layout.
 
 <!-- generated-examples:start -->
 
-### Circuit connections
+### Generate a KiCad schematic
 
 <div class="example-pair" data-example="circuit"><div>
 
@@ -48,9 +48,9 @@ files define its drawing and physical layout.
 
 </div><figure>
 
-[![Circuit connections](./public/examples/indicator-schematic.png)](/examples/indicator-schematic.png)
+[![KiCad schematic generated from a TypeScript circuit definition](./public/examples/indicator-schematic.png)](/examples/indicator-schematic.png)
 
-<figcaption>The battery, resistor and LED are connected in TypeScript and plotted from the generated native KiCad schematic.</figcaption>
+<figcaption>Define components and connect their pins in TypeScript. The framework turns those connections into a native KiCad schematic, shown here with routed wires.</figcaption>
 
 </figure></div>
 

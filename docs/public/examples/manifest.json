@@ -1,14 +1,14 @@
 {
   "kicad": "10.0.0",
-  "framework": "2.4.1",
-  "sourceHash": "fae4a58e48078c928c737560f414d2caa651eb8523344d621409f10e580763e0",
+  "framework": "2.4.2",
+  "sourceHash": "b65805cb9b76d0d63c3a33f0527597856bc036f9af4c4d5b4a40a6f082e77358",
   "images": {
     "assembly-isometric.png": "2dd026d99fc305564249922e4e55d6bc7d6543e9c422f911e2d36ee888c3ae46",
     "assembly-top.png": "0417032853ce2c8deed6c823713690359401c9f7ad5e84e69eb8e09bbdaa3fe8",
     "assembly-tray.png": "6c6fb1037a2c36eccf91de100f54c5fae3a141b48809a885f89d6580743692e7",
-    "board-composition.png": "762ca8b707437eac10f8147435318800a334229adaa0380f5a45489b1bbc81f9",
+    "board-composition.png": "1eb20d63bc8e6959bb056c3e22185ce624f1e69c09bf1aa9e941b78c3e204037",
     "board-no-pour.png": "6aa9ae45a63248d72fa9e51eec5e5645d780e5959c97ff5749bf61c39bbcf225",
-    "board-production.png": "9c45b7233d9afb97b3ebf7933b68704e3bd75732e93838aee6d02350f8cf64b7",
+    "board-production.png": "1766849dd31ef495a9ad7929e9a87a117b6422d3b0b0755281057afd7739a349",
     "cost-1.png": "e59c897de23670ded18dbfd1b6b6052066c8bf0baabea0c9baf3b16ed3965b8b",
     "datasheet-1.png": "bc8e6fbaf047c9aea976ef07e01b801af0e564de2d43a88740e431b592671a86",
     "datasheet-2.png": "d1c47a1a192c3637ec9e9278e49fbf59680c190e7882a96425b5cfb2f811a72a",
@@ -17,7 +17,7 @@
     "footprint-through-hole.png": "e9a0cfe2be0f92f27abdd9ee545d905f34c303e816882d8f044784d929dd6078",
     "footprint.png": "8f41418931e00b2d0d032ac7d3dcbbed5c53704a86504a435b4404f1639fdc4d",
     "front-panel.png": "73cedcb8f4985045fe488e936aeacbec7423ac05c592b03f39238f095500b5af",
-    "indicator-3d.png": "fb3d3f15c887213995b8f68e7ef4b5fdd79faae7bb058bc836714ca8c8bf39b9",
+    "indicator-3d.png": "d7cbc8a01504552ce41471c280482b05adb82c5f8704a34cb4cbc537608d9950",
     "indicator-back.png": "ee5bfadd2d72c927a44d7474a378cceafb162d950a17c58072f503da85549350",
     "indicator-front.png": "2d40aec25ad65bf739526c57dd82ea56dbaab2d923d5bb01d5b7a76751a2cecb",
     "indicator-schematic.png": "95756ce27213821d2918e02c245d520ef4d4ce63a7889a10d2abe229336b02d1",
@@ -35,7 +35,7 @@
     "schematic-pages.png": "7090935d974982eb6ccdd2baa8d1c369f1a3e5abc4a44a45f426868727cabb6f",
     "symbol.png": "c2763bbf369b62639bd834c6602aafb5a9f16c4b870b91ac3bab9c5c36f2bb9f"
   },
-  "archiveHash": "6503ef0fefa616a8fe679883cd7440abaaae19cea89dbe450898c02dff23f5e4",
+  "archiveHash": "198e132bd89805f405ce2b1be8cc61699ff9a89b5adf630c8b85e11d5e5a53ec",
   "drc": {
     "errors": 0,
     "unconnected": 0,

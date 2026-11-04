@@ -16,7 +16,7 @@ See the [worked PCB example](Examples.md#placement-to-copper) for the full desig
 
 <!-- generated-examples:start -->
 
-### Placement and front copper
+### Generate the PCB layout
 
 <div class="example-pair" data-example="copper"><div>
 
@@ -24,9 +24,9 @@ See the [worked PCB example](Examples.md#placement-to-copper) for the full desig
 
 </div><figure>
 
-[![Placement and front copper](./public/examples/indicator-front.png)](/examples/indicator-front.png)
+[![Front copper of a PCB generated from TypeScript layout and routing definitions](./public/examples/indicator-front.png)](/examples/indicator-front.png)
 
-<figcaption>The 50 × 44 mm PCB has explicit component placement, routed traces and a filled front ground zone.</figcaption>
+<figcaption>Declare the board outline, component positions and copper rules in TypeScript. The framework generates the KiCad PCB and routes its connections; this front-copper view shows the result.</figcaption>
 
 </figure></div>
 

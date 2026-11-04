@@ -1,18 +1,18 @@
 # PCB framework documentation
 
-`@tobisk/pcbs` generates native KiCad schematics, PCB layouts and component
-libraries from TypeScript. It also builds mechanical models, front-panel drawings,
-assemblies and manufacturing exports.
+`@tobisk/pcbs` turns TypeScript circuit and layout definitions into KiCad
+schematics and PCB files. Render the generated board to review the design, then
+[export Gerber and drill files](CLI.md#export) for fabrication.
 
-Start with the [quick start](QuickStart.md) to build a circuit, or browse
-[code and generated results](Examples.md) to see working code beside its
-schematics, PCB layouts, footprints and 3D models.
+The examples below pair the source code with its generated output. Start with the
+[quick start](QuickStart.md), or browse [all code examples](Examples.md) for schematic
+layout, component libraries and mechanical models.
 
 <!-- generated-examples:start -->
 
 <span id="saved-board-to-3d-view"></span>
 
-## Populated board rendering
+## Render the PCB built in code
 
 <div class="example-pair" data-example="board3d"><div>
 
@@ -20,15 +20,15 @@ schematics, PCB layouts, footprints and 3D models.
 
 </div><figure>
 
-[![Populated board rendering](./public/examples/indicator-3d.png)](/examples/indicator-3d.png)
+[![3D render of a KiCad PCB generated from TypeScript definitions](./public/examples/indicator-3d.png)](/examples/indicator-3d.png)
 
-<figcaption>Native KiCad renders the saved board with its coin-cell holder, resistor and LED models.</figcaption>
+<figcaption>The framework generates this PCB from TypeScript circuit and layout definitions. Rendering the generated KiCad board lets you review the physical result before exporting manufacturing files.</figcaption>
 
 </figure></div>
 
 <span id="circuit-to-schematic"></span>
 
-## Circuit connections
+## Generate a KiCad schematic
 
 <div class="example-pair" data-example="circuit"><div>
 
@@ -36,13 +36,13 @@ schematics, PCB layouts, footprints and 3D models.
 
 </div><figure>
 
-[![Circuit connections](./public/examples/indicator-schematic.png)](/examples/indicator-schematic.png)
+[![KiCad schematic generated from a TypeScript circuit definition](./public/examples/indicator-schematic.png)](/examples/indicator-schematic.png)
 
-<figcaption>The battery, resistor and LED are connected in TypeScript and plotted from the generated native KiCad schematic.</figcaption>
+<figcaption>Define components and connect their pins in TypeScript. The framework turns those connections into a native KiCad schematic, shown here with routed wires.</figcaption>
 
 </figure></div>
 
-## Functional groups
+## Lay out schematics by function
 
 <div class="example-pair" data-example="groups"><div>
 
@@ -50,15 +50,15 @@ schematics, PCB layouts, footprints and 3D models.
 
 </div><figure>
 
-[![Functional groups](./public/examples/schematic-groups.png)](/examples/schematic-groups.png)
+[![Generated schematic with functional groups defined by decorators](./public/examples/schematic-groups.png)](/examples/schematic-groups.png)
 
-<figcaption>Decorated methods create the BATTERY and INDICATOR groups. The framework places their symbols and routes each group.</figcaption>
+<figcaption>Group circuit-building methods in code with decorators. The framework uses those groups to place symbols, route connections and label the generated schematic.</figcaption>
 
 </figure></div>
 
 <span id="placement-to-copper"></span>
 
-## Placement and front copper
+## Generate the PCB layout
 
 <div class="example-pair" data-example="copper"><div>
 
@@ -66,13 +66,13 @@ schematics, PCB layouts, footprints and 3D models.
 
 </div><figure>
 
-[![Placement and front copper](./public/examples/indicator-front.png)](/examples/indicator-front.png)
+[![Front copper of a PCB generated from TypeScript layout and routing definitions](./public/examples/indicator-front.png)](/examples/indicator-front.png)
 
-<figcaption>The 50 × 44 mm PCB has explicit component placement, routed traces and a filled front ground zone.</figcaption>
+<figcaption>Declare the board outline, component positions and copper rules in TypeScript. The framework generates the KiCad PCB and routes its connections; this front-copper view shows the result.</figcaption>
 
 </figure></div>
 
-## A front-panel drawing
+## Export front panels from code
 
 <div class="example-pair" data-example="front-panel"><div>
 
@@ -80,15 +80,15 @@ schematics, PCB layouts, footprints and 3D models.
 
 </div><figure>
 
-[![A front-panel drawing](./public/examples/front-panel.png)](/examples/front-panel.png)
+[![Front-panel outline, cutouts and engraving exported from a code definition](./public/examples/front-panel.png)](/examples/front-panel.png)
 
-<figcaption>A mechanical interface fixture supplies three face openings and a label anchor. The named panel exports its outline, cutouts and label to SVG and DXF.</figcaption>
+<figcaption>Define a mechanical interface and select it in a named panel definition. The framework exports the panel outline, openings and labels as SVG and DXF files.</figcaption>
 
 </figure></div>
 
 <span id="code-to-footprint"></span>
 
-## Rounded SMD pads
+## Generate KiCad footprints
 
 <div class="example-pair" data-example="smd"><div>
 
@@ -96,15 +96,15 @@ schematics, PCB layouts, footprints and 3D models.
 
 </div><figure>
 
-[![Rounded SMD pads](./public/examples/footprint.png)](/examples/footprint.png)
+[![KiCad footprint generated from TypeScript pad and silkscreen geometry](./public/examples/footprint.png)](/examples/footprint.png)
 
-<figcaption>Native KiCad plot of the two rounded pads and their silkscreen outline.</figcaption>
+<figcaption>Build pad geometry and silkscreen in TypeScript, then generate a native KiCad footprint for your component library. The preview comes from that generated footprint.</figcaption>
 
 </figure></div>
 
 <span id="code-to-mechanical-model"></span>
 
-## A mounting plate
+## Build and export 3D models
 
 <div class="example-pair" data-example="model"><div>
 
@@ -112,17 +112,17 @@ schematics, PCB layouts, footprints and 3D models.
 
 </div><figure>
 
-[![A mounting plate](./public/examples/model-isometric.png)](/examples/model-isometric.png)
+[![3D preview of a mechanical model built and exported from TypeScript](./public/examples/model-isometric.png)](/examples/model-isometric.png)
 
-<figcaption>The completed plate adds four mounting holes and exports to WRL, STL and 3MF.</figcaption>
+<figcaption>Define solids and cuts in TypeScript to generate a 3D model. Export the same geometry as WRL, STL or 3MF for PCB and mechanical design.</figcaption>
 
-[![Mounting plate viewed from above](./public/examples/model-top.png)](/examples/model-top.png)
+[![Top view of the same model generated from TypeScript](./public/examples/model-top.png)](/examples/model-top.png)
 
-<figcaption>Top view of the same exported model.</figcaption>
+<figcaption>Another view of the generated geometry lets you compare the openings and mounting holes with their definitions in code.</figcaption>
 
 </figure></div>
 
-## Board and mechanical assembly
+## Review boards and parts together
 
 <div class="example-pair" data-example="assembly"><div>
 
@@ -130,13 +130,13 @@ schematics, PCB layouts, footprints and 3D models.
 
 </div><figure>
 
-[![Board and mechanical assembly](./public/examples/assembly-isometric.png)](/examples/assembly-isometric.png)
+[![Generated PCB and mechanical models rendered in a code-defined assembly](./public/examples/assembly-isometric.png)](/examples/assembly-isometric.png)
 
-<figcaption>The saved board sits above a generated tray in the framework assembly viewer. This is a mechanical preview.</figcaption>
+<figcaption>Combine a generated PCB with mechanical models using assembly positions defined in code. The framework renders the assembled geometry so you can inspect how the parts sit together.</figcaption>
 
 </figure></div>
 
-## A generated datasheet
+## Generate component datasheets
 
 <div class="example-pair" data-example="datasheet"><div>
 
@@ -144,17 +144,17 @@ schematics, PCB layouts, footprints and 3D models.
 
 </div><figure>
 
-[![A generated datasheet](./public/examples/datasheet-1.png)](/examples/datasheet-1.png)
+[![PDF generated from footprint definitions and supplied component specifications](./public/examples/datasheet-1.png)](/examples/datasheet-1.png)
 
-<figcaption>The PDF contains source-supplied metadata, footprint drawings and pad-centre tables.</figcaption>
+<figcaption>Generate component PDFs from the same footprint definitions used in your KiCad library. The framework includes the supplied specifications, footprint drawings and pad-centre tables.</figcaption>
 
-[![Pad-centre table in generated PDF](./public/examples/datasheet-2.png)](/examples/datasheet-2.png)
+[![Generated PDF footprint drawing and pad-coordinate table](./public/examples/datasheet-2.png)](/examples/datasheet-2.png)
 
-<figcaption>A second page from the same generated PDF.</figcaption>
+<figcaption>The generated PDF pairs the footprint drawing with a table of pad coordinates from the same definition.</figcaption>
 
-[![Through-hole footprint in generated PDF](./public/examples/datasheet-3.png)](/examples/datasheet-3.png)
+[![Generated PDF drawing and pad-coordinate table for a second footprint](./public/examples/datasheet-3.png)](/examples/datasheet-3.png)
 
-<figcaption>A third page from the same generated PDF.</figcaption>
+<figcaption>A second footprint definition produces its own drawing and pad-centre table in the same PDF.</figcaption>
 
 </figure></div>
 

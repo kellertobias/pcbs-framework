@@ -6,7 +6,7 @@ Decorators allow you to add metadata to your schematic generation logic, helping
 
 <!-- generated-examples:start -->
 
-### Functional groups
+### Lay out schematics by function
 
 <div class="example-pair" data-example="groups"><div>
 
@@ -14,9 +14,9 @@ Decorators allow you to add metadata to your schematic generation logic, helping
 
 </div><figure>
 
-[![Functional groups](./public/examples/schematic-groups.png)](/examples/schematic-groups.png)
+[![Generated schematic with functional groups defined by decorators](./public/examples/schematic-groups.png)](/examples/schematic-groups.png)
 
-<figcaption>Decorated methods create the BATTERY and INDICATOR groups. The framework places their symbols and routes each group.</figcaption>
+<figcaption>Group circuit-building methods in code with decorators. The framework uses those groups to place symbols, route connections and label the generated schematic.</figcaption>
 
 </figure></div>
 
