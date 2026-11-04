@@ -1,3 +1,10 @@
+## [2.4.2](https://github.com/kellertobias/pcbs-framework/compare/v2.4.1...v2.4.2) (2026-11-04)
+
+
+### Bug Fixes
+
+* preserve native footprint points and readable schematic fields ([6e95b1d](https://github.com/kellertobias/pcbs-framework/commit/6e95b1d8746acd7be7277525b87fd87ac247eebc))
+
 ## [2.4.1](https://github.com/kellertobias/pcbs-framework/compare/v2.4.0...v2.4.1) (2026-11-04)
 
 
