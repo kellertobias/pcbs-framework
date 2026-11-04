@@ -195,3 +195,25 @@ describe('schematic parallel spacing', () => {
         ).not.toThrow();
     });
 });
+
+it.skipIf(!fs.existsSync(symbols))(
+    'creates ports for nets reaching components outside a generated sheet',
+    () => {
+        const snapshot = new Circuit()._generateWithCapture();
+        snapshot.components = snapshot.components.filter((component) => component.ref !== 'R3');
+        snapshot.schematicRouting = { interfaceComponents: [] };
+        const generator = new SchematicGenerator(
+            snapshot,
+            new SymbolLibrary([symbols]),
+            new UuidManager(),
+        );
+        const root = Parser.parse(generator.generate())[0] as SExpr[];
+        expect(
+            new Set(
+                children(root, 'global_label').map((label) => Parser.unquote(String(label[1]))),
+            ),
+        ).toEqual(new Set(['INTERNAL', 'RETURN']));
+        expect(children(root, 'wire').length).toBeGreaterThan(0);
+        expect(generator.errors).toEqual([]);
+    },
+);

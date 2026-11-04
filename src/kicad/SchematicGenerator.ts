@@ -1533,6 +1533,25 @@ export class SchematicGenerator {
                         point,
                         net: wire.netName,
                     });
+            // Merging collinear segments can remove every endpoint at a crossing.
+            // Preserve same-net crossings as explicit native KiCad junctions.
+            for (let i = 0; i < this._generatedWires.length; i++) {
+                const a = this._generatedWires[i];
+                for (const b of this._generatedWires.slice(i + 1)) {
+                    if (a.netName !== b.netName) continue;
+                    const aHorizontal = Math.abs(a.p1.y - a.p2.y) < 0.001;
+                    const bHorizontal = Math.abs(b.p1.y - b.p2.y) < 0.001;
+                    if (aHorizontal === bHorizontal) continue;
+                    const h = aHorizontal ? a : b,
+                        v = aHorizontal ? b : a;
+                    const point = { x: v.p1.x, y: h.p1.y };
+                    if (pointOnSegment(point, h.p1, h.p2) && pointOnSegment(point, v.p1, v.p2))
+                        points.set(`${a.netName}/${point.x}/${point.y}`, {
+                            point,
+                            net: a.netName,
+                        });
+                }
+            }
             for (const anchor of [...this.portAnchors, ...pinAnchors])
                 points.set(`${anchor.net}/${anchor.point.x}/${anchor.point.y}`, anchor);
             for (const { point, net } of points.values()) {
@@ -1590,6 +1609,7 @@ export class SchematicGenerator {
         }
         type Owner = Composable | string | undefined;
         const byNet = new Map<Net, { pin: Pin; owner: Owner; position: PinPos }[]>();
+        const drawingRefs = new Set(this.snapshot.components.map((component) => component.ref));
         for (const component of this.snapshot.components) {
             if (component.symbol === 'Device:DNC') continue;
             for (const pin of new Set(component.allPins.values())) {
@@ -1684,10 +1704,14 @@ export class SchematicGenerator {
                 ) ?? [];
             if (this.layoutReport && powerSymbol) {
                 const byComponent = new Map<string, string[]>();
-                for (const { pin } of points) {
-                    const terminals = byComponent.get(pin.component.ref) ?? [];
+                for (const { pin, owner } of points) {
+                    // Split symbol units can occupy different functional groups.
+                    // Their local power glyphs must never create inter-group wires.
+                    const ownerKey = typeof owner === 'string' ? owner : (owner?.ref ?? 'host');
+                    const key = `${ownerKey}/${pin.component.ref}`;
+                    const terminals = byComponent.get(key) ?? [];
                     terminals.push(`${pin.component.ref}.${pin.name}`);
-                    byComponent.set(pin.component.ref, terminals);
+                    byComponent.set(key, terminals);
                 }
                 for (const terminals of byComponent.values()) {
                     const positions = terminals.map(
@@ -1748,6 +1772,7 @@ export class SchematicGenerator {
                 const boundary =
                     groups.size > 1 ||
                     this.snapshot.schematicRouting?.externalNets?.includes(net.name) ||
+                    net.pins.some((pin) => !pin.isDNC && !drawingRefs.has(pin.component.ref)) ||
                     (interfaceNet && !net.name.startsWith(`${ownerRef}_`));
                 if (powerSymbol) {
                     const p = group[0].position;

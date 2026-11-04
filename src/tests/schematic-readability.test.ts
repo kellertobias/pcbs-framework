@@ -204,3 +204,29 @@ it('keeps an inline one-pin probe on a straight signal spine instead of routing 
     ).toBe(true);
     expect(gen.warnings).toEqual([]);
 });
+
+it('adds a junction at same-net wire crossings after collinear merging removes their endpoints', () => {
+    const snapshot = new InlineProbeCircuit()._generateWithCapture();
+    snapshot.components = [];
+    const generator = new SchematicGenerator(snapshot, new SymbolLibrary([]), new UuidManager());
+    const junctionPass = generator as unknown as {
+        _generatedWires: Array<{
+            p1: { x: number; y: number };
+            p2: { x: number; y: number };
+            netName: string;
+        }>;
+        generateJunctions(): SExpr[][];
+    };
+    junctionPass._generatedWires = [
+        { p1: { x: 20.32, y: 50.8 }, p2: { x: 101.6, y: 50.8 }, netName: 'SIGNAL' },
+        { p1: { x: 50.8, y: 20.32 }, p2: { x: 50.8, y: 101.6 }, netName: 'SIGNAL' },
+        { p1: { x: 76.2, y: 20.32 }, p2: { x: 76.2, y: 101.6 }, netName: 'FOREIGN' },
+    ];
+    const junctions = junctionPass.generateJunctions();
+    expect(junctions).toHaveLength(1);
+    expect(junctions[0].find((node) => Array.isArray(node) && node[0] === 'at')).toEqual([
+        'at',
+        '50.8',
+        '50.8',
+    ]);
+});
